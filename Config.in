@@ -1,0 +1,54 @@
+config UTILS_BTRACE
+	bool "Backtrace support"
+	default n
+	help
+	  Build utils library with support for libbtrace.
+
+config UTILS_ASSERT
+	bool "Assertion"
+	default n
+	help
+	  Build utils library assertion framework.
+
+config UTILS_ASSERT_INTERNAL
+	bool "Internal assertion"
+	select UTILS_ASSERT
+	default n
+	help
+	  Build utils library with internal assertions enabled.
+
+config UTILS_BITOPS
+	bool "Bit operations"
+	default y
+	help
+	  Build utils library bit operations framework.
+
+config UTILS_ATOMIC
+	bool "Atomic operations"
+	default y
+	help
+	  Build utils library atomic operations framework.
+
+config UTILS_POW2
+	bool "Power of 2 operations"
+	default y
+	help
+	  Build utils library power of 2 operations framework.
+
+config UTILS_SIGNAL
+	bool "Signals"
+	default y
+	help
+	  Build utils library POSIX signal wrappers.
+
+config UTILS_THREAD
+	bool "Threads"
+	default y
+	help
+	  Build utils library POSIX thread wrappers.
+
+config UTILS_TIME
+	bool "Time"
+	default y
+	help
+	  Build utils library POSIX clock and time wrappers.
