@@ -5,6 +5,7 @@ solibs              := libutils.so
 libutils.so-objs     = $(call kconf_enabled,UTILS_ASSERT,assert.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_THREAD,thread.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_TIME,time.o)
+libutils.so-objs    += $(call kconf_enabled,UTILS_BITMAP,bitmap.o)
 libutils.so-cflags  := $(EXTRA_CFLAGS) -Wall -Wextra -D_GNU_SOURCE -DPIC -fpic
 libutils.so-cflags  += $(call kconf_enabled,UTILS_THREAD,-pthread)
 libutils.so-ldflags  = $(EXTRA_LDFLAGS) -shared -fpic -Wl,-soname,libutils.so
@@ -20,6 +21,7 @@ headers             += $(call kconf_enabled,UTILS_POW2,utils/pow2.h)
 headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
 headers             += $(call kconf_enabled,UTILS_TIME,utils/time.h)
+headers             += $(call kconf_enabled,UTILS_BITMAP,utils/bitmap.h)
 
 define libutils_pkgconf_tmpl
 prefix=$(PREFIX)

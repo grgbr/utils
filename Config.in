@@ -23,6 +23,12 @@ config UTILS_BITOPS
 	help
 	  Build utils library bit operations framework.
 
+config UTILS_BITMAP
+	bool "Bitmap"
+	default y
+	help
+	  Build utils library bitmap framework.
+
 config UTILS_ATOMIC
 	bool "Atomic operations"
 	default y
