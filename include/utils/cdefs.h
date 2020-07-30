@@ -36,6 +36,9 @@
 #define __const \
 	__attribute__((const))
 
+#define __packed \
+	__attribute__((packed))
+
 #define __align(_size) \
 	__attribute__((aligned(_size)))
 
