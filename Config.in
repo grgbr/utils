@@ -72,3 +72,10 @@ config UTILS_FILE
 	help
 	  Build utils library POSIX filesystem file wrappers.
 
+config UTILS_DIR
+	bool "Directory"
+	default y
+	select UTILS_PATH
+	help
+	  Build utils library POSIX filesystem directory wrappers.
+
