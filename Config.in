@@ -1,9 +1,3 @@
-config UTILS_BTRACE
-	bool "Backtrace support"
-	default n
-	help
-	  Build utils library with support for libbtrace.
-
 config UTILS_ASSERT
 	bool "Assertion"
 	default n

@@ -14,7 +14,6 @@ libutils.so-objs    += $(call kconf_enabled,UTILS_PILE,pile.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_STR,string.o)
 libutils.so-cflags  += $(call kconf_enabled,UTILS_THREAD,-pthread)
 libutils.so-ldflags  = $(EXTRA_LDFLAGS) -shared -fpic -Wl,-soname,libutils.so
-libutils.so-ldflags += $(call kconf_enabled,UTILS_BTRACE,-rdynamic)
 libutils.so-ldflags += $(call kconf_enabled,UTILS_THREAD,-pthread)
 
 HEADERDIR           := $(CURDIR)/include
