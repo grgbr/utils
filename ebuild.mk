@@ -22,6 +22,7 @@ headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
 headers             += $(call kconf_enabled,UTILS_TIME,utils/time.h)
 headers             += $(call kconf_enabled,UTILS_BITMAP,utils/bitmap.h)
+headers             += $(call kconf_enabled,UTILS_PATH,utils/path.h)
 
 define libutils_pkgconf_tmpl
 prefix=$(PREFIX)

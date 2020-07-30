@@ -58,3 +58,10 @@ config UTILS_TIME
 	default y
 	help
 	  Build utils library POSIX clock and time wrappers.
+
+config UTILS_PATH
+	bool "Filesystem paths"
+	default y
+	help
+	  Build utils library POSIX filesystem paths manipulation utilities.
+
