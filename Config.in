@@ -79,6 +79,12 @@ config UTILS_DIR
 	help
 	  Build utils library POSIX filesystem directory wrappers.
 
+config UTILS_DLIST
+	bool "Doubly linked list"
+	default y
+	help
+	  Build utils library with doubly linked list support.
+
 config UTILS_STR
 	bool "String utilities"
 	default y
