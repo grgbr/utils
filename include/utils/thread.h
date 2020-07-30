@@ -429,13 +429,14 @@ uthr_fini_cond(struct uthr_cond *cond)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
-extern int __uthr_nonull(1, 2)
+extern int
 uthr_timed_wait_cond_msec(struct uthr_cond  *restrict cond,
                           struct uthr_mutex *restrict mutex,
-                          unsigned long      tmout_msec);
+                          unsigned long      tmout_msec) __uthr_nonull(1, 2);
 
-extern int __uthr_nonull(1) __nothrow __leaf
-uthr_init_cond(struct uthr_cond *cond, clockid_t clock);
+extern int
+uthr_init_cond(struct uthr_cond *cond,
+               clockid_t         clock) __uthr_nonull(1) __nothrow __leaf;
 
 /*
  * As stated in man (3) pthread_kill, glibc implementation gives an error
