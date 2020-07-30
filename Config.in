@@ -65,3 +65,10 @@ config UTILS_PATH
 	help
 	  Build utils library POSIX filesystem paths manipulation utilities.
 
+config UTILS_FILE
+	bool "File"
+	default y
+	select UTILS_PATH
+	help
+	  Build utils library POSIX filesystem file wrappers.
+
