@@ -79,3 +79,8 @@ config UTILS_DIR
 	help
 	  Build utils library POSIX filesystem directory wrappers.
 
+config UTILS_STR
+	bool "String utilities"
+	default y
+	help
+	  Build utils library with string utilities support.
