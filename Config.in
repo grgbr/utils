@@ -79,6 +79,14 @@ config UTILS_DIR
 	help
 	  Build utils library POSIX filesystem directory wrappers.
 
+config UTILS_PILE
+	bool "Pile"
+	select UTILS_DLIST
+	default y
+	help
+	  Build utils library with piles support. Piles are unordered
+	  collections of dynamically allocated objects.
+
 config UTILS_DLIST
 	bool "Doubly linked list"
 	default y
