@@ -97,6 +97,18 @@
 		(__a > __b) ? __a : __b; \
 	 })
 
+#define __ualign_mask(_value, _align) \
+	((typeof(_value))(_align) - 1)
+
+#define ualign_mask(_align) \
+	((_align) - 1)
+
+#define ualign_lower(_value, _align) \
+	((_value) & ~__ualign_mask(_value, _align))
+
+#define ualign_upper(_value, _align) \
+	ualign_lower((_value) + __ualign_mask(_value, _align), _align)
+
 #if __WORDSIZE == 64
 #define __UINTPTR_C(c) c ## UL
 #define UWORD_SHIFT    (6)
