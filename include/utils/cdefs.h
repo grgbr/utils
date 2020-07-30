@@ -9,6 +9,9 @@
 #define __unused \
 	__attribute__((unused))
 
+#define __warn_result \
+	__attribute__((warn_unused_result))
+
 #define __noreturn \
 	__attribute__((noreturn))
 
