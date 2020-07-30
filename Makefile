@@ -1,4 +1,4 @@
-EBUILDDIR     := $(CURDIR)/ebuild
+#EBUILDDIR     := $(CURDIR)/ebuild
 PACKAGE       := utils
 EXTRA_CFLAGS  := -O2 -DNDEBUG
 EXTRA_LDFLAGS := -O2
