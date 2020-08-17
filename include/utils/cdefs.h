@@ -149,4 +149,13 @@
 	                  15, 14, 13, 12, 11, 10,  9,  8, \
 	                   7,  6,  5,  4,  3,  2,  1,  0)
 
+
+static inline unsigned int __pure __nothrow
+usys_page_size(void)
+{
+	extern unsigned int usys_pgsz;
+
+	return usys_pgsz;
+}
+
 #endif /* _UTILS_H */

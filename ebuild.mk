@@ -2,7 +2,8 @@ config-in           := Config.in
 config-h            := utils/config.h
 
 solibs              := libutils.so
-libutils.so-objs     = $(call kconf_enabled,UTILS_ASSERT,assert.o)
+libutils.so-objs     = sys.o
+libutils.so-objs    += $(call kconf_enabled,UTILS_ASSERT,assert.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_THREAD,thread.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_TIME,time.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_BITMAP,bitmap.o)
