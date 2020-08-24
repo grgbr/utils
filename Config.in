@@ -92,3 +92,10 @@ config UTILS_STR
 	default y
 	help
 	  Build utils library with string utilities support.
+
+config UTILS_NET
+	bool "Network object utilities"
+	select UTILS_STR
+	default y
+	help
+	  Build utils library with network object related utilities support.

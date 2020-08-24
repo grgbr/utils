@@ -33,6 +33,7 @@ headers             += $(call kconf_enabled,UTILS_DIR,utils/dir.h)
 headers             += $(call kconf_enabled,UTILS_DLIST,utils/dlist.h)
 headers             += $(call kconf_enabled,UTILS_DLIST,utils/string.h)
 headers             += $(call kconf_enabled,UTILS_PILE,utils/pile.h)
+headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 
 define libutils_pkgconf_tmpl
 prefix=$(PREFIX)
