@@ -20,7 +20,7 @@
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 static inline ssize_t
-unet_iface_check_name(const char *name)
+unet_check_iface_name(const char *name)
 {
 	unet_assert(name);
 
@@ -28,7 +28,7 @@ unet_iface_check_name(const char *name)
 }
 
 static inline bool
-unet_iface_mtu_is_valid(uint32_t mtu)
+unet_mtu_isok(uint32_t mtu)
 {
 	return mtu && (mtu <= ETH_MAX_MTU);
 }
