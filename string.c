@@ -1,6 +1,21 @@
 #include <utils/string.h>
 #include <stdlib.h>
 
+size_t
+ustr_prefix_len(const char *string,
+                size_t      str_len,
+                const char *prefix,
+                size_t      pref_len)
+{
+	ustr_assert(string);
+	ustr_assert(prefix);
+
+	if (!str_len || ! pref_len || (pref_len > str_len))
+		return 0;
+
+	return memcmp(string, prefix, pref_len) ? 0 : pref_len;
+}
+
 char *
 ustr_clone(const char *orig, size_t len)
 {

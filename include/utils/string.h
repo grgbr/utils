@@ -19,6 +19,42 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+extern size_t
+ustr_prefix_len(const char *string,
+                size_t      str_len,
+                const char *prefix,
+                size_t      pref_len);
+
+static inline size_t
+ustr_skip_char(const char *string, int ch, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(ch);
+	ustr_assert(size);
+
+	const char *str = string;
+
+	while ((str < (string + size)) && (*str == ch))
+		str++;
+
+	return str - string;
+}
+
+static inline size_t
+ustr_skip_notchar(const char *string, int ch, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(ch);
+	ustr_assert(size);
+
+	const char *str = string;
+
+	while ((str < (string + size)) && *str && (*str != ch))
+		str++;
+
+	return str - string;
+}
+
 static inline ssize_t
 ustr_parse(const char *str, size_t max_size)
 {
