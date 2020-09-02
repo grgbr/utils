@@ -3,6 +3,7 @@
 
 #include <utils/cdefs.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -71,6 +72,20 @@ upath_is_file_name(const char *path, size_t len)
 	upath_assert(upath_validate_path_name(path) == (ssize_t)len);
 
 	return !memchr(path, '/', len);
+}
+
+extern ssize_t
+upath_normalize(const char *path,
+                size_t      path_size,
+                char       *norm,
+                size_t      norm_size);
+
+static inline char *
+upath_alloc_resolve(const char *path)
+{
+	upath_assert(path);
+
+	return realpath(path, NULL);
 }
 
 #endif /* _UTILS_PATH_H */

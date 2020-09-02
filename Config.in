@@ -56,6 +56,7 @@ config UTILS_TIME
 config UTILS_PATH
 	bool "Filesystem paths"
 	default y
+	select UTILS_STR
 	help
 	  Build utils library POSIX filesystem paths manipulation utilities.
 
