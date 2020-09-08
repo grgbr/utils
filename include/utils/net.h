@@ -19,6 +19,24 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+#define UNET_IFACE_SYSPATH_PREFIX "/sys/devices"
+#define UNET_IFACE_SYSPATH_MAX    (64U)
+
+static inline ssize_t
+unet_check_iface_syspath(const char *syspath)
+{
+	unet_assert(syspath);
+
+	return (*syspath) ? ustr_parse(syspath, UNET_IFACE_SYSPATH_MAX) :
+	                    -ENOENT;
+}
+
+extern ssize_t
+unet_resolve_iface_syspath(const char *orig, char **abs);
+
+extern ssize_t
+unet_normalize_iface_syspath(const char *orig, char **norm);
+
 static inline ssize_t
 unet_check_iface_name(const char *name)
 {
@@ -32,6 +50,9 @@ unet_mtu_isok(uint32_t mtu)
 {
 	return mtu && (mtu <= ETH_MAX_MTU);
 }
+
+#define UNET_HWADDR_STRING_MAX \
+	(sizeof_member(struct ether_addr, ether_addr_octet) *  3)
 
 /**
  * unet_hwaddr_is_laa() - Check wether a EUI-48 MAC address is locally

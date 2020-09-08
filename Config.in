@@ -97,6 +97,7 @@ config UTILS_STR
 config UTILS_NET
 	bool "Network object utilities"
 	select UTILS_STR
+	select UTILS_PATH
 	default y
 	help
 	  Build utils library with network object related utilities support.
