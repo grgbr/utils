@@ -41,6 +41,21 @@ ustr_skip_char(const char *string, int ch, size_t size)
 }
 
 static inline size_t
+ustr_rskip_char(const char *string, int ch, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(ch);
+	ustr_assert(size);
+
+	const char *str = string + size - 1;
+
+	while ((str >= string) && (*str == ch))
+		str--;
+
+	return size - (size_t)((str + 1) - string);
+}
+
+static inline size_t
 ustr_skip_notchar(const char *string, int ch, size_t size)
 {
 	ustr_assert(string);
@@ -53,6 +68,24 @@ ustr_skip_notchar(const char *string, int ch, size_t size)
 		str++;
 
 	return str - string;
+}
+
+static inline size_t
+ustr_rskip_notchar(const char *string, int ch, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(ch);
+	ustr_assert(size);
+
+	const char *str = string + size - 1;
+
+	if (!*str)
+		return 0;
+
+	while ((str >= string) && (*str != ch))
+		str--;
+
+	return size - (size_t)((str + 1) - string);
 }
 
 static inline ssize_t

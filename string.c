@@ -16,6 +16,23 @@ ustr_prefix_len(const char *string,
 	return memcmp(string, prefix, pref_len) ? 0 : pref_len;
 }
 
+size_t
+ustr_suffix_len(const char *string,
+                size_t      str_len,
+                const char *suffix,
+                size_t      suff_len)
+{
+	ustr_assert(string);
+	ustr_assert(suffix);
+
+	if (!str_len || ! suff_len || (suff_len > str_len))
+		return 0;
+
+	return memcmp(string + str_len - suff_len,
+	              suffix,
+	              suff_len) ? 0 : suff_len;
+}
+
 char *
 ustr_clone(const char *orig, size_t len)
 {
