@@ -1,12 +1,11 @@
 #include <utils/path.h>
 #include <utils/string.h>
 
-struct upath_comp {
-	const char *start;
-	size_t      len;
-};
+/******************************************************************************
+ * Path component handling
+ ******************************************************************************/
 
-static int
+int
 upath_next_comp(struct upath_comp *comp, const char *path, size_t size)
 {
 	upath_assert(comp);
@@ -32,38 +31,119 @@ upath_next_comp(struct upath_comp *comp, const char *path, size_t size)
 		return 0;
 }
 
-static int
-upath_prev_comp(struct upath_comp *comp, const char *path, const char *end)
+int
+upath_prev_comp(struct upath_comp *comp, const char *path, size_t size)
 {
 	upath_assert(comp);
 	upath_assert(path);
-	upath_assert(end);
-	upath_assert(end >= path);
+	upath_assert(size);
 
-	if ((end - path) > 1) {
-		upath_assert(*(end - 1) == '/');
+	size_t len;
 
-		const char *prev = end;
+	len = ustr_rskip_char(path, '/', size);
 
-		do {
-			prev--;
-		} while ((prev > path) &&
-		         (*(prev - 1) != '/') &&
-		         (*(prev - 1) != '.'));
+	if (size - len)
+		comp->len = ustr_rskip_notchar(path, '/', size - len);
+	else
+		comp->len = 0;
 
-		if (prev < (end - 1)) {
-			comp->start = prev;
-			comp->len = (end - 1) - prev;
-			upath_assert(comp->len);
-			return 0;
-		}
+	comp->start = path + size - (len + comp->len);
 
-		upath_assert(*path != '/');
+	upath_assert((comp->start + comp->len) <= (path + size));
+	if (!comp->len)
 		return -ENOENT;
+	else if (comp->len >= NAME_MAX)
+		return -ENAMETOOLONG;
+	else
+		return 0;
+}
+
+/******************************************************************************
+ * Path components iterator
+ ******************************************************************************/
+
+const struct upath_comp *
+upath_comp_iter_next(struct upath_comp_iter *iter)
+{
+	upath_assert(iter);
+	upath_assert(iter->stop);
+	upath_assert((iter->curr.start + iter->curr.len) <= iter->stop);
+
+	int         err;
+	const char *next = iter->curr.start + iter->curr.len;
+	size_t      sz = iter->stop - next;
+
+	if (!sz) {
+		errno = ENOENT;
+		return NULL;
 	}
 
-	return  (*path == '/') ? -EPERM : -ENOENT;
+	err = upath_next_comp(&iter->curr, next, iter->stop - next);
+	if (err) {
+		errno = -err;
+		return NULL;
+	}
+
+	return &iter->curr;
 }
+
+const struct upath_comp *
+upath_comp_iter_first(struct upath_comp_iter *iter,
+                      const char             *path,
+                      size_t                  size)
+{
+	upath_assert(iter);
+	upath_assert(path);
+
+	iter->curr.start = path;
+	iter->curr.len = 0;
+	iter->stop = path + size;
+
+	return upath_comp_iter_next(iter);
+}
+
+const struct upath_comp *
+upath_comp_iter_prev(struct upath_comp_iter *iter)
+{
+	upath_assert(iter);
+	upath_assert(iter->stop);
+	upath_assert(iter->curr.start >= iter->stop);
+
+	int    err;
+	size_t sz = iter->curr.start - iter->stop;
+
+	if (!sz) {
+		errno = ENOENT;
+		return NULL;
+	}
+
+	err = upath_prev_comp(&iter->curr, iter->stop, sz);
+	if (err) {
+		errno = -err;
+		return NULL;
+	}
+
+	return &iter->curr;
+}
+
+const struct upath_comp *
+upath_comp_iter_last(struct upath_comp_iter *iter,
+                     const char             *path,
+                     size_t                  size)
+{
+	upath_assert(iter);
+	upath_assert(path);
+
+	iter->curr.start = path + size;
+	iter->curr.len = 0;
+	iter->stop = path;
+
+	return upath_comp_iter_prev(iter);
+}
+
+/******************************************************************************
+ * Path normalization
+ ******************************************************************************/
 
 ssize_t
 upath_normalize(const char *path,
@@ -101,29 +181,30 @@ upath_normalize(const char *path,
 		upath_assert(comp.start < path_end);
 		path_ptr = comp.start + comp.len;
 
-		if ((comp.len == 1) && (*comp.start == '.'))
+		if (upath_comp_is_current(&comp))
 			/* Skip '.' path component. */
 			continue;
 
-		if ((comp.len == 2) &&
-		    (*comp.start == '.') && (*(comp.start + 1) == '.')) {
+		if (upath_comp_is_parent(&comp) && (norm_ptr > norm)) {
 			/* Get back up along the computed path. */
 			struct upath_comp prev;
 
-			err = upath_prev_comp(&prev, norm, norm_ptr);
+			err = upath_prev_comp(&prev, norm, norm_ptr - norm);
+			upath_assert(!err || (err == -ENOENT));
 			if (!err) {
-				/*
-				 * An upper path component exists: make current
-				 * normalized path point to it and go processing
-				 * next path component.
-				 */
-				upath_assert(prev.len == (size_t)
-				                         ((norm_ptr - 1) -
-				                          prev.start));
-				norm_ptr = (char *)prev.start;
-				continue;
+				/* An upper path component exists... */
+				if (!upath_comp_is_parent(&prev)) {
+					/*
+					 * ...and it is not a parent directory.
+					 * Make current normalized path point to
+					 * it and go processing next path
+					 * component.
+					 */
+					norm_ptr = (char *)prev.start;
+					continue;
+				}
 			}
-			else if (err == -EPERM) {
+			else if (*norm == '/')
 				/*
 				 * We are already at the root of an absolute
 				 * path: we cannot go any further up.  Just
@@ -132,20 +213,20 @@ upath_normalize(const char *path,
 				 * processing next path component.
 				 */
 				continue;
-			}
 
 			/*
 			 * We are computing a relative path and we are already
 			 * at the uppermost directory, i.e. all previous
-			 * components are made of a succession of '../' pattern.
+			 * components are made of a succession of '../' pattern
+			 * (or no upper component exists).
 			 * Hence, we need to append an additional '../' entry to
 			 * the normalized path.
 			 */
-			upath_assert(err == -ENOENT);
+			upath_assert(*norm != '/');
 		}
 
 		if ((norm_ptr + comp.len) >= norm_end)
-			/* No more room to store curr path component. */
+			/* No more room to store current path component. */
 			return -ENAMETOOLONG;
 
 		/* Copy current path component to normalized path. */

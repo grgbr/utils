@@ -31,6 +31,10 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+/******************************************************************************
+ * Path name checkers
+ ******************************************************************************/
+
 static inline ssize_t __upath_nonull(1) __upath_pure __nothrow
 upath_validate_path(const char *path, size_t max_size)
 {
@@ -74,6 +78,74 @@ upath_is_file_name(const char *path, size_t len)
 	return !memchr(path, '/', len);
 }
 
+/******************************************************************************
+ * Path components iterator
+ ******************************************************************************/
+
+struct upath_comp {
+	const char *start;
+	size_t      len;
+};
+
+static inline bool
+upath_comp_is_current(const struct upath_comp *comp)
+{
+	upath_assert(comp);
+
+	return (comp->len == 1) && (*comp->start == '.');
+}
+
+static inline bool
+upath_comp_is_parent(const struct upath_comp *comp)
+{
+	upath_assert(comp);
+
+	return (comp->len == 2) &&
+	       (*comp->start == '.') &&
+	       (*(comp->start + 1) == '.');
+}
+
+extern int
+upath_next_comp(struct upath_comp *comp, const char *path, size_t size);
+
+extern int
+upath_prev_comp(struct upath_comp *comp, const char *path, size_t size);
+
+struct upath_comp_iter {
+	struct upath_comp  curr;
+	const char        *stop;
+};
+
+extern const struct upath_comp *
+upath_comp_iter_next(struct upath_comp_iter *iter);
+
+extern const struct upath_comp *
+upath_comp_iter_first(struct upath_comp_iter *iter,
+                      const char             *path,
+                      size_t                  size);
+
+#define upath_foreach_comp_forward(_iter, _comp, _path, _size) \
+	for (_comp = upath_comp_iter_first(_iter, _path, _size); \
+	     _comp; \
+	     _comp = upath_comp_iter_next(_iter))
+
+extern const struct upath_comp *
+upath_comp_iter_prev(struct upath_comp_iter *iter);
+
+extern const struct upath_comp *
+upath_comp_iter_last(struct upath_comp_iter *iter,
+                     const char             *path,
+                     size_t                  size);
+
+#define upath_foreach_comp_backward(_iter, _comp, _path, _size) \
+	for (_comp = upath_comp_iter_last(_iter, _path, _size); \
+	     _comp; \
+	     _comp = upath_comp_iter_prev(_iter))
+
+/******************************************************************************
+ * Path normalization
+ ******************************************************************************/
+
 extern ssize_t
 upath_normalize(const char *path,
                 size_t      path_size,
@@ -81,7 +153,7 @@ upath_normalize(const char *path,
                 size_t      norm_size);
 
 static inline char *
-upath_alloc_resolve(const char *path)
+upath_resolve(const char *path)
 {
 	upath_assert(path);
 
