@@ -89,11 +89,12 @@ ustr_parse_bool(const char *string, bool *value)
 	return ret;
 }
 
-int
-ustr_parse_ullong(const char *string, unsigned long long *value)
+static int
+_ustr_parse_ullong(const char *string, unsigned long long *value, int base)
 {
 	ustr_assert(string);
 	ustr_assert(value);
+	ustr_assert(!base || (base >= 2 && base <= 36));
 
 	unsigned long long  val;
 	char               *err;
@@ -101,13 +102,19 @@ ustr_parse_ullong(const char *string, unsigned long long *value)
 	if (!*string)
 		return -EINVAL;
 
-	val = strtoull(string, &err, 0);
+	val = strtoull(string, &err, base);
 	if (*err)
 		return -EINVAL;
 
 	*value = val;
 
 	return 0;
+}
+
+int
+ustr_parse_ullong(const char *string, unsigned long long *value)
+{
+	return _ustr_parse_ullong(string, value, 0);
 }
 
 int
@@ -123,6 +130,36 @@ ustr_parse_ullong_range(const char         *string,
 	int                err;
 
 	err = ustr_parse_ullong(string, &val);
+	if (err)
+		return err;
+
+	if ((val < min) || (val > max))
+		return -ERANGE;
+
+	*value = val;
+
+	return 0;
+}
+
+int
+ustr_parse_xllong(const char *string, unsigned long long *value)
+{
+	return _ustr_parse_ullong(string, value, 16);
+}
+
+int
+ustr_parse_xllong_range(const char         *string,
+                        unsigned long long *value,
+                        unsigned long long  min,
+                        unsigned long long  max)
+{
+	ustr_assert(string);
+	ustr_assert(value);
+
+	unsigned long long val;
+	int                err;
+
+	err = ustr_parse_xllong(string, &val);
 	if (err)
 		return err;
 
@@ -179,11 +216,12 @@ ustr_parse_llong_range(const char *string,
 	return 0;
 }
 
-int
-ustr_parse_ulong(const char *string, unsigned long *value)
+static int
+_ustr_parse_ulong(const char *string, unsigned long *value, int base)
 {
 	ustr_assert(string);
 	ustr_assert(value);
+	ustr_assert(!base || (base >= 2 && base <= 36));
 
 	unsigned long  val;
 	char          *err;
@@ -191,13 +229,19 @@ ustr_parse_ulong(const char *string, unsigned long *value)
 	if (!*string)
 		return -EINVAL;
 
-	val = strtoul(string, &err, 0);
+	val = strtoul(string, &err, base);
 	if (*err)
 		return -EINVAL;
 
 	*value = val;
 
 	return 0;
+}
+
+int
+ustr_parse_ulong(const char *string, unsigned long *value)
+{
+	return _ustr_parse_ulong(string, value, 0);
 }
 
 int
@@ -213,6 +257,36 @@ ustr_parse_ulong_range(const char    *string,
 	int           err;
 
 	err = ustr_parse_ulong(string, &val);
+	if (err)
+		return err;
+
+	if ((val < min) || (val > max))
+		return -ERANGE;
+
+	*value = val;
+
+	return 0;
+}
+
+int
+ustr_parse_xlong(const char *string, unsigned long *value)
+{
+	return _ustr_parse_ulong(string, value, 16);
+}
+
+int
+ustr_parse_xlong_range(const char    *string,
+                       unsigned long *value,
+                       unsigned long  min,
+                       unsigned long  max)
+{
+	ustr_assert(string);
+	ustr_assert(value);
+
+	unsigned long val;
+	int           err;
+
+	err = ustr_parse_xlong(string, &val);
 	if (err)
 		return err;
 
@@ -291,6 +365,30 @@ ustr_parse_uint_range(const char   *string,
 }
 
 int
+ustr_parse_xint_range(const char   *string,
+                      unsigned int *value,
+                      unsigned int  min,
+                      unsigned int  max)
+{
+	ustr_assert(string);
+	ustr_assert(value);
+
+	unsigned long val;
+	int           err;
+
+	err = ustr_parse_xlong(string, &val);
+	if (err)
+		return err;
+
+	if ((val < (unsigned long)min) || (val > (unsigned long)max))
+		return -ERANGE;
+
+	*value = (unsigned int)val;
+
+	return 0;
+}
+
+int
 ustr_parse_int_range(const char *string, int *value, int min, int max)
 {
 	ustr_assert(string);
@@ -336,6 +434,30 @@ ustr_parse_ushrt_range(const char     *string,
 }
 
 int
+ustr_parse_xshrt_range(const char     *string,
+                       unsigned short *value,
+                       unsigned short  min,
+                       unsigned short  max)
+{
+	ustr_assert(string);
+	ustr_assert(value);
+
+	unsigned long val;
+	int           err;
+
+	err = ustr_parse_xlong(string, &val);
+	if (err)
+		return err;
+
+	if ((val < (unsigned long)min) || (val > (unsigned long)max))
+		return -ERANGE;
+
+	*value = (unsigned short)val;
+
+	return 0;
+}
+
+int
 ustr_parse_shrt_range(const char *string, short *value, short min, short max)
 {
 	ustr_assert(string);
@@ -369,6 +491,30 @@ ustr_parse_uchar_range(const char    *string,
 	int           err;
 
 	err = ustr_parse_ulong(string, &val);
+	if (err)
+		return err;
+
+	if ((val < (unsigned long)min) || (val > (unsigned long)max))
+		return -ERANGE;
+
+	*value = (unsigned char)val;
+
+	return 0;
+}
+
+int
+ustr_parse_xchar_range(const char    *string,
+                       unsigned char *value,
+                       unsigned char  min,
+                       unsigned char  max)
+{
+	ustr_assert(string);
+	ustr_assert(value);
+
+	unsigned long val;
+	int           err;
+
+	err = ustr_parse_xlong(string, &val);
 	if (err)
 		return err;
 

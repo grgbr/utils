@@ -34,6 +34,15 @@ ustr_parse_ullong_range(const char         *string,
                         unsigned long long  max);
 
 extern int
+ustr_parse_xllong(const char *string, unsigned long long *value);
+
+extern int
+ustr_parse_xllong_range(const char         *string,
+                        unsigned long long *value,
+                        unsigned long long  min,
+                        unsigned long long  max);
+
+extern int
 ustr_parse_llong(const char *string, long long *value);
 
 extern int
@@ -47,6 +56,15 @@ ustr_parse_ulong(const char *string, unsigned long *value);
 
 extern int
 ustr_parse_ulong_range(const char    *string,
+                       unsigned long *value,
+                       unsigned long  min,
+                       unsigned long  max);
+
+extern int
+ustr_parse_xlong(const char *string, unsigned long *value);
+
+extern int
+ustr_parse_xlong_range(const char    *string,
                        unsigned long *value,
                        unsigned long  min,
                        unsigned long  max);
@@ -66,6 +84,12 @@ ustr_parse_uint64(const char *string, uint64_t *value)
 }
 
 static inline int
+ustr_parse_x64(const char *string, uint64_t *value)
+{
+	return ustr_parse_xlong(string, value);
+}
+
+static inline int
 ustr_parse_int64(const char *string, int64_t *value)
 {
 	return ustr_parse_long(string, value);
@@ -77,6 +101,12 @@ static inline int
 ustr_parse_uint64(const char *string, uint64_t *value)
 {
 	return ustr_parse_ullong(string, value);
+}
+
+static inline int
+ustr_parse_xint64(const char *string, uint64_t *value)
+{
+	return ustr_parse_xllong(string, value);
 }
 
 static inline int
@@ -105,6 +135,24 @@ static inline int
 ustr_parse_uint32(const char *string, uint32_t *value)
 {
 	return ustr_parse_uint(string, value);
+}
+
+extern int
+ustr_parse_xint_range(const char   *string,
+                      unsigned int *value,
+                      unsigned int  min,
+                      unsigned int  max);
+
+static inline int
+ustr_parse_xint(const char *string, unsigned int *value)
+{
+	return ustr_parse_xint_range(string, value, 0U, UINT_MAX);
+}
+
+static inline int
+ustr_parse_x32(const char *string, uint32_t *value)
+{
+	return ustr_parse_xint(string, value);
 }
 
 extern int
@@ -141,6 +189,24 @@ ustr_parse_uint16(const char *string, uint16_t *value)
 }
 
 extern int
+ustr_parse_xshrt_range(const char     *string,
+                       unsigned short *value,
+                       unsigned short  min,
+                       unsigned short  max);
+
+static inline int
+ustr_parse_xshrt(const char *string, unsigned short *value)
+{
+	return ustr_parse_xshrt_range(string, value, 0U, USHRT_MAX);
+}
+
+static inline int
+ustr_parse_x16(const char *string, uint16_t *value)
+{
+	return ustr_parse_xshrt(string, value);
+}
+
+extern int
 ustr_parse_shrt_range(const char *string, short *value, short min, short max);
 
 static inline int
@@ -171,6 +237,24 @@ static inline int
 ustr_parse_uint8(const char *string, uint8_t *value)
 {
 	return ustr_parse_uchar(string, value);
+}
+
+extern int
+ustr_parse_xchar_range(const char    *string,
+                       unsigned char *value,
+                       unsigned char  min,
+                       unsigned char  max);
+
+static inline int
+ustr_parse_xchar(const char *string, unsigned char *value)
+{
+	return ustr_parse_xchar_range(string, value, 0U, UCHAR_MAX);
+}
+
+static inline int
+ustr_parse_x8(const char *string, uint8_t *value)
+{
+	return ustr_parse_xchar(string, value);
 }
 
 extern int
