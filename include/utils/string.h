@@ -104,7 +104,7 @@ ustr_parse_uint64(const char *string, uint64_t *value)
 }
 
 static inline int
-ustr_parse_xint64(const char *string, uint64_t *value)
+ustr_parse_x64(const char *string, uint64_t *value)
 {
 	return ustr_parse_xllong(string, value);
 }
