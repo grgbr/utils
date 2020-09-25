@@ -39,20 +39,20 @@ static inline unsigned int __const __nothrow
 pow2_upper32(uint32_t value)
 {
 	/* Would overflow otherwise... */
-	pow2_assert(value <= (1U << ((sizeof(value) * CHAR_BIT) - 1)));
+	pow2_assert(value <= (UINT32_C(1) << ((sizeof(value) * CHAR_BIT) - 1)));
 	pow2_assert(value);
 
-	return pow2_lower32(value + (1U << pow2_lower32(value)) - 1);
+	return pow2_lower32(value + (UINT32_C(1) << pow2_lower32(value)) - 1);
 }
 
 static inline unsigned int __const __nothrow
 pow2_upper64(uint64_t value)
 {
 	/* Would overflow otherwise... */
-	pow2_assert(value <= (1UL << ((sizeof(value) * CHAR_BIT) - 1)));
+	pow2_assert(value <= (UINT64_C(1) << ((sizeof(value) * CHAR_BIT) - 1)));
 	pow2_assert(value);
 
-	return pow2_lower64(value + (1U << pow2_lower64(value)) - 1);
+	return pow2_lower64(value + (UINT64_C(1) << pow2_lower64(value)) - 1);
 }
 
 #define pow2_upper(_value) \
