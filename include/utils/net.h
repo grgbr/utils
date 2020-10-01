@@ -3,6 +3,7 @@
 
 #include <utils/string.h>
 #include <net/if.h>
+#include <linux/if.h>
 #include <net/ethernet.h>
 #include <stdbool.h>
 
@@ -19,6 +20,7 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+#define UNET_IFACE_CLASS_PREFIX   "/sys/class/net"
 #define UNET_IFACE_SYSPATH_PREFIX "/sys/devices"
 #define UNET_IFACE_SYSPATH_MAX    (64U)
 
@@ -46,9 +48,59 @@ unet_check_iface_name(const char *name)
 }
 
 static inline bool
-unet_mtu_isok(uint32_t mtu)
+unet_iface_mtu_isok(uint32_t mtu)
 {
-	return mtu && (mtu <= ETH_MAX_MTU);
+	/*
+	 * We might be using IP_MAXPACKET or ETH_MAX_MTU, i.e. 65535.
+	 * However loopback interface MTU is 65536 bytes long...
+	 */ 
+	return mtu && (mtu <= UINT32_C(65536));
+}
+
+static inline bool
+unet_iface_admin_state_isok(uint8_t state)
+{
+	switch (state) {
+	case IF_OPER_UP:
+	case IF_OPER_DOWN:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static inline bool
+unet_iface_oper_state_isok(uint8_t state)
+{
+	switch (state) {
+	case IF_OPER_UNKNOWN:
+	case IF_OPER_DOWN:
+	case IF_OPER_LOWERLAYERDOWN:
+	case IF_OPER_DORMANT:
+	case IF_OPER_UP:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static inline bool
+unet_iface_carrier_state_isok(uint8_t state)
+{
+	switch (state) {
+	case IF_OPER_UNKNOWN:
+	case IF_OPER_NOTPRESENT:
+	case IF_OPER_DOWN:
+	case IF_OPER_LOWERLAYERDOWN:
+	case IF_OPER_DORMANT:
+	case IF_OPER_UP:
+		return true;
+
+	default:
+		return false;
+	}
 }
 
 #define UNET_HWADDR_STRING_MAX \
