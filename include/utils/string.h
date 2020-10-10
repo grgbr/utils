@@ -356,6 +356,18 @@ ustr_rskip_notchar(const char *string, int ch, size_t size)
 	return size - (size_t)((str + 1) - string);
 }
 
+extern size_t
+ustr_skip_space(const char *string, size_t size);
+
+extern size_t
+ustr_rskip_space(const char *string, size_t size);
+
+extern size_t
+ustr_skip_notspace(const char *string, size_t size);
+
+extern size_t
+ustr_rskip_notspace(const char *string, size_t size);
+
 static inline ssize_t
 ustr_parse(const char *str, size_t max_size)
 {

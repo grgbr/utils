@@ -582,6 +582,65 @@ ustr_suffix_len(const char *string,
 	              suff_len) ? 0 : suff_len;
 }
 
+size_t
+ustr_skip_space(const char *string, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(size);
+
+	const char *str = string;
+
+	while ((str < (string + size)) && isspace(*str))
+		str++;
+
+	return str - string;
+}
+
+size_t
+ustr_rskip_space(const char *string, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(size);
+
+	const char *str = string + size - 1;
+
+	while ((str >= string) && isspace(*str))
+		str--;
+
+	return size - (size_t)((str + 1) - string);
+}
+
+size_t
+ustr_skip_notspace(const char *string, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(size);
+
+	const char *str = string;
+
+	while ((str < (string + size)) && *str && !isspace(*str))
+		str++;
+
+	return str - string;
+}
+
+size_t
+ustr_rskip_notspace(const char *string, size_t size)
+{
+	ustr_assert(string);
+	ustr_assert(size);
+
+	const char *str = string + size - 1;
+
+	if (!*str)
+		return 0;
+
+	while ((str >= string) && !isspace(*str))
+		str--;
+
+	return size - (size_t)((str + 1) - string);
+}
+
 char *
 ustr_clone(const char *orig, size_t len)
 {
