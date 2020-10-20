@@ -80,9 +80,28 @@ fbmp_init(struct fbmp *bmp, unsigned int bit_nr)
 	fbmp_assert(bmp);
 	fbmp_assert(bit_nr);
 
-	bmp->bits = calloc(bmp_word_nr(bmp->nr), sizeof(*bmp->bits));
+	bmp->bits = calloc(bmp_word_nr(bit_nr), sizeof(*bmp->bits));
 	if (!bmp->bits)
 		return -ENOMEM;
+
+	bmp->nr = bit_nr;
+
+	return 0;
+}
+
+int
+fbmp_init_set(struct fbmp *bmp, unsigned int bit_nr)
+{
+	fbmp_assert(bmp);
+	fbmp_assert(bit_nr);
+
+	unsigned int wnr = bmp_word_nr(bit_nr);
+
+	bmp->bits = malloc(wnr * sizeof(*bmp->bits));
+	if (!bmp->bits)
+		return -ENOMEM;
+
+	memset(bmp->bits, 0xff, wnr * sizeof(*bmp->bits));
 
 	bmp->nr = bit_nr;
 

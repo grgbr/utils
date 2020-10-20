@@ -88,6 +88,15 @@ fbmp_set(struct fbmp *bmp, unsigned int bit_no)
 }
 
 static inline void
+fbmp_set_all(struct fbmp *bmp)
+{
+	fbmp_assert_map(bmp);
+
+	memset(bmp->bits, 0xff, bmp_word_nr(bmp->nr) * sizeof(*bmp->bits));
+}
+
+
+static inline void
 fbmp_clear(struct fbmp *bmp, unsigned int bit_no)
 {
 	fbmp_assert_map(bmp);
@@ -101,11 +110,14 @@ fbmp_clear_all(struct fbmp *bmp)
 {
 	fbmp_assert_map(bmp);
 
-	memset(bmp->bits, 0, sizeof(*bmp->bits) * bmp_word_nr(bmp->nr));
+	memset(bmp->bits, 0, bmp_word_nr(bmp->nr) * sizeof(*bmp->bits));
 }
 
 extern int
 fbmp_init(struct fbmp *bmp, unsigned int bit_nr);
+
+extern int
+fbmp_init_set(struct fbmp *bmp, unsigned int bit_nr);
 
 static inline void
 fbmp_fini(struct fbmp *bmp)
@@ -126,7 +138,7 @@ extern int
 fbmp_step_iter(struct fbmp_iter *iter);
 
 extern int
-fbmp_init_range_iter(struct fbmp_iter *iter,
+fbmp_init_range_iter(struct fbmp_iter  *iter,
                      const struct fbmp *bmp,
                      unsigned int       start_bit,
                      unsigned int       bit_count);
