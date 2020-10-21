@@ -114,7 +114,7 @@ fbmp_clear_all(struct fbmp *bmp)
 }
 
 extern int
-fbmp_init(struct fbmp *bmp, unsigned int bit_nr);
+fbmp_init_clear(struct fbmp *bmp, unsigned int bit_nr);
 
 extern int
 fbmp_init_set(struct fbmp *bmp, unsigned int bit_nr);

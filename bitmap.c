@@ -75,7 +75,7 @@ fbmp_test_all(const struct fbmp *bmp)
 }
 
 int
-fbmp_init(struct fbmp *bmp, unsigned int bit_nr)
+fbmp_init_clear(struct fbmp *bmp, unsigned int bit_nr)
 {
 	fbmp_assert(bmp);
 	fbmp_assert(bit_nr);

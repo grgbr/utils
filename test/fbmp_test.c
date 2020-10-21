@@ -8,9 +8,9 @@ int main(void)
 	int              b;
 	int              ret;
 
-	ret = fbmp_init(&bmp, 5 * __WORDSIZE / 2);
+	ret = fbmp_init_clear(&bmp, 5 * __WORDSIZE / 2);
 	if (ret) {
-		printf("fbmp_init: %d\n", ret);
+		printf("fbmp_init_clear: %d\n", ret);
 		return EXIT_FAILURE;
 	}
 
