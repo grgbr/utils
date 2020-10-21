@@ -113,6 +113,18 @@ fbmp_clear_all(struct fbmp *bmp)
 	memset(bmp->bits, 0, bmp_word_nr(bmp->nr) * sizeof(*bmp->bits));
 }
 
+static inline void
+fbmp_toggle(struct fbmp *bmp, unsigned int bit_no)
+{
+	fbmp_assert_map(bmp);
+	fbmp_assert(bit_no < bmp->nr);
+
+	bmp->bits[bmp_word_no(bit_no)] ^= bmp_word_bit_mask(bit_no);
+}
+
+extern void
+fbmp_toggle_all(struct fbmp *bmp);
+
 extern int
 fbmp_init_clear(struct fbmp *bmp, unsigned int bit_nr);
 

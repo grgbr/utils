@@ -74,6 +74,17 @@ fbmp_test_all(const struct fbmp *bmp)
 	return false;
 }
 
+void
+fbmp_toggle_all(struct fbmp *bmp)
+{
+	fbmp_assert_map(bmp);
+
+	unsigned int w;
+
+	for (w = 0; w < bmp_word_nr(bmp->nr); w++)
+		bmp->bits[w] = ~bmp->bits[w];
+}
+
 int
 fbmp_init_clear(struct fbmp *bmp, unsigned int bit_nr)
 {
