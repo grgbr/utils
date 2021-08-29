@@ -1,4 +1,4 @@
-#include <utils/time.h>
+#include "utils/time.h"
 
 #define utime_assert_tspec(_tspec) \
 	utime_assert(_tspec); \
@@ -6,8 +6,8 @@
 	utime_assert((_tspec)->tv_nsec < 1000000000LL)
 
 int
-utime_tspec_cmp(const struct timespec *__restrict fst,
-                const struct timespec *__restrict snd)
+utime_tspec_cmp(const struct timespec * __restrict fst,
+                const struct timespec * __restrict snd)
 {
 	utime_assert_tspec(fst);
 	utime_assert_tspec(snd);
@@ -27,8 +27,8 @@ utime_tspec_cmp(const struct timespec *__restrict fst,
 }
 
 void
-utime_tspec_add(struct timespec       *__restrict result,
-                const struct timespec *__restrict amount)
+utime_tspec_add(struct timespec       * __restrict result,
+                const struct timespec * __restrict amount)
 {
 	utime_assert_tspec(result);
 	utime_assert_tspec(amount);
@@ -47,7 +47,7 @@ utime_tspec_add(struct timespec       *__restrict result,
 }
 
 void
-utime_tspec_add_msec(struct timespec *result, unsigned long msec)
+utime_tspec_add_msec(struct timespec * result, unsigned long msec)
 {
 	struct timespec tspec;
 
@@ -56,8 +56,8 @@ utime_tspec_add_msec(struct timespec *result, unsigned long msec)
 }
 
 void
-utime_tspec_sub(struct timespec       *__restrict result,
-                const struct timespec *__restrict amount)
+utime_tspec_sub(struct timespec       * __restrict result,
+                const struct timespec * __restrict amount)
 {
 	utime_assert_tspec(result);
 	utime_assert_tspec(amount);
@@ -76,7 +76,7 @@ utime_tspec_sub(struct timespec       *__restrict result,
 }
 
 void
-utime_tspec_sub_msec(struct timespec *result, unsigned long msec)
+utime_tspec_sub_msec(struct timespec * result, unsigned long msec)
 {
 	struct timespec tspec;
 
@@ -85,8 +85,8 @@ utime_tspec_sub_msec(struct timespec *result, unsigned long msec)
 }
 
 long
-utime_tspec_diff_msec(const struct timespec *__restrict fst,
-                      const struct timespec *__restrict snd)
+utime_tspec_diff_msec(const struct timespec * __restrict fst,
+                      const struct timespec * __restrict snd)
 {
 	utime_assert(fst);
 

@@ -53,6 +53,12 @@ config UTILS_TIME
 	help
 	  Build utils library POSIX clock and time wrappers.
 
+config UTILS_TIMER
+	bool "Timer"
+	default y
+	help
+	  Build utils library with timer support.
+
 config UTILS_PATH
 	bool "Filesystem paths"
 	default y
