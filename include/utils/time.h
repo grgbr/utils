@@ -1,3 +1,30 @@
+/**
+ * @file      time.h
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      29 Aug 2017
+ * @copyright GNU Public License v3
+ *
+ * Time keeping interface
+ *
+ * @defgroup time Time keeping
+ *
+ * This file is part of Utils
+ *
+ * Copyright (C) 2017 Grégor Boirie <gregor.boirie@free.fr>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #ifndef _UTILS_TIME_H
 #define _UTILS_TIME_H
 
@@ -14,6 +41,11 @@
 
 #define utime_assert(_expr) \
 	uassert("utime", _expr)
+
+#define utime_assert_tspec(_tspec) \
+	utime_assert(_tspec); \
+	utime_assert((_tspec)->tv_nsec >= 0); \
+	utime_assert((_tspec)->tv_nsec < 1000000000LL)
 
 static inline void __utime_nonull(1) __nothrow
 utime_realtime_now(struct timespec * now)
@@ -45,6 +77,8 @@ utime_coarse_now(struct timespec * now)
 	__nonull(_arg_index, ## __VA_ARGS__)
 
 #define utime_assert(_expr)
+
+#define utime_assert_tspec(_tspec)
 
 static inline void __nonull(1) __nothrow
 utime_realtime_now(struct timespec * now)
@@ -123,7 +157,6 @@ static inline void __utime_nonull(1) __nothrow
 utime_tspec_add_sec(struct timespec * result, unsigned long sec)
 {
 	utime_assert(result);
-	utime_assert(sec);
 
 	result->tv_sec += (time_t)sec;
 }

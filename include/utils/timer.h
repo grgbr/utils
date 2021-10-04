@@ -1,62 +1,136 @@
+/**
+ * @file      timer.h
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      29 Aug 2021
+ * @copyright GNU Public License v3
+ *
+ * Timers interface
+ *
+ * @defgroup timer Timers
+ *
+ * This file is part of Utils
+ *
+ * Copyright (C) 2021 Grégor Boirie <gregor.boirie@free.fr>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #ifndef _UTILS_TIMER_H
 #define _UTILS_TIMER_H
 
 #include <utils/time.h>
 #include <utils/dlist.h>
 
-struct utime_timer;
+#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
-typedef void (utime_expire_fn)(struct utime_timer * timer);
+#include <utils/assert.h>
 
-struct utime_timer {
-	struct dlist_node node;
-	struct timespec   date;
-	utime_expire_fn * expire;
+#define __utimer_nonull(_arg_index, ...)
+
+#define __utimer_pure
+
+#define utimer_assert(_expr) \
+	uassert("utimer", _expr)
+
+#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+#define __utimer_nonull(_arg_index, ...) \
+	__nonull(_arg_index, ## __VA_ARGS__)
+
+#define __utimer_pure \
+	__pure
+
+#define utimer_assert(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+struct utimer;
+
+typedef void (utimer_expire_fn)(struct utimer * timer);
+
+struct utimer {
+	struct dlist_node  node;
+	struct timespec    date;
+	utimer_expire_fn * expire;
 };
 
-#define UTIME_TIMER_INIT(_timer, _expire) \
-	{ \
-		.node   = DLIST_INIT((_timer).node), \
-		.expire = _expire \
-	}
+#define UTIMER_INIT(_timer) \
+	{ .node   = DLIST_INIT((_timer).node) }
 
-static inline struct timespec * __utime_nonull(1) __const  __nothrow
-utime_timer_expiry_date(struct utime_timer * timer)
+#define utimer_assert_timer(_timer) \
+	utimer_assert(_timer); \
+	utimer_assert((_timer)->expire)
+
+static inline struct timespec * __utimer_nonull(1) __utimer_pure  __nothrow
+utimer_expiry_date(const struct utimer * timer)
 {
-	utime_assert(timer);
-	utime_assert(timer->expire);
+	utimer_assert_timer(timer);
 
-	return &timer->date;
+	return (struct timespec *)&timer->date;
 }
 
-static inline void __utime_nonull(1) __nothrow
-utime_timer_cancel(struct utime_timer * timer)
+static inline bool __utimer_nonull(1) __utimer_pure __nothrow
+utimer_is_armed(const struct utimer * timer)
 {
-	utime_assert(timer);
-	utime_assert(timer->expire);
+	utimer_assert_timer(timer);
+
+	return !dlist_empty(&timer->node);
+}
+
+static inline void __utimer_nonull(1) __nothrow
+utimer_cancel(struct utimer * timer)
+{
+	utimer_assert_timer(timer);
+	utime_assert_tspec(&timer->date);
 
 	dlist_remove_init(&timer->node);
 }
 
-static inline void __utime_nonull(1, 2) __nothrow
-utime_timer_init(struct utime_timer * __restrict timer,
-                 utime_expire_fn *               expire)
+static inline void __utimer_nonull(1, 2) __nothrow
+utimer_setup(struct utimer * __restrict timer,
+             utimer_expire_fn *         expire)
 {
-	dlist_init(&timer->node);
+	utimer_assert_timer(timer);
+	utimer_assert(expire);
+
 	timer->expire = expire;
 }
 
-extern void
-utime_timer_arm(struct utime_timer * timer) __utime_nonull(1) __nothrow;
+static inline void __utimer_nonull(1) __nothrow
+utimer_init(struct utimer * timer)
+{
+	utimer_assert_timer(timer);
+
+	dlist_init(&timer->node);
+}
 
 extern void
-utime_timer_arm_msec(struct utime_timer * timer, unsigned long msec)
-	__utime_nonull(1) __nothrow;
+utimer_arm(struct utimer * timer) __utimer_nonull(1) __leaf __nothrow;
 
 extern void
-utime_timer_arm_sec(struct utime_timer * timer, unsigned long sec)
-	__utime_nonull(1) __nothrow;
+utimer_arm_msec(struct utimer * timer, unsigned long msec)
+	__utimer_nonull(1) __nothrow;
 
-extern void utime_timer_run(void) __nothrow;
+extern void
+utimer_arm_sec(struct utimer * timer, unsigned long sec)
+	__utimer_nonull(1) __nothrow;
+
+extern const struct timespec *
+utimer_issue_date(void) __utimer_pure __leaf __nothrow;
+
+extern long
+utimer_issue_msec(void) __nothrow;
+
+extern void utimer_run(void) __nothrow;
 
 #endif /* _UTILS_TIMER_H */
