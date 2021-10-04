@@ -1,3 +1,28 @@
+/**
+ * @file      cdefs.h
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      29 Aug 2017
+ * @copyright GNU Public License v3
+ *
+ * Common preprocessing definitions
+ *
+ * This file is part of Utils
+ *
+ * Copyright (C) 2017 Grégor Boirie <gregor.boirie@free.fr>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #ifndef _UTILS_H
 #define _UTILS_H
 
@@ -108,6 +133,24 @@
 
 #define ualign_upper(_value, _align) \
 	ualign_lower((_value) + __ualign_mask(_value, _align), _align)
+
+#define uround_upper(_value, _align) \
+	({ \
+		typeof(_value) __value = _value; \
+		typeof(_value) __align = _align; \
+		\
+		__value = (__value + __align - 1) / __align; \
+		__value * __align; \
+	 })
+
+#define uround_lower(_value, _align) \
+	({ \
+		typeof(_value) __value = _value; \
+		typeof(_value) __align = _align; \
+		\
+		__value = __value / __align; \
+		__value * __align; \
+	 })
 
 #if __WORDSIZE == 64
 #define __UINTPTR_C(c) c ## UL
