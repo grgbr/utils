@@ -17,6 +17,7 @@ libutils.so-objs    += $(call kconf_enabled,UTILS_SLIST,slist.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_STR,string.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_PILE,pile.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_POLL,poll.o)
+libutils.so-objs    += $(call kconf_enabled,UTILS_UNSK,unsk.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_NET,net.o)
 libutils.so-cflags   = $(EXTRA_CFLAGS) -Wall -Wextra -D_GNU_SOURCE -DPIC -fpic
 libutils.so-cflags  += $(call kconf_enabled,UTILS_THREAD,-pthread)
@@ -42,6 +43,7 @@ headers             += $(call kconf_enabled,UTILS_SLIST,utils/slist.h)
 headers             += $(call kconf_enabled,UTILS_STR,utils/string.h)
 headers             += $(call kconf_enabled,UTILS_PILE,utils/pile.h)
 headers             += $(call kconf_enabled,UTILS_POLL,utils/poll.h)
+headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
 headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 
 define libutils_pkgconf_tmpl

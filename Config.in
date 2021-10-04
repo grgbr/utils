@@ -121,6 +121,22 @@ config UTILS_POLL
 	help
 	  Build utils library with polling support.
 
+config UTILS_UNSK
+	bool "UNIX sockets"
+	select UTILS_SLIST
+	select UTILS_PATH
+	default y
+	help
+	  Build utils library with UNIX socket support.
+
+config UTILS_POLL_UNSK
+	bool "Poll'able UNIX sockets"
+	select UTILS_UNSK
+	select UTILS_POLL
+	default y
+	help
+	  Build utils library with poll'able UNIX socket support.
+
 config UTILS_NET
 	bool "Network object utilities"
 	select UTILS_STR
