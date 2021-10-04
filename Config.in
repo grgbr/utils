@@ -102,6 +102,12 @@ config UTILS_STR
 	help
 	  Build utils library with string utilities support.
 
+config UTILS_POLL
+	bool "Polling"
+	default y
+	help
+	  Build utils library with polling support.
+
 config UTILS_NET
 	bool "Network object utilities"
 	select UTILS_STR
