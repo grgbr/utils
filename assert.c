@@ -3,16 +3,16 @@
 #include <stdlib.h>
 
 void
-uassert_fail(const char   *restrict prefix,
-             const char   *restrict expr,
-             const char   *restrict file,
-             unsigned int  line,
-             const char   *restrict func)
+uassert_fail(const char   * __restrict prefix,
+             const char   * __restrict expr,
+             const char   * __restrict file,
+             unsigned int              line,
+             const char   * __restrict func)
 {
 	fflush(NULL);
 
 	fprintf(stderr,
-	        "[assert]%s:%s:%u:%s:\'%s\' failed\n",
+	        "[  ASSERT] %s:%s:%u:%s:\'%s\' failed\n",
 	        prefix,
 	        file,
 	        line,

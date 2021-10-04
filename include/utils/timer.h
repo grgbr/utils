@@ -100,7 +100,7 @@ static inline void __utimer_nonull(1, 2) __nothrow
 utimer_setup(struct utimer * __restrict timer,
              utimer_expire_fn *         expire)
 {
-	utimer_assert_timer(timer);
+	utimer_assert(timer);
 	utimer_assert(expire);
 
 	timer->expire = expire;
@@ -109,7 +109,7 @@ utimer_setup(struct utimer * __restrict timer,
 static inline void __utimer_nonull(1) __nothrow
 utimer_init(struct utimer * timer)
 {
-	utimer_assert_timer(timer);
+	utimer_assert(timer);
 
 	dlist_init(&timer->node);
 }
