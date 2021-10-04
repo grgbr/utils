@@ -8,7 +8,7 @@
  *
  * @defgroup dlist Doubly linked list
  *
- * This file is part of Karn
+ * This file is part of Utils
  *
  * Copyright (C) 2017 Grégor Boirie <gregor.boirie@free.fr>
  *
@@ -451,6 +451,20 @@ extern void dlist_splice(struct dlist_node *__restrict at,
 	dlist_entry(dlist_next(&(_entry)->_member), typeof(*(_entry)), _member)
 
 /**
+ * Return type casted pointer to first list entry.
+ *
+ * @param _list   Dummy head node designating the list.
+ * @param _type   Type of container
+ * @param _member Member field of container structure.
+ *
+ * @return Pointer to first entry.
+ *
+ * @ingroup dlist
+ */
+#define dlist_first_entry(_list, _type, _member) \
+	dlist_entry(dlist_first(_list), _type, _member)
+
+/**
  * Return type casted pointer to entry preceding specified entry.
  *
  * @param _entry  Entry containing dlist node.
@@ -462,6 +476,20 @@ extern void dlist_splice(struct dlist_node *__restrict at,
  */
 #define dlist_prev_entry(_entry, _member) \
 	dlist_entry(dlist_prev(&(_entry)->_member), typeof(*(_entry)), _member)
+
+/**
+ * Return type casted pointer to last list entry.
+ *
+ * @param _list   Dummy head node designating the list.
+ * @param _type   Type of container
+ * @param _member Member field of container structure.
+ *
+ * @return Pointer to last entry.
+ *
+ * @ingroup dlist
+ */
+#define dlist_last_entry(_list, _type, _member) \
+	dlist_entry(dlist_last(_list), _type, _member)
 
 /**
  * Iterate over dlist node container entries.
