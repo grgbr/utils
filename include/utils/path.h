@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 
@@ -158,6 +159,25 @@ upath_resolve(const char *path)
 	upath_assert(path);
 
 	return realpath(path, NULL);
+}
+
+/******************************************************************************
+ * Path related syscall helpers
+ ******************************************************************************/
+
+static inline int __upath_nonull(1) __nothrow __warn_result
+upath_chdir(const char * path)
+{
+	upath_assert(upath_validate_path_name(path));
+
+	if (chdir(path)) {
+		upath_assert(errno != EFAULT);
+		upath_assert(errno != ENAMETOOLONG);
+
+		return -errno;
+	}
+
+	return 0;
 }
 
 #endif /* _UTILS_PATH_H */
