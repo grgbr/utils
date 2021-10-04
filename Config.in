@@ -41,6 +41,13 @@ config UTILS_SIGNAL
 	help
 	  Build utils library POSIX signal wrappers.
 
+config UTILS_SIGNAL_FD
+	bool "Signals file descriptor"
+	select UTILS_SIGNAL
+	default y
+	help
+	  Build utils library Linux signalfd wrappers.
+
 config UTILS_THREAD
 	bool "Threads"
 	default y
