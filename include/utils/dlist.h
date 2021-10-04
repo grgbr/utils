@@ -54,9 +54,9 @@
  */
 struct dlist_node {
 	/** Node following this node into a dlist. */
-	struct dlist_node *dlist_next;
+	struct dlist_node * dlist_next;
 	/** Node preceding this node into a dlist. */
-	struct dlist_node *dlist_prev;
+	struct dlist_node * dlist_prev;
 };
 
 /**
@@ -79,7 +79,7 @@ struct dlist_node {
  *
  * @ingroup dlist
  */
-static inline void dlist_init(struct dlist_node *node)
+static inline void dlist_init(struct dlist_node * node)
 {
 	dlist_assert(node);
 
@@ -97,7 +97,7 @@ static inline void dlist_init(struct dlist_node *node)
  *
  * @ingroup dlist
  */
-static inline bool dlist_empty(const struct dlist_node *node)
+static inline bool dlist_empty(const struct dlist_node * node)
 {
 	dlist_assert(node);
 
@@ -113,7 +113,7 @@ static inline bool dlist_empty(const struct dlist_node *node)
  *
  * @ingroup dlist
  */
-static inline struct dlist_node * dlist_next(const struct dlist_node *node)
+static inline struct dlist_node * dlist_next(const struct dlist_node * node)
 {
 	dlist_assert(node);
 
@@ -129,7 +129,7 @@ static inline struct dlist_node * dlist_next(const struct dlist_node *node)
  *
  * @ingroup dlist
  */
-static inline struct dlist_node * dlist_prev(const struct dlist_node *node)
+static inline struct dlist_node * dlist_prev(const struct dlist_node * node)
 {
 	dlist_assert(node);
 
@@ -145,9 +145,9 @@ static inline struct dlist_node * dlist_prev(const struct dlist_node *node)
  *
  * @ingroup dlist
  */
-static inline void dlist_inject(struct dlist_node *prev,
-                                struct dlist_node *__restrict node,
-                                struct dlist_node *next)
+static inline void dlist_inject(struct dlist_node *            prev,
+                                struct dlist_node * __restrict node,
+                                struct dlist_node *            next)
 {
 	dlist_assert(node);
 	dlist_assert(prev);
@@ -171,8 +171,8 @@ static inline void dlist_inject(struct dlist_node *prev,
  *
  * @ingroup dlist
  */
-static inline void dlist_insert(struct dlist_node *__restrict at,
-                                struct dlist_node *__restrict node)
+static inline void dlist_insert(struct dlist_node * __restrict at,
+                                struct dlist_node * __restrict node)
 {
 	dlist_inject(at->dlist_prev, node, at);
 }
@@ -185,8 +185,8 @@ static inline void dlist_insert(struct dlist_node *__restrict at,
  *
  * @ingroup dlist
  */
-static inline void dlist_append(struct dlist_node *__restrict at,
-                                struct dlist_node *__restrict node)
+static inline void dlist_append(struct dlist_node * __restrict at,
+                                struct dlist_node * __restrict node)
 {
 	dlist_inject(at, node, at->dlist_next);
 }
@@ -198,7 +198,7 @@ static inline void dlist_append(struct dlist_node *__restrict at,
  *
  * @ingroup dlist
  */
-static inline struct dlist_node * dlist_first(const struct dlist_node *list)
+static inline struct dlist_node * dlist_first(const struct dlist_node * list)
 {
 	dlist_assert(!dlist_empty(list));
 
@@ -212,7 +212,7 @@ static inline struct dlist_node * dlist_first(const struct dlist_node *list)
  *
  * @ingroup dlist
  */
-static inline struct dlist_node * dlist_last(const struct dlist_node *list)
+static inline struct dlist_node * dlist_last(const struct dlist_node * list)
 {
 	dlist_assert(!dlist_empty(list));
 
@@ -227,8 +227,8 @@ static inline struct dlist_node * dlist_last(const struct dlist_node *list)
  *
  * @ingroup dlist
  */
-static inline void dlist_nqueue_front(struct dlist_node *__restrict list,
-                                      struct dlist_node *__restrict node)
+static inline void dlist_nqueue_front(struct dlist_node * __restrict list,
+                                      struct dlist_node * __restrict node)
 {
 	dlist_append(list, node);
 }
@@ -241,8 +241,8 @@ static inline void dlist_nqueue_front(struct dlist_node *__restrict list,
  *
  * @ingroup dlist
  */
-static inline void dlist_nqueue_back(struct dlist_node *__restrict list,
-                                     struct dlist_node *__restrict node)
+static inline void dlist_nqueue_back(struct dlist_node * __restrict list,
+                                     struct dlist_node * __restrict node)
 {
 	dlist_insert(list, node);
 }
@@ -254,10 +254,10 @@ static inline void dlist_nqueue_back(struct dlist_node *__restrict list,
  *
  * @ingroup dlist
  */
-static inline void dlist_remove(const struct dlist_node *node)
+static inline void dlist_remove(const struct dlist_node * node)
 {
-	struct dlist_node *next = node->dlist_next;
-	struct dlist_node *prev = node->dlist_prev;
+	struct dlist_node * next = node->dlist_next;
+	struct dlist_node * prev = node->dlist_prev;
 
 	prev->dlist_next = next;
 	next->dlist_prev = prev;
@@ -270,7 +270,7 @@ static inline void dlist_remove(const struct dlist_node *node)
  *
  * @ingroup dlist
  */
-static inline void dlist_remove_init(struct dlist_node *node)
+static inline void dlist_remove_init(struct dlist_node * node)
 {
 	dlist_remove(node);
 	dlist_init(node);
@@ -285,9 +285,9 @@ static inline void dlist_remove_init(struct dlist_node *node)
  *
  * @ingroup dlist
  */
-static inline struct dlist_node * dlist_dqueue_front(struct dlist_node *list)
+static inline struct dlist_node * dlist_dqueue_front(struct dlist_node * list)
 {
-	struct dlist_node *node = dlist_next(list);
+	struct dlist_node * node = dlist_next(list);
 
 	dlist_remove(node);
 
@@ -303,9 +303,9 @@ static inline struct dlist_node * dlist_dqueue_front(struct dlist_node *list)
  *
  * @ingroup dlist
  */
-static inline struct dlist_node * dlist_dqueue_back(struct dlist_node *list)
+static inline struct dlist_node * dlist_dqueue_back(struct dlist_node * list)
 {
-	struct dlist_node *node = dlist_prev(list);
+	struct dlist_node * node = dlist_prev(list);
 
 	dlist_remove(node);
 
@@ -322,8 +322,8 @@ static inline struct dlist_node * dlist_dqueue_back(struct dlist_node *list)
  *
  * @ingroup dlist
  */
-static inline void dlist_replace(struct dlist_node *__restrict old,
-                                 struct dlist_node *__restrict node)
+static inline void dlist_replace(struct dlist_node * __restrict old,
+                                 struct dlist_node * __restrict node)
 {
 	dlist_assert(!dlist_empty(old));
 	dlist_assert(node);
@@ -341,8 +341,8 @@ static inline void dlist_replace(struct dlist_node *__restrict old,
  *
  * @ingroup dlist
  */
-static inline void dlist_move_after(struct dlist_node *__restrict at,
-                                    struct dlist_node *__restrict node)
+static inline void dlist_move_after(struct dlist_node * __restrict at,
+                                    struct dlist_node * __restrict node)
 {
 	dlist_assert(at);
 
@@ -358,14 +358,14 @@ static inline void dlist_move_after(struct dlist_node *__restrict at,
  *
  * @ingroup dlist
  */
-static inline void dlist_withdraw(const struct dlist_node *first,
-                                  const struct dlist_node *last)
+static inline void dlist_withdraw(const struct dlist_node * first,
+                                  const struct dlist_node * last)
 {
 	dlist_assert(first);
 	dlist_assert(last);
 
-	struct dlist_node *next = last->dlist_next;
-	struct dlist_node *prev = first->dlist_prev;
+	struct dlist_node * next = last->dlist_next;
+	struct dlist_node * prev = first->dlist_prev;
 
 	prev->dlist_next = next;
 	next->dlist_prev = prev;
@@ -380,15 +380,15 @@ static inline void dlist_withdraw(const struct dlist_node *first,
  *
  * @ingroup dlist
  */
-static inline void dlist_embed(struct dlist_node *__restrict at,
-                               struct dlist_node *first,
-                               struct dlist_node *last)
+static inline void dlist_embed(struct dlist_node * __restrict at,
+                               struct dlist_node *            first,
+                               struct dlist_node *            last)
 {
 	dlist_assert(at);
 	dlist_assert(first);
 	dlist_assert(last);
 
-	struct dlist_node *__restrict next = at->dlist_next;
+	struct dlist_node * __restrict next = at->dlist_next;
 
 	first->dlist_prev = at;
 	at->dlist_next = first;
@@ -406,9 +406,9 @@ static inline void dlist_embed(struct dlist_node *__restrict at,
  *
  * @ingroup dlist
  */
-extern void dlist_splice(struct dlist_node *__restrict at,
-                         struct dlist_node *first,
-                         struct dlist_node *last);
+extern void dlist_splice(struct dlist_node * __restrict at,
+                         struct dlist_node *            first,
+                         struct dlist_node *            last);
 
 /**
  * Iterate over a dlist_node based list .
