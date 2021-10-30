@@ -55,6 +55,29 @@ ufile_fstat(int fd, struct stat *st)
 	return -errno;
 }
 
+static inline off_t __nothrow
+ufile_lseek(int fd, off_t off, int whence)
+{
+	ufile_assert(fd >= 0);
+	ufile_assert((whence == SEEK_SET) ||
+	             (whence == SEEK_CUR) ||
+	             (whence == SEEK_END) ||
+	             (whence == SEEK_DATA) ||
+	             (whence == SEEK_HOLE));
+
+	off_t ret;
+
+	ret = lseek(fd, off, whence);
+	if (ret >= 0)
+		return ret;
+
+	ufile_assert(errno != EBADF);
+	ufile_assert(errno != EOVERFLOW);
+	ufile_assert(errno != ESPIPE);
+
+	return ret;
+}
+
 static inline ssize_t __ufile_nonull(2) __warn_result
 ufile_read(int fd, char *data, size_t size)
 {
@@ -118,6 +141,75 @@ ufile_nointr_full_write(int         fd,
                         const char *data,
                         size_t      size) __ufile_nonull(2) __warn_result;
 
+static inline int
+ufile_ftruncate(int fd, off_t len)
+{
+	ufile_assert(fd >= 0);
+	ufile_assert(len >= 0);
+
+	if (!ftruncate(fd, len))
+		return 0;
+
+	ufile_assert(errno != EBADF);
+	ufile_assert(errno != EINVAL);
+	ufile_assert(errno != EACCES);
+	ufile_assert(errno != EFAULT);
+	ufile_assert(errno != EISDIR);
+	ufile_assert(errno != ENAMETOOLONG);
+	ufile_assert(errno != ENOENT);
+	ufile_assert(errno != ENOTDIR);
+
+	return -errno;
+}
+
+/*
+ * See copy_file_range(2).
+ *
+ * Return:
+ * * -EFBIG
+ * * -ENOMEM
+ * * -ENOSPC
+ * * -EPERM
+ * * -EXDEV
+ * Warning: does not support dst_fd opened with O_APPEND flag (see man page).
+ */
+static inline int
+ufile_copy_fds(int src_fd, int dst_fd, size_t size)
+{
+	ufile_assert(src_fd >= 0);
+	ufile_assert(dst_fd >= 0);
+	ufile_assert(size);
+
+	off64_t src_off = 0;
+	off64_t dst_off = 0;
+
+	if (!copy_file_range(src_fd, &src_off, dst_fd, &dst_off, size, 0))
+		return 0;
+
+	ufile_assert(errno != EBADF);
+	ufile_assert(errno != EINVAL);
+	ufile_assert(errno != EISDIR);
+	ufile_assert(errno != EOVERFLOW);
+	ufile_assert(errno != ETXTBSY);
+
+	return -errno;
+}
+
+static inline int __ufile_nonull(1)
+ufile_sync(int fd)
+{
+	ufile_assert(fd >= 0);
+
+	if (!fsync(fd))
+		return 0;
+
+	ufile_assert(errno != EBADF);
+	ufile_assert(errno != EINVAL);
+	ufile_assert(errno != EROFS);
+
+	return -errno;
+}
+
 static inline int __ufile_nonull(1)
 ufile_open(const char *path, int flags)
 {
@@ -133,6 +225,7 @@ ufile_open(const char *path, int flags)
 	if (fd >= 0)
 		return fd;
 
+	ufile_assert(errno != EBADF);
 	ufile_assert(errno != EFAULT);
 	ufile_assert(errno != ENAMETOOLONG);
 	ufile_assert(errno != EOPNOTSUPP);
@@ -159,10 +252,10 @@ ufile_open_at(int dir, const char *path, int flags)
 	if (fd >= 0)
 		return fd;
 
+	ufile_assert(errno != EBADF);
 	ufile_assert(errno != EFAULT);
 	ufile_assert(errno != ENAMETOOLONG);
 	ufile_assert(errno != EOPNOTSUPP);
-	ufile_assert(errno != EBADF);
 
 	return -errno;
 }
@@ -183,6 +276,7 @@ ufile_new(const char *path, int flags, mode_t mode)
 	if (fd >= 0)
 		return fd;
 
+	ufile_assert(errno != EBADF);
 	ufile_assert(errno != EFAULT);
 	ufile_assert(errno != ENAMETOOLONG);
 	ufile_assert(errno != EOPNOTSUPP);
@@ -207,10 +301,10 @@ ufile_new_at(int dir, const char *path, int flags, mode_t mode)
 	if (fd >= 0)
 		return fd;
 
+	ufile_assert(errno != EBADF);
 	ufile_assert(errno != EFAULT);
 	ufile_assert(errno != ENAMETOOLONG);
 	ufile_assert(errno != EOPNOTSUPP);
-	ufile_assert(errno != EBADF);
 
 	return -errno;
 }
