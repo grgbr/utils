@@ -26,6 +26,10 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif /* _GNU_SOURCE */
+
 #include <utils/config.h>
 #include <stddef.h>
 #include <values.h>
