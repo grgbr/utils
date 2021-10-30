@@ -24,6 +24,22 @@
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 static inline int __udir_nonull(1)
+udir_sync(int fd)
+{
+	udir_assert(fd >= 0);
+
+	if (fsync(fd)) {
+		udir_assert(errno != EBADF);
+		udir_assert(errno != EINVAL);
+		udir_assert(errno != EROFS);
+
+		return -errno;
+	}
+
+	return 0;
+}
+
+static inline int __udir_nonull(1)
 udir_open(const char *path, int flags)
 {
 	udir_assert(upath_validate_path_name(path) > 0);
