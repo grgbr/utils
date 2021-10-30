@@ -153,12 +153,22 @@ upath_normalize(const char *path,
                 char       *norm,
                 size_t      norm_size);
 
-static inline char *
+static inline char * __upath_nonull(1) __warn_result
 upath_resolve(const char *path)
 {
 	upath_assert(path);
 
-	return realpath(path, NULL);
+	char * res;
+
+	res = realpath(path, NULL);
+	if (!res) {
+		upath_assert(errno != EINVAL);
+		upath_assert(errno != ENAMETOOLONG);
+
+		return NULL;
+	}
+
+	return res;
 }
 
 /******************************************************************************
