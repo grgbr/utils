@@ -90,6 +90,16 @@ struct upoll {
 	int          fd;
 };
 
+static inline int __upoll_nonull(1) __nothrow __pure
+upoll_get_fd(const struct upoll * poller)
+{
+	upoll_assert(poller);
+	upoll_assert(poller->fd >= 0);
+	upoll_assert(poller->nr > 0);
+
+	return poller->fd;
+}
+
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
 static inline void __upoll_nonull(1) __nothrow
