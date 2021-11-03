@@ -81,6 +81,13 @@ config UTILS_FD
 	help
 	  Build utils library POSIX file descriptor related wrappers.
 
+config UTILS_PIPE
+	bool "Pipe IPC"
+	select UTILS_FD
+	default y
+	help
+	  Build utils library POSIX IPC pipes support.
+
 config UTILS_FILE
 	bool "File"
 	default y
