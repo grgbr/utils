@@ -57,6 +57,7 @@ usig_action(int                                 signum,
             const struct sigaction * __restrict act,
             struct sigaction * __restrict       oldact)
 {
+	usig_assert(signum > 0);
 	usig_assert(act || oldact);
 
 	usig_assert(!sigaction(signum, act, oldact));
@@ -123,11 +124,12 @@ usig_fillset(sigset_t * set)
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
-
+#include <errno.h>
 static inline void __usig_nonull(1) __nothrow
 usig_addset(sigset_t * set, int signum)
 {
 	usig_assert(set);
+	usig_assert(signum > 0);
 
 	usig_assert(!sigaddset(set, signum));
 }
@@ -148,6 +150,7 @@ static inline void __usig_nonull(1) __nothrow
 usig_delset(sigset_t * set, int signum)
 {
 	usig_assert(set);
+	usig_assert(signum > 0);
 
 	usig_assert(!sigdelset(set, signum));
 }
@@ -166,6 +169,7 @@ static inline bool __usig_nonull(1) __nothrow
 usig_ismember(const sigset_t * set, int signum)
 {
 	usig_assert(set);
+	usig_assert(signum > 0);
 
 	int ret;
 
@@ -198,6 +202,30 @@ usig_procmask(int                         how,
 }
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+const sigset_t * const         usig_inval_msk;
+const sigset_t * const         usig_empty_msk;
+const sigset_t * const         usig_full_msk;
+const struct sigaction * const usig_dflt_act;
+
+struct usig_new_act {
+	unsigned int             no;
+	const struct sigaction * act;
+};
+
+struct usig_orig_act {
+	unsigned int     no;
+	struct sigaction act;
+};
+
+extern void
+usig_setup_actions(const struct usig_new_act nevv[__restrict_arr],
+                   struct usig_orig_act      orig[__restrict_arr],
+                   unsigned int              nr) __usig_nonull(1) __nothrow;
+
+extern void
+usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
+                     unsigned int               nr) __usig_nonull(1) __nothrow;
 
 #if defined(CONFIG_UTILS_SIGNAL_FD)
 
