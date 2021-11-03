@@ -77,6 +77,12 @@
 #define unlikely(_expr) \
 	__builtin_expect(!!(_expr), 0)
 
+#define __ctor(_prio) \
+	__attribute__((constructor(_prio)))
+
+#define __dtor(_prio) \
+	__attribute__((destructor(_prio)))
+
 #define PREFETCH_ACCESS_RO     (0)
 #define PREFETCH_ACCESS_RW     (1)
 #define PREFETCH_LOCALITY_TMP  (0)
