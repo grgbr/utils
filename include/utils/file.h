@@ -2,8 +2,8 @@
 #define _UTILS_FILE_H
 
 #include <utils/path.h>
+#include <utils/fd.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -318,18 +318,8 @@ ufile_nointr_new_at(int         dir,
 static inline int
 ufile_close(int fd)
 {
-	ufile_assert(fd >= 0);
-
-	if (!close(fd))
-		return 0;
-
-	ufile_assert(errno != EBADF);
-
-	return -errno;
+	return ufd_close(fd);
 }
-
-extern int
-ufile_nointr_close(int fd);
 
 static inline int __ufile_nonull(1) __nothrow
 ufile_unlink(const char *path)

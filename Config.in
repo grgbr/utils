@@ -75,6 +75,12 @@ config UTILS_PATH
 	help
 	  Build utils library POSIX filesystem paths manipulation utilities.
 
+config UTILS_FD
+	bool "File descriptors"
+	default y
+	help
+	  Build utils library POSIX file descriptor related wrappers.
+
 config UTILS_FILE
 	bool "File"
 	default y

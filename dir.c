@@ -1,6 +1,6 @@
 #include <utils/dir.h>
 
-int __udir_nonull(1)
+int
 udir_nointr_open(const char *path, int flags)
 {
 	int fd;
@@ -10,16 +10,4 @@ udir_nointr_open(const char *path, int flags)
 	} while (fd == -EINTR);
 
 	return fd;
-}
-
-int
-udir_nointr_close(int fd)
-{
-	int ret;
-
-	do {
-		ret = udir_close(fd);
-	} while (ret == -EINTR);
-
-	return ret;
 }

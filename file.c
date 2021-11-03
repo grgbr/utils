@@ -117,15 +117,3 @@ ufile_nointr_new_at(int dir, const char *path, int flags, mode_t mode)
 
 	return fd;
 }
-
-int
-ufile_nointr_close(int fd)
-{
-	int ret;
-
-	do {
-		ret = ufile_close(fd);
-	} while (ret == -EINTR);
-
-	return ret;
-}

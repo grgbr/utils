@@ -26,9 +26,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <utils/poll.h>
-#include <unistd.h>
+#include <utils/fd.h>
 #include <string.h>
-#include <errno.h>
 
 void
 upoll_apply(const struct upoll * __restrict poller,
@@ -234,14 +233,13 @@ upoll_close(const struct upoll * poller)
 	upoll_assert(poller->fd >= 0);
 	upoll_assert(poller->nr > 0);
 
-	do {
-		if (!close(poller->fd))
-			return;
-	} while (errno == EINTR);
+	int err __unused;
 
-	upoll_assert(errno != EBADF);
-	upoll_assert(errno != ENOSPC);
-	upoll_assert(errno != EDQUOT);
+	err = ufd_close(poller->fd);
+
+	upoll_assert(err != -EBADF);
+	upoll_assert(err != -ENOSPC);
+	upoll_assert(err != -EDQUOT);
 
 	return;
 }

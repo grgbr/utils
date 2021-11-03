@@ -1,9 +1,8 @@
 #include <utils/unsk.h>
 #include <utils/poll.h>
 #include <utils/path.h>
+#include <utils/fd.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 
 #define UNSK_NAMED_PATH_MAX     (sizeof_member(struct sockaddr_un, sun_path))
 #define UNSK_ABSTRACT_PATH_LEN  (5U)
@@ -375,12 +374,11 @@ unsk_close(int fd)
 {
 	unsk_assert(fd >= 0);
 
-	do {
-		if (!close(fd))
-			return;
-	} while (errno == EINTR);
+	int err __unused;
 
-	unsk_assert(0);
+	err = ufd_close(fd);
+
+	unsk_assert(!err || (err == -EINTR));
 }
 
 static int __unsk_nonull(1) __nothrow

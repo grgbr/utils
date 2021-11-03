@@ -2,6 +2,7 @@
 #define _UTILS_DIR_H
 
 #include <utils/path.h>
+#include <utils/fd.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -63,17 +64,7 @@ udir_nointr_open(const char *path, int flags) __udir_nonull(1);
 static inline int
 udir_close(int fd)
 {
-	udir_assert(fd >= 0);
-
-	if (!close(fd))
-		return 0;
-
-	udir_assert(errno != EBADF);
-
-	return -errno;
+	return ufd_close(fd);
 }
-
-extern int
-udir_nointr_close(int fd);
 
 #endif /* _UTILS_DIR_H */

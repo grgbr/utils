@@ -201,8 +201,7 @@ usig_procmask(int                         how,
 
 #if defined(CONFIG_UTILS_SIGNAL_FD)
 
-#include <unistd.h>
-#include <errno.h>
+#include <utils/fd.h>
 #include <sys/signalfd.h>
 
 extern int
@@ -234,12 +233,13 @@ usig_close_fd(int fd)
 {
 	usig_assert(fd >= 0);
 
-	if (!close(fd))
-		return 0;
+	int ret;
 
-	usig_assert(errno == EINTR);
+	ret = ufd_close(fd);
 
-	return -EINTR;
+	usig_assert(!ret || (ret == -EINTR));
+
+	return ret;
 }
 
 #endif /* defined(CONFIG_UTILS_SIGNAL_FD) */
