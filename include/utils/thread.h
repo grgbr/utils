@@ -30,7 +30,7 @@ struct uthr_mutex {
 };
 
 /* On Linux, defaults to «fast» mutex type. */
-#define UTHR_INIT_MUTEX(_mutex) \
+#define UTHR_INIT_MUTEX \
 	{ .pthread = PTHREAD_MUTEX_INITIALIZER }
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
