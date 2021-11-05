@@ -293,6 +293,29 @@ ustr_prefix_len(const char *string,
                 const char *prefix,
                 size_t      pref_len);
 
+#define ustr_const_prefix_len(_string, _len, _prefix) \
+	ustr_prefix_len(_string, _len, _prefix, sizeof(_prefix) - 1)
+
+static inline bool
+ustr_match_token(const char * string,
+                 size_t       str_len,
+                 const char * token,
+                 size_t       tok_len)
+{
+	ustr_assert(string);
+	ustr_assert(token);
+	ustr_assert(token[0]);
+	ustr_assert(tok_len);
+
+	if (str_len != tok_len)
+		return false;
+
+	return !memcmp(string, token, tok_len);
+}
+
+#define ustr_match_const_token(_string, _str_len, _token) \
+	ustr_match_token(_string, _str_len, _token, sizeof(_token) - 1)
+
 static inline size_t
 ustr_skip_char(const char *string, int ch, size_t size)
 {
