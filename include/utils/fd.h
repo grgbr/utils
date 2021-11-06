@@ -147,6 +147,17 @@ ufd_close_range(unsigned int first, unsigned int last, unsigned int flags)
 	return -errno;
 }
 
+static inline int __nothrow
+ufd_close_fds(unsigned int first, unsigned int last)
+{
+	return ufd_close_range(first, last);
+}
+
+#else /* !(defined(__NR_close_range) && defined(__USE_GNU)) */
+
+extern int
+ufd_close_fds(unsigned int first, unsigned int last);
+
 #endif /* defined(__NR_close_range) && defined(__USE_GNU) */
 
 #endif /* _UTILS_FD_H */
