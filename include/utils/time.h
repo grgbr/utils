@@ -193,4 +193,27 @@ utime_tspec_diff_msec(const struct timespec * __restrict fst,
                       const struct timespec * __restrict snd)
 	__utime_nonull(1, 2) __pure __nothrow;
 
+#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+
+static inline void __utime_nonull(1, 2) __nothrow
+utime_gmtime_from_tspec(struct tm * __restrict             time,
+                        const struct timespec * __restrict tspec)
+{
+	utime_assert(time);
+	utime_assert(tspec);
+
+	utime_assert(gmtime_r(&tspec->tv_sec, time));
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+static inline void __utime_nonull(1, 2) __nothrow
+utime_gmtime_from_tspec(struct tm * __restrict             time,
+                        const struct timespec * __restrict tspec)
+{
+	gmtime_r(&tspec->tv_sec, time);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
 #endif /* _UTILS_TIME_H */
