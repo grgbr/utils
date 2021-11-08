@@ -150,7 +150,7 @@ ufd_close_range(unsigned int first, unsigned int last, unsigned int flags)
 static inline int __nothrow
 ufd_close_fds(unsigned int first, unsigned int last)
 {
-	return ufd_close_range(first, last);
+	return ufd_close_range(first, last, 0);
 }
 
 #else /* !(defined(__NR_close_range) && defined(__USE_GNU)) */
