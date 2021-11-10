@@ -1,13 +1,12 @@
 #include <utils/unsk.h>
 #include <utils/poll.h>
 #include <utils/path.h>
-#include <utils/fd.h>
 #include <stdlib.h>
 
 #define UNSK_NAMED_PATH_MAX     (sizeof_member(struct sockaddr_un, sun_path))
 #define UNSK_ABSTRACT_PATH_LEN  (5U)
 #define UNSK_ABSTRACT_PATH_MAX  (UNSK_ABSTRACT_PATH_LEN + 1)
-#define UNSK_ABSTRACT_ADDR_SIZE \
+#define UNSK_ABSTRACT_ADDR_LEN \
 	(sizeof(sa_family_t) + 1 + UNSK_ABSTRACT_PATH_LEN)
 
 static struct unsk_buff * __nothrow __warn_result
@@ -162,9 +161,24 @@ unsk_buffq_fini(struct unsk_buffq * buffq)
 		unsk_buff_free(unsk_buffq_xtract(&buffq->free));
 }
 
+int
+unsk_is_named_path_ok(const char * path)
+{
+	ssize_t len;
+
+	if (!path)
+		return -EFAULT;
+
+	len = upath_validate_path(path, UNSK_NAMED_PATH_MAX);
+	if (len < 0)
+		return len;
+
+	return 0;
+}
+
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
-static ssize_t __unsk_nonull(2) __warn_result
+ssize_t
 unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
 {
 	unsk_assert(fd >= 0);
@@ -222,27 +236,7 @@ unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
 	return -errno;
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-static ssize_t __unsk_nonull(2) __warn_result
-unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
-{
-	ssize_t ret;
-
-	ret = sendmsg(fd, msg, flags);
-	if (ret > 0)
-		return ret;
-	else if (!ret)
-		return -EAGAIN;
-
-	return -errno;
-}
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
-
-static ssize_t __unsk_nonull(2) __warn_result
+ssize_t
 unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
 {
 	unsk_assert(fd >= 0);
@@ -284,25 +278,7 @@ unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
 	return -errno;
 }
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-static ssize_t __unsk_nonull(2) __warn_result
-unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
-{
-	ssize_t ret;
-
-	ret = recvmsg(fd, msg, flags);
-	if (ret > 0)
-		return ret;
-	else if (!ret)
-		return -EAGAIN;
-
-	return -errno;
-}
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-static int __unsk_nonull(2) __nothrow
+int
 unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
 {
 	unsk_assert(fd >= 0);
@@ -310,44 +286,20 @@ unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
 	unsk_assert(addr->sun_family == AF_UNIX);
 	unsk_assert(size >= sizeof(sa_family_t));
 
-	if (bind(fd, (struct sockaddr *)addr, size)) {
-		unsk_assert(errno != EBADF);
-		unsk_assert(errno != EINVAL);
-		unsk_assert(errno != ENOTSOCK);
-		unsk_assert(errno != EADDRNOTAVAIL);
-		unsk_assert(errno != EFAULT);
-		unsk_assert(errno != ENAMETOOLONG);
+	if (!bind(fd, (struct sockaddr *)addr, size))
+		return 0;
 
-		return -errno;
-	}
+	unsk_assert(errno != EBADF);
+	unsk_assert(errno != EINVAL);
+	unsk_assert(errno != ENOTSOCK);
+	unsk_assert(errno != EADDRNOTAVAIL);
+	unsk_assert(errno != EFAULT);
+	unsk_assert(errno != ENAMETOOLONG);
 
-	return 0;
+	return -errno;
 }
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
-
-static void __unsk_nonull(3) __nothrow
-unsk_setsockopt(int fd, int option, const void * value, socklen_t size)
-{
-	unsk_assert(fd >= 0);
-	unsk_assert(option);
-	unsk_assert(value);
-	unsk_assert(size);
-
-	unsk_assert(!setsockopt(fd, SOL_SOCKET, option, value, size));
-}
-
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-static void __unsk_nonull(3) __nothrow
-unsk_setsockopt(int fd, int option, const void * value, socklen_t size)
-{
-	setsockopt(fd, SOL_SOCKET, option, value, size);
-}
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-static int __nothrow
+int
 unsk_open(int type, int flags)
 {
 	unsk_assert((type == SOCK_DGRAM) ||
@@ -369,29 +321,57 @@ unsk_open(int type, int flags)
 	return fd;
 }
 
-static void
-unsk_close(int fd)
-{
-	unsk_assert(fd >= 0);
-
-	int err __unused;
-
-	err = ufd_close(fd);
-
-	unsk_assert(!err || (err == -EINTR));
-}
-
-static int __unsk_nonull(1) __nothrow
+int
 unsk_unlink(const char * path)
 {
 	unsk_assert(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);
 
-	if (unlink(path) && (errno != ENOENT)) {
-		unsk_assert(errno != EFAULT);
-		unsk_assert(errno != ENAMETOOLONG);
+	if (!unlink(path) || (errno == ENOENT))
+		return 0;
 
-		return -errno;
+	unsk_assert(errno != EFAULT);
+	unsk_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+int
+unsk_connect_dgram(int                             fd,
+                   const char * __restrict         peer_path,
+                   struct sockaddr_un * __restrict peer_addr,
+                   socklen_t * __restrict          addr_len)
+{
+	unsk_assert(fd >= 0);
+	unsk_assert(!unsk_is_named_path_ok(peer_path));
+
+	const struct sockaddr_un local = { .sun_family = AF_UNIX };
+	int                      err;
+	size_t                   sz;
+
+	/*
+	 * Explicitly bind to instantiate a local abstract UNIX socket.
+	 *
+	 * See description of "abstract" sockets in section "Address format" of
+	 * unix(7) man page.
+	 */
+	err = unsk_bind(fd, &local, sizeof(sa_family_t));
+	if (err) {
+		unsk_assert(err != -EADDRINUSE);
+		unsk_assert(err != -ELOOP);
+		unsk_assert(err != -ENOENT);
+		unsk_assert(err != -ENOTDIR);
+		unsk_assert(err != -EROFS);
+
+		return err;
 	}
+
+	/* Setup peer address to send messages to. */
+	sz = strnlen(peer_path, sizeof(peer_addr->sun_path)) + 1;
+	peer_addr->sun_family = AF_UNIX;
+	memcpy(&peer_addr->sun_path[0], peer_path, sz);
+	*addr_len = offsetof(typeof(*peer_addr), sun_path) + sz;
 
 	return 0;
 }
@@ -399,21 +379,6 @@ unsk_unlink(const char * path)
 /******************************************************************************
  * Service / server side UNIX socket handling
  ******************************************************************************/
-
-int
-unsk_svc_is_path_ok(const char * path)
-{
-	ssize_t len;
-
-	if (!path)
-		return -EFAULT;
-
-	len = upath_validate_path(path, UNSK_NAMED_PATH_MAX);
-	if (len < 0)
-		return len;
-
-	return 0;
-}
 
 int
 unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
@@ -438,7 +403,7 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 	};
 	const struct msghdr msg = {
 		.msg_name       = (struct sockaddr *)peer,
-		.msg_namelen    = UNSK_ABSTRACT_ADDR_SIZE,
+		.msg_namelen    = UNSK_ABSTRACT_ADDR_LEN,
 		.msg_iov        = (struct iovec *)&vec,
 		.msg_iovlen     = 1,
 		0,
@@ -498,7 +463,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 	if (ret > 0) {
 		const struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msg);
 
-		if ((msg.msg_namelen != UNSK_ABSTRACT_ADDR_SIZE) ||
+		if ((msg.msg_namelen != UNSK_ABSTRACT_ADDR_LEN) ||
 		    peer->sun_path[0])
 			return -EADDRNOTAVAIL;
 
@@ -714,37 +679,14 @@ unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
 {
 	unsk_assert(sock);
 	unsk_assert(sock->fd >= 0);
-	unsk_assert(!unsk_svc_is_path_ok(path));
 
-	const struct sockaddr_un local = { .sun_family = AF_UNIX };
-	int                      err;
-	size_t                   sz;
-	struct sockaddr_un *     peer = &sock->peer;
-	struct cmsghdr *         cmsg = &sock->creds.head;
-	struct ucred *           creds = (struct ucred *)CMSG_DATA(cmsg);
+	int              err;
+	struct cmsghdr * cmsg = &sock->creds.head;
+	struct ucred *   creds = (struct ucred *)CMSG_DATA(cmsg);
 
-	/*
-	 * Explicitly bind to instantiate a local abstract UNIX socket.
-	 *
-	 * See description of "abstract" sockets in section "Address format" of
-	 * unix(7) man page.
-	 */
-	err = unsk_bind(sock->fd, &local, sizeof(sa_family_t));
-	if (err) {
-		unsk_assert(err != -EADDRINUSE);
-		unsk_assert(err != -ELOOP);
-		unsk_assert(err != -ENOENT);
-		unsk_assert(err != -ENOTDIR);
-		unsk_assert(err != -EROFS);
-
+	err = unsk_connect_dgram(sock->fd, path, &sock->peer, &sock->peer_sz);
+	if (err)
 		return err;
-	}
-
-	/* Setup peer address to send messages to. */
-	sz = strnlen(path, sizeof(peer->sun_path)) + 1;
-	peer->sun_family = AF_UNIX;
-	memcpy(&peer->sun_path[0], path, sz);
-	sock->peer_sz = offsetof(typeof(*peer), sun_path) + sz;
 
 	/* Setup credentials ancillary message to send messages with. */
 	memset(cmsg, 0, sizeof(*cmsg));

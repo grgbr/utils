@@ -3,6 +3,7 @@
 
 #include <utils/slist.h>
 #include <utils/poll.h>
+#include <utils/fd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -28,6 +29,148 @@
 #define unsk_assert(_expr)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+/******************************************************************************
+ * low-level UNIX socket wrappers
+ ******************************************************************************/
+
+#define UNSK_INIT_NAMED_ADDR(_path) \
+	{ .sun_family = AF_UNIX, .sun_path = _path }
+
+#define UNSK_INIT_NAMED_ADDR_LEN(_path) \
+	(offsetof(struct sockaddr_un, sun_path) + sizeof(_path))
+
+extern int
+unsk_is_named_path_ok(const char * path)
+	__unsk_nonull(1) __unsk_pure __nothrow __leaf;
+
+extern int
+unsk_connect_dgram(int                             fd,
+                   const char * __restrict         peer_path,
+                   struct sockaddr_un * __restrict peer_addr,
+                   socklen_t * __restrict          addr_len)
+	__unsk_nonull(2, 3, 4) __nothrow __leaf;
+
+#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+
+static inline void __unsk_nonull(3) __nothrow
+unsk_setsockopt(int fd, int option, const void * value, socklen_t size)
+{
+	unsk_assert(fd >= 0);
+	unsk_assert(option);
+	unsk_assert(value);
+	unsk_assert(size);
+
+	unsk_assert(!setsockopt(fd, SOL_SOCKET, option, value, size));
+}
+
+extern ssize_t
+unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
+	__unsk_nonull(2) __warn_result;
+
+extern ssize_t
+unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
+	__unsk_nonull(2) __warn_result;
+
+extern int
+unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
+	__unsk_nonull(2) __nothrow __leaf;
+
+extern int
+unsk_open(int type, int flags) __nothrow __leaf;
+
+static inline void
+unsk_close(int fd)
+{
+	unsk_assert(fd >= 0);
+
+	int err;
+
+	err = ufd_close(fd);
+
+	unsk_assert(!err || (err == -EINTR));
+}
+
+extern int
+unsk_unlink(const char * path) __unsk_nonull(1) __nothrow __leaf;
+
+#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+static inline void __unsk_nonull(3) __nothrow
+unsk_setsockopt(int fd, int option, const void * value, socklen_t size)
+{
+	setsockopt(fd, SOL_SOCKET, option, value, size);
+}
+
+static inline ssize_t __unsk_nonull(2) __warn_result
+unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
+{
+	ssize_t ret;
+
+	ret = sendmsg(fd, msg, flags);
+	if (ret > 0)
+		return ret;
+	else if (!ret)
+		return -EAGAIN;
+
+	return -errno;
+}
+
+static inline ssize_t __unsk_nonull(2) __warn_result
+unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
+{
+	ssize_t ret;
+
+	ret = recvmsg(fd, msg, flags);
+	if (ret > 0)
+		return ret;
+	else if (!ret)
+		return -EAGAIN;
+
+	return -errno;
+}
+
+static inline int __unsk_nonull(2) __nothrow
+unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
+{
+	if (!bind(fd, (struct sockaddr *)addr, size))
+		return 0;
+
+	return -errno;
+}
+
+static inline int __nothrow
+unsk_open(int type, int flags)
+{
+	int fd;
+
+	fd = socket(AF_UNIX, type | flags, 0);
+	if (fd >= 0)
+		return fd;
+
+	return -errno;
+}
+
+static inline void
+unsk_close(int fd)
+{
+	return ufd_close(fd);
+}
+
+static inline int __unsk_nonull(1) __nothrow
+unsk_unlink(const char * path)
+{
+	if (!unlink(path) || (errno == ENOENT))
+		return 0;
+
+	return -errno;
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+/******************************************************************************
+ * UNIX socket buffer and queue handling
+ ******************************************************************************/
 
 #define UNSK_BUFF_SIZE_MAX (256U * 1024U)
 
@@ -209,8 +352,11 @@ struct unsk_svc {
  * * -EINVAL       - path is empty,
  * * -ENAMETOOLONG - path length too long.
  */
-extern int
-unsk_svc_is_path_ok(const char * path) __unsk_pure __leaf __nothrow;
+static inline int __unsk_nonull(1) __unsk_pure __nothrow
+unsk_svc_is_path_ok(const char * path)
+{
+	return unsk_is_named_path_ok(path);
+}
 
 /**
  * unsk_dgram_svc_send() - Transmit a message from a service side UNIX datagram
