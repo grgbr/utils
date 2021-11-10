@@ -551,38 +551,6 @@ ustr_parse_char_range(const char  *string,
 }
 
 size_t
-ustr_prefix_len(const char *string,
-                size_t      str_len,
-                const char *prefix,
-                size_t      pref_len)
-{
-	ustr_assert(string);
-	ustr_assert(prefix);
-
-	if (!str_len || ! pref_len || (pref_len > str_len))
-		return 0;
-
-	return memcmp(string, prefix, pref_len) ? 0 : pref_len;
-}
-
-size_t
-ustr_suffix_len(const char *string,
-                size_t      str_len,
-                const char *suffix,
-                size_t      suff_len)
-{
-	ustr_assert(string);
-	ustr_assert(suffix);
-
-	if (!str_len || ! suff_len || (suff_len > str_len))
-		return 0;
-
-	return memcmp(string + str_len - suff_len,
-	              suffix,
-	              suff_len) ? 0 : suff_len;
-}
-
-size_t
 ustr_skip_space(const char *string, size_t size)
 {
 	ustr_assert(string);
@@ -675,4 +643,153 @@ ustr_sized_clone(const char *orig, size_t max_size)
 	}
 
 	return ustr_clone(orig, len);
+}
+
+size_t
+ustr_prefix_len(const char * __restrict string,
+                size_t                  str_len,
+                const char * __restrict prefix,
+                size_t                  pref_len)
+{
+	ustr_assert(string);
+	ustr_assert(prefix);
+
+	if (!str_len || ! pref_len || (pref_len > str_len))
+		return 0;
+
+	return memcmp(string, prefix, pref_len) ? 0 : pref_len;
+}
+
+size_t
+ustr_suffix_len(const char * __restrict string,
+                size_t                  str_len,
+                const char * __restrict suffix,
+                size_t                  suff_len)
+{
+	ustr_assert(string);
+	ustr_assert(suffix);
+
+	if (!str_len || ! suff_len || (suff_len > str_len))
+		return 0;
+
+	return memcmp(string + str_len - suff_len,
+	              suffix,
+	              suff_len) ? 0 : suff_len;
+}
+
+int
+ustr_parse_token_chain(ustr_parse_token_fn * const parsers[__restrict_arr],
+                       unsigned int                count,
+                       int                         delim,
+                       const char * __restrict     string,
+                       size_t                      size,
+                       void * __restrict           context)
+{
+	ustr_assert(parsers);
+	ustr_assert(count);
+	ustr_assert(string);
+
+	unsigned int p = 0;
+
+	if (size) {
+		const char * str = string;
+		int          ret;
+
+		do {
+			ustr_parse_token_fn * parse = parsers[p];
+			size_t                len;
+
+			len = ustr_skip_notchar(str, delim, size);
+			if (!len)
+				/* Delimiter found with missing token. */
+				return -ENODATA;
+
+			ret = parse(str, len, context);
+			if (ret <= 0)
+				/* No match: bail out. */
+				break;
+
+			/* Update count of parsed tokens. */
+			p++;
+
+			len = umin(len + 1, size);
+			str = &str[len];
+			size -= len;
+		} while (size && (p < count));
+
+		if (ret <= 0) {
+			/* Parsing error or failed to match token. */
+			if (!ret)
+				/* Token not matched. */
+				ret = -EBADMSG;
+			return ret;
+		}
+
+		if (size) {
+			/* Tokens in excess. */
+			ustr_assert(p == count);
+			return -EMSGSIZE;
+		}
+
+		if (str[-1] == delim)
+			/*
+			 * String ends with delimiter (within specified size),
+			 * meaning that last token is missing.
+			 */
+			return -ENODATA;
+	}
+
+	/* Return the number of matched / parsed tokens. */
+	return p;
+}
+
+int
+ustr_foreach_token(ustr_parse_token_fn *   parse,
+                   int                     delim,
+                   const char * __restrict string,
+                   size_t                  size,
+                   void * __restrict       context)
+{
+	ustr_assert(parse);
+	ustr_assert(string);
+
+	unsigned int cnt = 0;
+
+	if (size) {
+		const char * str = string;
+
+		do {
+			size_t len;
+			int    ret;
+
+			len = ustr_skip_notchar(str, delim, size);
+			if (!len)
+				/* Delimiter found with missing token. */
+				return -ENODATA;
+
+			ret = parse(str, len, context);
+			if (ret <= 0) {
+				if (!ret)
+					/* Token not matched. */
+					ret = -EBADMSG;
+				return ret;
+			}
+
+			cnt++;
+
+			len = umin(len + 1, size);
+			str = &str[len];
+			size -= len;
+		} while (size);
+
+		if (str[-1] == delim)
+			/*
+			 * String ends with delimiter (within specified size),
+			 * meaning that last token is missing.
+			 */
+			return -ENODATA;
+	}
+
+	/* Return the number of matches. */
+	return cnt;
 }

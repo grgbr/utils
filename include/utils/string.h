@@ -15,9 +15,14 @@
 #define ustr_assert(_expr) \
 	uassert("ustr", _expr)
 
+#define __ustr_nonull(_arg_index, ...)
+
 #else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 #define ustr_assert(_expr)
+
+#define __ustr_nonull(_arg_index, ...) \
+	__nonull(_arg_index, ## __VA_ARGS__)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
@@ -287,35 +292,6 @@ ustr_toupper(char *upper, const char *orig, size_t size);
 extern void
 ustr_toupper_inp(char *string, size_t size);
 
-extern size_t
-ustr_prefix_len(const char *string,
-                size_t      str_len,
-                const char *prefix,
-                size_t      pref_len);
-
-#define ustr_const_prefix_len(_string, _len, _prefix) \
-	ustr_prefix_len(_string, _len, _prefix, sizeof(_prefix) - 1)
-
-static inline bool
-ustr_match_token(const char * string,
-                 size_t       str_len,
-                 const char * token,
-                 size_t       tok_len)
-{
-	ustr_assert(string);
-	ustr_assert(token);
-	ustr_assert(token[0]);
-	ustr_assert(tok_len);
-
-	if (str_len != tok_len)
-		return false;
-
-	return !memcmp(string, token, tok_len);
-}
-
-#define ustr_match_const_token(_string, _str_len, _token) \
-	ustr_match_token(_string, _str_len, _token, sizeof(_token) - 1)
-
 static inline size_t
 ustr_skip_char(const char *string, int ch, size_t size)
 {
@@ -346,8 +322,8 @@ ustr_rskip_char(const char *string, int ch, size_t size)
 	return size - (size_t)((str + 1) - string);
 }
 
-static inline size_t
-ustr_skip_notchar(const char *string, int ch, size_t size)
+static inline size_t __ustr_nonull(1) __pure __nothrow
+ustr_skip_notchar(const char * string, int ch, size_t size)
 {
 	ustr_assert(string);
 	ustr_assert(ch);
@@ -409,5 +385,90 @@ ustr_clone(const char *orig, size_t len);
 
 extern char *
 ustr_sized_clone(const char *orig, size_t max_size);
+
+extern size_t
+ustr_prefix_len(const char * __restrict string,
+                size_t                  str_len,
+                const char * __restrict prefix,
+                size_t                  pref_len)
+	__ustr_nonull(1, 3) __pure __nothrow __leaf;
+
+#define ustr_const_prefix_len(_string, _len, _prefix) \
+	ustr_prefix_len(_string, _len, _prefix, sizeof(_prefix) - 1)
+
+extern size_t
+ustr_suffix_len(const char * __restrict string,
+                size_t                  str_len,
+                const char * __restrict suffix,
+                size_t                  suff_len)
+	__ustr_nonull(1, 3) __pure __nothrow __leaf;
+
+#define ustr_const_suffix_len(_string, _len, _suffix) \
+	ustr_suffix_len(_string, _len, _suffix, sizeof(_suffix) - 1)
+
+static inline bool __ustr_nonull(1, 3) __pure __nothrow
+ustr_match_token(const char * __restrict string,
+                 size_t                  str_len,
+                 const char * __restrict token,
+                 size_t                  tok_len)
+{
+	ustr_assert(string);
+	ustr_assert(token);
+	ustr_assert(token[0]);
+	ustr_assert(tok_len);
+
+	if (str_len != tok_len)
+		return false;
+
+	return !memcmp(string, token, tok_len);
+}
+
+#define ustr_match_const_token(_string, _str_len, _token) \
+	ustr_match_token(_string, _str_len, _token, sizeof(_token) - 1)
+
+/*
+ * Return:
+ * * 1  -- token matched
+ * * 0  -- no match
+ * * <0 -- parsing error.
+ */
+typedef int (ustr_parse_token_fn)(const char * __restrict string,
+                                  size_t                  length,
+                                  void * __restrict       context);
+
+/*
+ * Parse a string containing a chain of tokens located at specified positions.
+ *
+ * Return:
+ * >=0       -- count of token matched
+ * -ENODATA  -- empty / missing token
+ * -EBADMSG  -- unexpected token
+ * -EMSGSIZE -- all expected tokens matched, but string has not been parsed
+ *              entirely, i.e. characters in excess
+ */
+extern int
+ustr_parse_token_chain(ustr_parse_token_fn * const parsers[__restrict_arr],
+                       unsigned int                count,
+                       int                         delim,
+                       const char * __restrict     string,
+                       size_t                      size,
+                       void * __restrict           context)
+	__ustr_nonull(1, 4) __nothrow;
+
+/*
+ * Parse a string containing an unordered list of token.
+ *
+ * Return:
+ * >=0       -- count of token matched
+ * -ENODATA  -- empty / missing token
+ * -EBADMSG  -- unexpected token
+ */
+extern int
+ustr_foreach_token(ustr_parse_token_fn *   parse,
+                   int                     delim,
+                   const char * __restrict string,
+                   size_t                  size,
+                   void * __restrict       context)
+	__ustr_nonull(1, 3) __nothrow;
 
 #endif /* _UTILS_STRING_H */
