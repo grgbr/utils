@@ -51,6 +51,30 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+static inline ssize_t __ufd_nonull(2) __warn_result
+ufd_write(int fd, const char *data, size_t size)
+{
+	ufd_assert(fd >= 0);
+	ufd_assert(data);
+	ufd_assert(size);
+
+	ssize_t ret;
+
+	ret = write(fd, data, size);
+
+	if (ret >= 0)
+		return ret;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EFAULT);
+	ufd_assert(errno != EINVAL);
+
+	return -errno;
+}
+
+extern ssize_t __ufd_nonull(2) __warn_result
+ufd_nointr_write(int fd, const char *data, size_t size);
+
 static inline int __nothrow
 ufd_dup2(int old_fd, int new_fd)
 {

@@ -3,6 +3,18 @@
 #include <stdbool.h>
 #include <dirent.h>
 
+ssize_t
+ufd_nointr_write(int fd, const char *data, size_t size)
+{
+	ssize_t ret;
+
+	do {
+		ret = ufd_write(fd, data, size);
+	} while (ret == -EINTR);
+
+	return ret;
+}
+
 #if !defined(__NR_close_range) || !defined(__USE_GNU)
 
 int
