@@ -109,7 +109,7 @@ ufile_nointr_full_read(int     fd,
                        size_t  size) __ufile_nonull(2) __warn_result;
 
 static inline ssize_t __ufile_nonull(2) __warn_result
-ufile_write(int fd, const char *data, size_t size)
+ufile_write(int fd, const char * data, size_t size)
 {
 	ufile_assert(fd >= 0);
 	ufile_assert(data);
@@ -117,24 +117,22 @@ ufile_write(int fd, const char *data, size_t size)
 
 	ssize_t ret;
 
-	ret = write(fd, data, size);
+	ret = ufd_write(fd, data, size);
 	ufile_assert(ret);
 
 	if (ret > 0)
 		return ret;
 
-	ufile_assert(errno != EBADF);
 	ufile_assert(errno != EDESTADDRREQ);
-	ufile_assert(errno != EFAULT);
 	ufile_assert(errno != EPIPE);
 
 	return -errno;
 }
 
 extern ssize_t
-ufile_nointr_write(int         fd,
-                   const char *data,
-                   size_t      size) __ufile_nonull(2) __warn_result;
+ufile_nointr_write(int          fd,
+                   const char * data,
+                   size_t       size) __ufile_nonull(2) __warn_result;
 
 extern int
 ufile_nointr_full_write(int         fd,

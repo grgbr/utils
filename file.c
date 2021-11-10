@@ -35,9 +35,13 @@ ufile_nointr_full_read(int fd, char *data, size_t size)
 	return 0;
 }
 
-ssize_t __ufile_nonull(2) __warn_result
-ufile_nointr_write(int fd, const char *data, size_t size)
+ssize_t
+ufile_nointr_write(int fd, const char * data, size_t size)
 {
+	ufile_assert(fd >= 0);
+	ufile_assert(data);
+	ufile_assert(size);
+
 	ssize_t ret;
 
 	do {
@@ -47,8 +51,8 @@ ufile_nointr_write(int fd, const char *data, size_t size)
 	return ret;
 }
 
-int __ufile_nonull(2) __warn_result
-ufile_nointr_full_write(int fd, const char *data, size_t size)
+int
+ufile_nointr_full_write(int fd, const char * data, size_t size)
 {
 	ufile_assert(fd >= 0);
 	ufile_assert(!(!!data ^ !!size));
