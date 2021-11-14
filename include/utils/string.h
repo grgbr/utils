@@ -1,3 +1,32 @@
+/**
+ * @defgroup string String
+ * String handling
+ *
+ * @file
+ * String interface
+ *
+ * @ingroup      string
+ * @author       Grégor Boirie <gregor.boirie@free.fr>
+ * @date         29 Aug 2017
+ * @copyright    Copyright (C) 2017-2021 Grégor Boirie.
+ * @licensestart GNU Lesser General Public License (LGPL) v3
+ *
+ * This file is part of libutils
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option) any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, If not, see <http://www.gnu.org/licenses/>.
+ * @licenseend
+ */
 #ifndef _UTILS_STRING_H
 #define _UTILS_STRING_H
 
@@ -426,49 +455,118 @@ ustr_match_token(const char * __restrict string,
 #define ustr_match_const_token(_string, _str_len, _token) \
 	ustr_match_token(_string, _str_len, _token, sizeof(_token) - 1)
 
-/*
- * Return:
- * * 1  -- token matched
- * * 0  -- no match
- * * <0 -- parsing error.
- */
-typedef int (ustr_parse_token_fn)(const char * __restrict string,
-                                  size_t                  length,
-                                  void * __restrict       context);
-
-/*
- * Parse a string containing a chain of tokens located at specified positions.
+/**
+ * Token parsing callback.
  *
- * Return:
- * >=0       -- count of token matched
- * -ENODATA  -- empty / missing token
- * -EBADMSG  -- unexpected token
- * -EMSGSIZE -- all expected tokens matched, but string has not been parsed
- *              entirely, i.e. characters in excess
+ * @param[inout] string  string to parse
+ * @param[in]    size    maximum size of @p string
+ * @param[inout] context callback specific parsing context
+ *
+ * While parsing, callback implementation MUST look only at the first @p size
+ * characters in the string pointed to by @p string.
+ *
+ * If needed, the callback shall return -ENOENT error code to tell the caller
+ * that no token were matched. In addition, it is NOT ALLOWED to use any of the
+ * following value to indicate the caller an error:
+ * * -ENODATA
+ * * -EMSGSIZE
+ *
+ * @return Parsing result
+ * @retval 0       token matched
+ * @retval -ENOENT no token matched
+ * @retval <0      callback specific negative errno like error code
+ *
+ * @ingroup string
+ */
+typedef int (ustr_parse_token_fn)(char * __restrict string,
+                                  size_t            size,
+                                  void * __restrict context) __ustr_nonull(1);
+
+/**
+ * Parse a string containing a sequence of token fields located at fixed
+ * positions.
+ *
+ * @param[in]    string  string to parse
+ * @param[in]    delim   token sequence delimiter character
+ * @param[in]    parsers array of parsing callbacks
+ * @param[in]    count   number of entries contained into @p parsers array /
+ *                       number of expected token fields
+ * @param[inout] context callback specific parsing context
+ *
+ * @p string is a null byte terminated string and must contain a sequence of
+ * tokens separated by @p delim character called fields. For each field found,
+ * this function runs the corresponding parser callback found into @p parsers
+ * array.
+ *
+ * To lookup the parser callback corresponding to a given field, this function
+ * assigns field an index starting from zero and incremented each time a @p
+ * delim character is crossed. The corresponding parser callback is located into
+ * @p parsers using this field index.
+ *
+ * When called, parsing callbacks are given @p context as last argument. @p
+ * context shall point to arbitrary memory location owned by the caller. It may
+ * be given as NULL.
+ *
+ * As soon as a parser callback returns a negative error code, this function
+ * stops processing @p string and returns the error code to the caller.
+ * Strings containing empty fields, i.e., a substring of 2 successive @p delim
+ * characters, are not allowed and causes this function to return an error.
+ * Once all expected fields have been parsed, this functions returns an error if
+ * there are still unparsed trailing characters found at the end of @p string.
+ *
+ * @return Parsing result
+ * @retval >=0       count of matched tokens / callbacks run
+ * @retval -ENODATA  empty / missing token found
+ * @retval -ENOENT   unexpected / unmatched token
+ * @retval -EMSGSIZE all expected fields matched, but @p string contains
+ *                   trailing garbage character(s)
+ * @retval <0        parsing callback negative errno like error code
+ *
+ * @ingroup string
  */
 extern int
-ustr_parse_token_chain(ustr_parse_token_fn * const parsers[__restrict_arr],
-                       unsigned int                count,
-                       int                         delim,
-                       const char * __restrict     string,
-                       size_t                      size,
-                       void * __restrict           context)
-	__ustr_nonull(1, 4) __nothrow;
+ustr_parse_token_fields(char * __restrict           string,
+                        int                         delim,
+                        ustr_parse_token_fn * const parsers[__restrict_arr],
+                        unsigned int                count,
+                        void * __restrict           context)
+	__ustr_nonull(1, 3);
 
-/*
- * Parse a string containing an unordered list of token.
+/**
+ * Parse a string containing a sequence of token fields
  *
- * Return:
- * >=0       -- count of token matched
- * -ENODATA  -- empty / missing token
- * -EBADMSG  -- unexpected token
+ * @param[in]    string  string to parse
+ * @param[in]    size    maximum size of @p string
+ * @param[in]    delim   token sequence delimiter character
+ * @param[in]    parse   parsing callback
+ * @param[inout] context callback specific parsing context
+ *
+ * @p string is a null byte terminated string and must contain a sequence of
+ * tokens separated by @p delim character called fields. For each field found,
+ * this function runs the @p parse parsing callback given in argument.
+ *
+ * When called, parsing callback is given @p context as last argument. @p
+ * context shall point to arbitrary memory location owned by the caller. It may
+ * be given as NULL.
+ *
+ * As soon as @p parse callback returns a negative error code, this function
+ * stops processing @p string and returns the error code to the caller.
+ * Strings containing empty fields, i.e., a substring of 2 successive @p delim
+ * characters, are not allowed and causes this function to return an error.
+ *
+ * @return Parsing result
+ * @retval >=0       count of matched tokens
+ * @retval -ENODATA  empty / missing token found
+ * @retval -ENOENT   unexpected / unmatched token
+ * @retval <0        parsing callback negative errno like error code
+ *
+ * @ingroup string
  */
 extern int
-ustr_foreach_token(ustr_parse_token_fn *   parse,
-                   int                     delim,
-                   const char * __restrict string,
-                   size_t                  size,
-                   void * __restrict       context)
-	__ustr_nonull(1, 3) __nothrow;
+ustr_parse_each_token(char * __restrict     string,
+                      int                   delim,
+                      ustr_parse_token_fn * parse,
+                      void * __restrict     context)
+	__ustr_nonull(1, 3);
 
 #endif /* _UTILS_STRING_H */

@@ -1,3 +1,32 @@
+/**
+ * @defgroup string String
+ * String handling
+ *
+ * @file
+ * String implementation
+ *
+ * @ingroup      string
+ * @author       Grégor Boirie <gregor.boirie@free.fr>
+ * @date         29 Aug 2017
+ * @copyright    Copyright (C) 2017-2021 Grégor Boirie.
+ * @licensestart GNU Lesser General Public License (LGPL) v3
+ *
+ * This file is part of libutils
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option) any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, If not, see <http://www.gnu.org/licenses/>.
+ * @licenseend
+ */
 #include <utils/string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -678,118 +707,89 @@ ustr_suffix_len(const char * __restrict string,
 }
 
 int
-ustr_parse_token_chain(ustr_parse_token_fn * const parsers[__restrict_arr],
-                       unsigned int                count,
-                       int                         delim,
-                       const char * __restrict     string,
-                       size_t                      size,
-                       void * __restrict           context)
+ustr_parse_token_fields(char * __restrict           string,
+                        int                         delim,
+                        ustr_parse_token_fn * const parsers[__restrict_arr],
+                        unsigned int                count,
+                        void * __restrict           context)
 {
+	ustr_assert(string);
 	ustr_assert(parsers);
 	ustr_assert(count);
-	ustr_assert(string);
 
-	unsigned int p = 0;
+	unsigned int cnt = 0;
+	char *       str = string;
 
-	if (size) {
-		const char * str = string;
-		int          ret;
+	while (true) {
+		char *                sep;
+		size_t                len;
+		ustr_parse_token_fn * parse = parsers[cnt];
+		int                   ret;
+		bool                  out;
 
-		do {
-			ustr_parse_token_fn * parse = parsers[p];
-			size_t                len;
-
-			len = ustr_skip_notchar(str, delim, size);
-			if (!len)
-				/* Delimiter found with missing token. */
-				return -ENODATA;
-
-			ret = parse(str, len, context);
-			if (ret <= 0)
-				/* No match: bail out. */
-				break;
-
-			/* Update count of parsed tokens. */
-			p++;
-
-			len = umin(len + 1, size);
-			str = &str[len];
-			size -= len;
-		} while (size && (p < count));
-
-		if (ret <= 0) {
-			/* Parsing error or failed to match token. */
-			if (!ret)
-				/* Token not matched. */
-				ret = -EBADMSG;
-			return ret;
-		}
-
-		if (size) {
-			/* Tokens in excess. */
-			ustr_assert(p == count);
-			return -EMSGSIZE;
-		}
-
-		if (str[-1] == delim)
-			/*
-			 * String ends with delimiter (within specified size),
-			 * meaning that last token is missing.
-			 */
+		sep = strchrnul(str, delim);
+		len = sep - str;
+		if (!len)
 			return -ENODATA;
-	}
 
-	/* Return the number of matched / parsed tokens. */
-	return p;
+		out = !*sep;
+		*sep = '\0';
+
+		ret = parse(str, len, context);
+		if (ret)
+			return ret;
+
+		cnt++;
+		ustr_assert(cnt <= count);
+
+		if (out)
+			/* End of string: return the number of matches. */
+			return cnt;
+
+		if (cnt == count)
+			/* Trailing characters in excess: tell the caller. */
+			return -EMSGSIZE;
+
+		str = sep + 1;
+	}
 }
 
 int
-ustr_foreach_token(ustr_parse_token_fn *   parse,
-                   int                     delim,
-                   const char * __restrict string,
-                   size_t                  size,
-                   void * __restrict       context)
+ustr_parse_each_token(char * __restrict     string,
+                      int                   delim,
+                      ustr_parse_token_fn * parse,
+                      void * __restrict     context)
 {
-	ustr_assert(parse);
 	ustr_assert(string);
+	ustr_assert(parse);
 
 	unsigned int cnt = 0;
+	char *       str = string;
 
-	if (size) {
-		const char * str = string;
+	while (true) {
+		char * sep;
+		size_t len;
+		int    ret;
+		bool   out;
 
-		do {
-			size_t len;
-			int    ret;
-
-			len = ustr_skip_notchar(str, delim, size);
-			if (!len)
-				/* Delimiter found with missing token. */
-				return -ENODATA;
-
-			ret = parse(str, len, context);
-			if (ret <= 0) {
-				if (!ret)
-					/* Token not matched. */
-					ret = -EBADMSG;
-				return ret;
-			}
-
-			cnt++;
-
-			len = umin(len + 1, size);
-			str = &str[len];
-			size -= len;
-		} while (size);
-
-		if (str[-1] == delim)
-			/*
-			 * String ends with delimiter (within specified size),
-			 * meaning that last token is missing.
-			 */
+		sep = strchrnul(str, delim);
+		len = sep - str;
+		if (!len)
 			return -ENODATA;
-	}
 
-	/* Return the number of matches. */
-	return cnt;
+		out = !*sep;
+		*sep = '\0';
+
+		ret = parse(str, len, context);
+		if (ret)
+			return ret;
+
+		cnt++;
+
+		if (out)
+			/* End of string: return the number of matches. */
+			return cnt;
+
+		str = sep + 1;
+	}
 }
