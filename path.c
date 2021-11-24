@@ -1,5 +1,27 @@
 #include <utils/path.h>
 #include <utils/string.h>
+#include <sys/stat.h>
+
+int
+upath_parse_mode(const char * string, mode_t * mode)
+{
+	upath_assert(string);
+	upath_assert(mode);
+
+	int           ret;
+	unsigned long val;
+
+	ret = ustr_parse_base_ulong(string, &val, 8);
+	if (ret)
+		return ret;
+
+	if (val & ~ALLPERMS)
+		return -ERANGE;
+
+	*mode = (mode_t)val;
+
+	return 0;
+}
 
 ssize_t
 upath_validate_path(const char *path, size_t max_size)

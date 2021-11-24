@@ -32,6 +32,9 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+extern int
+upath_parse_mode(const char * string, mode_t * mode);
+
 /******************************************************************************
  * Path name checkers
  ******************************************************************************/
