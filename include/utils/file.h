@@ -193,7 +193,7 @@ ufile_copy_fds(int src_fd, int dst_fd, size_t size)
 	return -errno;
 }
 
-static inline int __ufile_nonull(1)
+static inline int
 ufile_sync(int fd)
 {
 	ufile_assert(fd >= 0);

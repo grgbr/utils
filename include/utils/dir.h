@@ -24,7 +24,7 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
-static inline int __udir_nonull(1)
+static inline int
 udir_sync(int fd)
 {
 	udir_assert(fd >= 0);
