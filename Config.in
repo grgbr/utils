@@ -98,6 +98,7 @@ config UTILS_FILE
 	bool "File"
 	default y
 	select UTILS_PATH
+	select UTILS_FD
 	help
 	  Build utils library POSIX filesystem file wrappers.
 
