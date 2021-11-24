@@ -1,6 +1,24 @@
 #include <utils/path.h>
 #include <utils/string.h>
 
+ssize_t
+upath_validate_path(const char *path, size_t max_size)
+{
+	upath_assert(path);
+	upath_assert(max_size);
+
+	size_t len;
+
+	len = strnlen(path, max_size);
+	if (!len)
+		return -ENODATA;
+
+	if (len < max_size)
+		return len;
+
+	return -ENAMETOOLONG;
+}
+
 /******************************************************************************
  * Path component handling
  ******************************************************************************/

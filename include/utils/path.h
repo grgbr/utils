@@ -36,20 +36,9 @@
  * Path name checkers
  ******************************************************************************/
 
-static inline ssize_t __upath_nonull(1) __upath_pure __nothrow
+extern ssize_t
 upath_validate_path(const char *path, size_t max_size)
-{
-	upath_assert(path);
-	upath_assert(max_size);
-
-	size_t len;
-
-	len = strnlen(path, max_size);
-	if (len && (len < max_size))
-		return len;
-
-	return -ENAMETOOLONG;
-}
+	__upath_nonull(1) __upath_pure __nothrow __leaf;
 
 static inline ssize_t __upath_nonull(1) __upath_pure __nothrow
 upath_validate_path_name(const char *path)
