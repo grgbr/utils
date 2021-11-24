@@ -118,8 +118,8 @@ ustr_parse_bool(const char *string, bool *value)
 	return ret;
 }
 
-static int
-_ustr_parse_ullong(const char *string, unsigned long long *value, int base)
+int
+ustr_parse_base_ullong(const char *string, unsigned long long *value, int base)
 {
 	ustr_assert(string);
 	ustr_assert(value);
@@ -138,12 +138,6 @@ _ustr_parse_ullong(const char *string, unsigned long long *value, int base)
 	*value = val;
 
 	return 0;
-}
-
-int
-ustr_parse_ullong(const char *string, unsigned long long *value)
-{
-	return _ustr_parse_ullong(string, value, 0);
 }
 
 int
@@ -168,12 +162,6 @@ ustr_parse_ullong_range(const char         *string,
 	*value = val;
 
 	return 0;
-}
-
-int
-ustr_parse_xllong(const char *string, unsigned long long *value)
-{
-	return _ustr_parse_ullong(string, value, 16);
 }
 
 int
@@ -245,8 +233,8 @@ ustr_parse_llong_range(const char *string,
 	return 0;
 }
 
-static int
-_ustr_parse_ulong(const char *string, unsigned long *value, int base)
+int
+ustr_parse_base_ulong(const char *string, unsigned long *value, int base)
 {
 	ustr_assert(string);
 	ustr_assert(value);
@@ -265,12 +253,6 @@ _ustr_parse_ulong(const char *string, unsigned long *value, int base)
 	*value = val;
 
 	return 0;
-}
-
-int
-ustr_parse_ulong(const char *string, unsigned long *value)
-{
-	return _ustr_parse_ulong(string, value, 0);
 }
 
 int
@@ -295,12 +277,6 @@ ustr_parse_ulong_range(const char    *string,
 	*value = val;
 
 	return 0;
-}
-
-int
-ustr_parse_xlong(const char *string, unsigned long *value)
-{
-	return _ustr_parse_ulong(string, value, 16);
 }
 
 int

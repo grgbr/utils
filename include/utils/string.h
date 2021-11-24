@@ -59,16 +59,25 @@ extern int
 ustr_parse_bool(const char *string, bool *value);
 
 extern int
-ustr_parse_ullong(const char *string, unsigned long long *value);
+ustr_parse_base_ullong(const char *string, unsigned long long *value, int base);
+
+static inline int
+ustr_parse_ullong(const char *string, unsigned long long *value)
+{
+	return ustr_parse_base_ullong(string, value, 0);
+}
+
+static inline int
+ustr_parse_xllong(const char *string, unsigned long long *value)
+{
+	return ustr_parse_base_ullong(string, value, 16);
+}
 
 extern int
 ustr_parse_ullong_range(const char         *string,
                         unsigned long long *value,
                         unsigned long long  min,
                         unsigned long long  max);
-
-extern int
-ustr_parse_xllong(const char *string, unsigned long long *value);
 
 extern int
 ustr_parse_xllong_range(const char         *string,
@@ -86,7 +95,13 @@ ustr_parse_llong_range(const char *string,
                        long long   max);
 
 extern int
-ustr_parse_ulong(const char *string, unsigned long *value);
+ustr_parse_base_ulong(const char *string, unsigned long *value, int base);
+
+static inline int
+ustr_parse_ulong(const char *string, unsigned long *value)
+{
+	return ustr_parse_base_ulong(string, value, 0);
+}
 
 extern int
 ustr_parse_ulong_range(const char    *string,
@@ -94,8 +109,11 @@ ustr_parse_ulong_range(const char    *string,
                        unsigned long  min,
                        unsigned long  max);
 
-extern int
-ustr_parse_xlong(const char *string, unsigned long *value);
+static inline int
+ustr_parse_xlong(const char *string, unsigned long *value)
+{
+	return ustr_parse_base_ulong(string, value, 16);
+}
 
 extern int
 ustr_parse_xlong_range(const char    *string,
