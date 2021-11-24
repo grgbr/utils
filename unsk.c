@@ -322,6 +322,21 @@ unsk_open(int type, int flags)
 }
 
 int
+unsk_close(int fd)
+{
+	unsk_assert(fd >= 0);
+
+	int err;
+
+	err = ufd_close(fd);
+
+	unsk_assert(err != -ENOSPC);
+	unsk_assert(err != -EDQUOT);
+
+	return err;
+}
+
+int
 unsk_unlink(const char * path)
 {
 	unsk_assert(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);

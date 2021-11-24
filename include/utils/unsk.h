@@ -41,8 +41,7 @@
 	(offsetof(struct sockaddr_un, sun_path) + sizeof(_path))
 
 extern int
-unsk_is_named_path_ok(const char * path)
-	__unsk_nonull(1) __unsk_pure __nothrow __leaf;
+unsk_is_named_path_ok(const char * path) __unsk_pure __nothrow __leaf;
 
 extern int
 unsk_connect_dgram(int                             fd,
@@ -79,17 +78,8 @@ unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
 extern int
 unsk_open(int type, int flags) __nothrow __leaf;
 
-static inline void
-unsk_close(int fd)
-{
-	unsk_assert(fd >= 0);
-
-	int err;
-
-	err = ufd_close(fd);
-
-	unsk_assert(!err || (err == -EINTR));
-}
+extern int
+unsk_close(int fd);
 
 extern int
 unsk_unlink(const char * path) __unsk_nonull(1) __nothrow __leaf;
@@ -151,7 +141,7 @@ unsk_open(int type, int flags)
 	return -errno;
 }
 
-static inline void
+static inline int
 unsk_close(int fd)
 {
 	return ufd_close(fd);
@@ -352,7 +342,7 @@ struct unsk_svc {
  * * -EINVAL       - path is empty,
  * * -ENAMETOOLONG - path length too long.
  */
-static inline int __unsk_nonull(1) __unsk_pure __nothrow
+static inline int __unsk_pure __nothrow
 unsk_svc_is_path_ok(const char * path)
 {
 	return unsk_is_named_path_ok(path);
