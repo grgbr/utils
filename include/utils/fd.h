@@ -31,6 +31,7 @@
 #include <utils/cdefs.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/resource.h>
 #include <sys/syscall.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
@@ -50,6 +51,18 @@
 #define ufd_assert(_expr)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+
+static inline unsigned int __nothrow
+ufd_max_nr(void)
+{
+	struct rlimit lim;
+	int           err;
+
+	err = getrlimit(RLIMIT_NOFILE, &lim);
+	ufd_assert(!err);
+
+	return (unsigned int)lim.rlim_cur;
+}
 
 static inline ssize_t __ufd_nonull(2) __warn_result
 ufd_write(int fd, const char *data, size_t size)

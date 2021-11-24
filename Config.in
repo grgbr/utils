@@ -11,6 +11,12 @@ config UTILS_ASSERT_INTERNAL
 	help
 	  Build utils library with internal assertions enabled.
 
+config UTILS_VALGRIND
+	bool "Valgrind support"
+	default n
+	help
+	  Build utils library with support for valgrind inspection.
+
 config UTILS_BITOPS
 	bool "Bit operations"
 	default y
