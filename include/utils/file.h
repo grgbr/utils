@@ -199,7 +199,7 @@ static inline int __ufile_nonull(1)
 ufile_open(const char *path, int flags)
 {
 	ufile_assert(upath_validate_path_name(path) > 0);
-	ufile_assert(!(flags & O_TMPFILE));
+	ufile_assert((flags & O_TMPFILE) != O_TMPFILE);
 	ufile_assert(!(flags & O_DIRECTORY));
 	ufile_assert(!(flags & O_CREAT));
 	ufile_assert(!(flags & O_EXCL));
@@ -223,7 +223,7 @@ ufile_open_at(int dir, const char *path, int flags)
 {
 	ufile_assert(dir >= 0);
 	ufile_assert(upath_validate_path_name(path) > 0);
-	ufile_assert(!(flags & O_TMPFILE));
+	ufile_assert((flags & O_TMPFILE) != O_TMPFILE);
 	ufile_assert(!(flags & O_DIRECTORY));
 	ufile_assert(!(flags & O_CREAT));
 	ufile_assert(!(flags & O_EXCL));
@@ -249,7 +249,7 @@ static inline int __ufile_nonull(1)
 ufile_new(const char *path, int flags, mode_t mode)
 {
 	ufile_assert(upath_validate_path_name(path) > 0);
-	ufile_assert(!(flags & O_TMPFILE));
+	ufile_assert((flags & O_TMPFILE) != O_TMPFILE);
 	ufile_assert(!(flags & O_DIRECTORY));
 
 	int fd;
@@ -273,7 +273,7 @@ ufile_new_at(int dir, const char *path, int flags, mode_t mode)
 {
 	ufile_assert(dir >= 0);
 	ufile_assert(upath_validate_path_name(path) > 0);
-	ufile_assert(!(flags & O_TMPFILE));
+	ufile_assert((flags & O_TMPFILE) != O_TMPFILE);
 	ufile_assert(!(flags & O_DIRECTORY));
 
 	int fd;
