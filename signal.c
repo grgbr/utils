@@ -25,7 +25,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <utils/signal.h>
+#include "utils/signal.h"
 
 static sigset_t                __usig_inval_msk;
 const sigset_t * const         usig_inval_msk = &__usig_inval_msk;
@@ -102,7 +102,7 @@ usig_setup_actions(const struct usig_new_act nevv[__restrict_arr],
 
 	for (s = 0; s < nr; s++) {
 		const struct usig_new_act * nact = &nevv[s];
-		struct usig_orig_act *      oact = &orig[s];
+		struct usig_orig_act *      oact = orig ? &orig[s] : NULL;
 
 		usig_assert(!usig_ismember(&__usig_inval_msk, nact->no));
 		usig_assert(nact->act);
