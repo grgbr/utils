@@ -33,7 +33,8 @@
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 extern int
-upath_parse_mode(const char * string, mode_t * mode);
+upath_parse_mode(const char * __restrict string, mode_t * __restrict mode)
+	__upath_nonull(1, 2) __nothrow __leaf;
 
 /******************************************************************************
  * Path name checkers
