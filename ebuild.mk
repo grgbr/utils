@@ -21,6 +21,7 @@ libutils.so-objs    += $(call kconf_enabled,UTILS_POLL,poll.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_UNSK,unsk.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_MQUEUE,mqueue.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_NET,net.o)
+libutils.so-objs    += $(call kconf_enabled,UTILS_PWD,pwd.o)
 libutils.so-cflags   = $(EXTRA_CFLAGS) -Wall -Wextra -D_GNU_SOURCE -DPIC -fpic
 libutils.so-cflags  += $(call kconf_enabled,UTILS_THREAD,-pthread)
 libutils.so-ldflags  = $(EXTRA_LDFLAGS) -shared -fpic -Wl,-soname,libutils.so
@@ -50,6 +51,7 @@ headers             += $(call kconf_enabled,UTILS_POLL,utils/poll.h)
 headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
 headers             += $(call kconf_enabled,UTILS_UNSK,utils/mqueue.h)
 headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
+headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
 
 define libutils_pkgconf_tmpl
 prefix=$(PREFIX)

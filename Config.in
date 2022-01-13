@@ -171,3 +171,11 @@ config UTILS_NET
 	default y
 	help
 	  Build utils library with network object related utilities support.
+
+config UTILS_PWD
+	bool "Password / group databases"
+	select UTILS_STR
+	default y
+	help
+	  Build utils library with support for browsing system password and
+	  group databases.
