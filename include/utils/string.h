@@ -95,10 +95,14 @@ ustr_parse_llong_range(const char *string,
                        long long   max);
 
 extern int
-ustr_parse_base_ulong(const char *string, unsigned long *value, int base);
+ustr_parse_base_ulong(const char * __restrict    string,
+                      unsigned long * __restrict value,
+                      int                        base)
+	__ustr_nonull(1, 2) __nothrow __leaf __warn_result;
 
-static inline int
-ustr_parse_ulong(const char *string, unsigned long *value)
+static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+ustr_parse_ulong(const char * __restrict    string,
+                 unsigned long * __restrict value)
 {
 	return ustr_parse_base_ulong(string, value, 0);
 }
@@ -109,7 +113,7 @@ ustr_parse_ulong_range(const char    *string,
                        unsigned long  min,
                        unsigned long  max);
 
-static inline int
+static inline int __ustr_nonull(1, 2) __nothrow __warn_result
 ustr_parse_xlong(const char *string, unsigned long *value)
 {
 	return ustr_parse_base_ulong(string, value, 16);
@@ -129,8 +133,8 @@ ustr_parse_long_range(const char *string, long *value, long min, long max);
 
 #if __WORDSIZE == 64
 
-static inline int
-ustr_parse_uint64(const char *string, uint64_t *value)
+static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+ustr_parse_uint64(const char * __restrict string, uint64_t * __restrict value)
 {
 	return ustr_parse_ulong(string, value);
 }
@@ -172,10 +176,11 @@ ustr_parse_int64(const char *string, int64_t *value)
 #endif
 
 extern int
-ustr_parse_uint_range(const char   *string,
-                      unsigned int *value,
-                      unsigned int  min,
-                      unsigned int  max);
+ustr_parse_uint_range(const char * __restrict   string,
+                      unsigned int * __restrict value,
+                      unsigned int              min,
+                      unsigned int              max)
+	__ustr_nonull(1, 2) __nothrow __warn_result;
 
 static inline int
 ustr_parse_uint(const char *string, unsigned int *value)
@@ -414,8 +419,8 @@ ustr_skip_notspace(const char *string, size_t size);
 extern size_t
 ustr_rskip_notspace(const char *string, size_t size);
 
-static inline ssize_t
-ustr_parse(const char *str, size_t max_size)
+static inline ssize_t __ustr_nonull(1) __pure __nothrow
+ustr_parse(const char * __restrict str, size_t max_size)
 {
 	ustr_assert(str);
 	ustr_assert(max_size);

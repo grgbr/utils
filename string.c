@@ -234,7 +234,9 @@ ustr_parse_llong_range(const char *string,
 }
 
 int
-ustr_parse_base_ulong(const char *string, unsigned long *value, int base)
+ustr_parse_base_ulong(const char * __restrict    string,
+                      unsigned long * __restrict value,
+                      int                        base)
 {
 	ustr_assert(string);
 	ustr_assert(value);
@@ -346,10 +348,10 @@ ustr_parse_long_range(const char *string, long *value, long min, long max)
 }
 
 int
-ustr_parse_uint_range(const char   *string,
-                      unsigned int *value,
-                      unsigned int  min,
-                      unsigned int  max)
+ustr_parse_uint_range(const char   * __restrict string,
+                      unsigned int * __restrict value,
+                      unsigned int              min,
+                      unsigned int              max)
 {
 	ustr_assert(string);
 	ustr_assert(value);
