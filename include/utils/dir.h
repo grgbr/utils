@@ -40,22 +40,25 @@ udir_sync(int fd)
 	return 0;
 }
 
+/*
+ * May only be opened in read-only mode. Otherwise returns with an errno set to
+ * -EISDIR.
+ */
 static inline int __udir_nonull(1)
 udir_open(const char *path, int flags)
 {
 	udir_assert(upath_validate_path_name(path) > 0);
+	udir_assert(!(flags & (O_WRONLY | O_RDWR)));
 
 	int fd;
 
-	fd = open(path, flags | O_NOCTTY | O_DIRECTORY);
+	fd = ufd_open(path, flags | O_RDONLY | O_NOCTTY | O_DIRECTORY);
 	if (fd >= 0)
 		return fd;
 
-	udir_assert(errno != EFAULT);
-	udir_assert(errno != ENAMETOOLONG);
-	udir_assert(errno != EOPNOTSUPP);
+	udir_assert(fd != -EOPNOTSUPP);
 
-	return -errno;
+	return fd;
 }
 
 extern int
