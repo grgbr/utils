@@ -1,11 +1,8 @@
 #ifndef _UTILS_FILE_H
 #define _UTILS_FILE_H
 
-#include <utils/path.h>
 #include <utils/fd.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
@@ -25,34 +22,30 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
+static inline int __nothrow __warn_result
+ufile_fchown(int fd, uid_t owner, gid_t group)
+{
+	ufile_assert(fd >= 0);
+
+	return ufd_fchown(fd, owner, group);
+}
+
 static inline int __nothrow
 ufile_fchmod(int fd, mode_t mode)
 {
 	ufile_assert(fd >= 0);
 	ufile_assert(!(mode & ~ALLPERMS));
 
-	if (!fchmod(fd, mode))
-		return 0;
-
-	ufile_assert(errno != EBADF);
-	ufile_assert(errno != EFAULT);
-
-	return -errno;
+	return ufd_fchmod(fd, mode);
 }
 
 static inline int __ufile_nonull(2) __nothrow
-ufile_fstat(int fd, struct stat *st)
+ufile_fstat(int fd, struct stat * __restrict st)
 {
 	ufile_assert(fd >= 0);
 	ufile_assert(st);
 
-	if (!fstat(fd, st))
-		return 0;
-
-	ufile_assert(errno != EBADF);
-	ufile_assert(errno != EFAULT);
-
-	return -errno;
+	return ufd_fstat(fd, st);
 }
 
 static inline off_t __nothrow
@@ -65,37 +58,17 @@ ufile_lseek(int fd, off_t off, int whence)
 	             (whence == SEEK_DATA) ||
 	             (whence == SEEK_HOLE));
 
-	off_t ret;
-
-	ret = lseek(fd, off, whence);
-	if (ret >= 0)
-		return ret;
-
-	ufile_assert(errno != EBADF);
-	ufile_assert(errno != EOVERFLOW);
-	ufile_assert(errno != ESPIPE);
-
-	return ret;
+	return ufd_lseek(fd, off, whence);
 }
 
 static inline ssize_t __ufile_nonull(2) __warn_result
-ufile_read(int fd, char *data, size_t size)
+ufile_read(int fd, char * data, size_t size)
 {
 	ufile_assert(fd >= 0);
 	ufile_assert(data);
 	ufile_assert(size);
 
-	ssize_t ret;
-
-	ret = read(fd, data, size);
-	if (ret >= 0)
-		return ret;
-
-	ufile_assert(errno != EBADF);
-	ufile_assert(errno != EFAULT);
-	ufile_assert(errno != EISDIR);
-
-	return -errno;
+	return ufd_read(fd, data, size);
 }
 
 extern ssize_t
@@ -119,14 +92,10 @@ ufile_write(int fd, const char * data, size_t size)
 
 	ret = ufd_write(fd, data, size);
 	ufile_assert(ret);
+	ufile_assert(ret != -EDESTADDRREQ);
+	ufile_assert(ret != -EPIPE);
 
-	if (ret > 0)
-		return ret;
-
-	ufile_assert(errno != EDESTADDRREQ);
-	ufile_assert(errno != EPIPE);
-
-	return -errno;
+	return ret;
 }
 
 extern ssize_t
@@ -138,6 +107,24 @@ extern int
 ufile_nointr_full_write(int         fd,
                         const char *data,
                         size_t      size) __ufile_nonull(2) __warn_result;
+
+static inline ssize_t __ufile_nonull(2) __warn_result
+ufile_writev(int fd, const struct iovec * vectors, unsigned int count)
+{
+	ufile_assert(fd >= 0);
+	ufile_assert(vectors);
+	ufile_assert(count);
+	ufile_assert(count < IOV_MAX);
+
+	ssize_t ret;
+
+	ret = ufd_writev(fd, vectors, count);
+	ufile_assert(ret);
+	ufile_assert(ret != -EDESTADDRREQ);
+	ufile_assert(ret != -EPIPE);
+
+	return ret;
+}
 
 static inline int
 ufile_ftruncate(int fd, off_t len)
@@ -219,16 +206,13 @@ ufile_open(const char *path, int flags)
 
 	int fd;
 
-	fd = open(path, flags | O_NOCTTY);
+	fd = ufd_open(path, flags | O_NOCTTY);
 	if (fd >= 0)
 		return fd;
 
-	ufile_assert(errno != EBADF);
-	ufile_assert(errno != EFAULT);
-	ufile_assert(errno != ENAMETOOLONG);
-	ufile_assert(errno != EOPNOTSUPP);
+	ufile_assert(fd != -EOPNOTSUPP);
 
-	return -errno;
+	return fd;
 }
 
 extern int
@@ -274,7 +258,6 @@ ufile_new(const char *path, int flags, mode_t mode)
 	if (fd >= 0)
 		return fd;
 
-	ufile_assert(errno != EBADF);
 	ufile_assert(errno != EFAULT);
 	ufile_assert(errno != ENAMETOOLONG);
 	ufile_assert(errno != EOPNOTSUPP);
