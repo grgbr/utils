@@ -149,6 +149,13 @@ config UTILS_UNSK
 	help
 	  Build utils library with UNIX socket support.
 
+config UTILS_MQUEUE
+	bool "Message queue"
+	select UTILS_PATH
+	default y
+	help
+	  Build utils library with POSIX message queue support.
+
 config UTILS_POLL_UNSK
 	bool "Poll'able UNIX sockets"
 	select UTILS_UNSK
