@@ -64,11 +64,27 @@ utime_monotonic_now(struct timespec * now)
 }
 
 static inline void __utime_nonull(1) __nothrow
+utime_boot_now(struct timespec * now)
+{
+	utime_assert(now);
+
+	utime_assert(!clock_gettime(CLOCK_BOOTTIME, now));
+}
+
+static inline void __utime_nonull(1) __nothrow
 utime_coarse_now(struct timespec * now)
 {
 	utime_assert(now);
 	
 	utime_assert(!clock_gettime(CLOCK_MONOTONIC_COARSE, now));
+}
+
+static inline void __utime_nonull(1) __nothrow
+utime_proc_now(struct timespec * now)
+{
+	utime_assert(now);
+
+	utime_assert(!clock_gettime(CLOCK_PROCESS_CPUTIME_ID, now));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
