@@ -103,7 +103,7 @@ upoll_get_fd(const struct upoll * poller)
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
 static inline void __upoll_nonull(1) __nothrow
-upoll_unregister(const struct upoll * poller, int fd)
+upoll_unregister(const struct upoll * __restrict poller, int fd)
 {
 	upoll_assert(poller);
 	upoll_assert(poller->fd >= 0);
@@ -120,7 +120,7 @@ upoll_unregister(const struct upoll * poller, int fd)
 #else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 static inline void __upoll_nonull(1) __nothrow
-upoll_unregister(const struct upoll * poller, int fd)
+upoll_unregister(const struct upoll * __restrict poller, int fd)
 {
 	epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL);
 }
