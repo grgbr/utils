@@ -28,9 +28,12 @@
 #ifndef _UTILS_FD_H
 #define _UTILS_FD_H
 
-#include <utils/cdefs.h>
+#include <utils/path.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
 
@@ -64,6 +67,108 @@ ufd_max_nr(void)
 	return (unsigned int)lim.rlim_cur;
 }
 
+static inline int __nothrow __warn_result
+ufd_chown(const char * path, uid_t owner, gid_t group)
+{
+	ufd_assert(upath_validate_path_name(path) > 0);
+
+	if (!chown(path, owner, group))
+		return 0;
+
+	ufd_assert(errno != EFAULT);
+	ufd_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+
+static inline int __nothrow __warn_result
+ufd_fchown(int fd, uid_t owner, gid_t group)
+{
+	ufd_assert(fd >= 0);
+
+	if (!fchown(fd, owner, group))
+		return 0;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EFAULT);
+
+	return -errno;
+}
+
+static inline int __nothrow
+ufd_fchmod(int fd, mode_t mode)
+{
+	ufd_assert(fd >= 0);
+	ufd_assert(!(mode & ~ALLPERMS));
+
+	if (!fchmod(fd, mode))
+		return 0;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EFAULT);
+
+	return -errno;
+}
+
+static inline int __ufd_nonull(2) __nothrow
+ufd_fstat(int fd, struct stat * __restrict st)
+{
+	ufd_assert(fd >= 0);
+	ufd_assert(st);
+
+	if (!fstat(fd, st))
+		return 0;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EFAULT);
+
+	return -errno;
+}
+
+static inline off_t __nothrow
+ufd_lseek(int fd, off_t off, int whence)
+{
+	ufd_assert(fd >= 0);
+	ufd_assert((whence == SEEK_SET) ||
+	           (whence == SEEK_CUR) ||
+	           (whence == SEEK_END) ||
+	           (whence == SEEK_DATA) ||
+	           (whence == SEEK_HOLE));
+
+	off_t ret;
+
+	ret = lseek(fd, off, whence);
+	if (ret >= 0)
+		return ret;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EOVERFLOW);
+	ufd_assert(errno != ESPIPE);
+
+	return ret;
+}
+
+static inline ssize_t __ufd_nonull(2) __warn_result
+ufd_read(int fd, char * data, size_t size)
+{
+	ufd_assert(fd >= 0);
+	ufd_assert(data);
+	ufd_assert(size);
+
+	ssize_t ret;
+
+	ret = read(fd, data, size);
+	if (ret >= 0)
+		return ret;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EFAULT);
+	ufd_assert(errno != EISDIR);
+
+	return -errno;
+}
+
 static inline ssize_t __ufd_nonull(2) __warn_result
 ufd_write(int fd, const char *data, size_t size)
 {
@@ -88,6 +193,28 @@ ufd_write(int fd, const char *data, size_t size)
 extern ssize_t __ufd_nonull(2) __warn_result
 ufd_nointr_write(int fd, const char *data, size_t size);
 
+static inline ssize_t __ufd_nonull(2) __warn_result
+ufd_writev(int fd, const struct iovec * vectors, unsigned int count)
+{
+	ufd_assert(fd >= 0);
+	ufd_assert(vectors);
+	ufd_assert(count);
+	ufd_assert(count < IOV_MAX);
+
+	ssize_t ret;
+
+	ret = writev(fd, vectors, count);
+
+	if (ret >= 0)
+		return ret;
+
+	ufd_assert(errno != EBADF);
+	ufd_assert(errno != EFAULT);
+	ufd_assert(errno != EINVAL);
+
+	return -errno;
+}
+
 static inline int __nothrow
 ufd_dup2(int old_fd, int new_fd)
 {
@@ -107,6 +234,28 @@ ufd_dup2(int old_fd, int new_fd)
 	 * See section NOTES of dup2(2) man page for more infos.
 	 */
 	ufd_assert(errno != EBUSY);
+
+	return -errno;
+}
+
+static inline int __ufd_nonull(1)
+ufd_open(const char *path, int flags)
+{
+	ufd_assert(upath_validate_path_name(path) > 0);
+	ufd_assert(!((flags & O_DIRECTORY) && (flags & (O_WRONLY | O_RDWR))));
+	/* O_TMPFILE requires the (creation) mode argument. */
+	ufd_assert((flags & O_TMPFILE) != O_TMPFILE);
+	ufd_assert(!(flags & O_CREAT));
+	ufd_assert(!(flags & O_EXCL));
+
+	int fd;
+
+	fd = open(path, flags);
+	if (fd >= 0)
+		return fd;
+
+	ufd_assert(errno != EFAULT);
+	ufd_assert(errno != ENAMETOOLONG);
 
 	return -errno;
 }
