@@ -172,6 +172,12 @@
 #error "Unsupported machine word size !"
 #endif
 
+#define _UCONCAT(_a, _b) \
+	(_a ## _b)
+
+#define UCONCAT(_a, _b) \
+	_UCONCAT(_a, _b)
+
 #define _USTRINGIFY(_expr) \
 	# _expr
 
