@@ -115,7 +115,7 @@ umq_new(const char * name, int flags, mode_t mode, struct mq_attr * attr)
 	umq_assert(umq_validate_name(name) > 0);
 	umq_assert(!(flags &
 	             ~(O_RDONLY | O_WRONLY | O_RDWR | O_CLOEXEC | O_NONBLOCK |
-	               O_CREAT | O_EXCL)));
+	               O_NOATIME | O_CREAT | O_EXCL)));
 	umq_assert(!attr ||
 	           ((attr->mq_maxmsg > 0) &&
 	            (attr->mq_maxmsg <= (long)UMQ_MSG_MAX_NR) &&
