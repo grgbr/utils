@@ -1,6 +1,5 @@
 #include <utils/path.h>
 #include <utils/string.h>
-#include <sys/stat.h>
 
 int
 upath_parse_mode(const char * string, mode_t * mode)

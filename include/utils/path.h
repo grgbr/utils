@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
@@ -70,6 +71,35 @@ upath_is_file_name(const char *path, size_t len)
 	upath_assert(upath_validate_path_name(path) == (ssize_t)len);
 
 	return !memchr(path, '/', len);
+}
+
+static inline int __upath_nonull(1) __nothrow __warn_result
+upath_chown(const char * path, uid_t owner, gid_t group)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+
+	if (!chown(path, owner, group))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow __warn_result
+upath_chmod(const char * path, mode_t mode)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(!(mode & ~ALLPERMS));
+
+	if (!chmod(path, mode))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
 }
 
 /******************************************************************************

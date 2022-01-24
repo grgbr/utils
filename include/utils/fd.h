@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <sys/uio.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
@@ -66,21 +65,6 @@ ufd_max_nr(void)
 
 	return (unsigned int)lim.rlim_cur;
 }
-
-static inline int __nothrow __warn_result
-ufd_chown(const char * path, uid_t owner, gid_t group)
-{
-	ufd_assert(upath_validate_path_name(path) > 0);
-
-	if (!chown(path, owner, group))
-		return 0;
-
-	ufd_assert(errno != EFAULT);
-	ufd_assert(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
 
 static inline int __nothrow __warn_result
 ufd_fchown(int fd, uid_t owner, gid_t group)
