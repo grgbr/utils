@@ -12,7 +12,7 @@ uassert_fail(const char   * __restrict prefix,
 	fflush(NULL);
 
 	fprintf(stderr,
-	        "{   ASSERT} %s:%s:%u:%s:\'%s\' failed\n",
+	        "{assert} %s:%s:%u:%s:\'%s\' failed\n",
 	        prefix,
 	        file,
 	        line,
