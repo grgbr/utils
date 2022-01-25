@@ -559,7 +559,6 @@ ustr_parse_token_fields(char * __restrict           string,
  * Parse a string containing a sequence of token fields
  *
  * @param[in]    string  string to parse
- * @param[in]    size    maximum size of @p string
  * @param[in]    delim   token sequence delimiter character
  * @param[in]    parse   parsing callback
  * @param[inout] context callback specific parsing context

@@ -26,6 +26,7 @@ config UTILS_BITOPS
 config UTILS_BITMAP
 	bool "Bitmap"
 	default y
+	select UTILS_BITOPS
 	help
 	  Build utils library bitmap framework.
 
