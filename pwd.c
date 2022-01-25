@@ -1,77 +1,90 @@
 #include "utils/pwd.h"
-#include <pwd.h>
-#include <grp.h>
 
-int
-upwd_get_uid(const char * __restrict user, uid_t * __restrict uid)
+/*
+ * See section «NOTES» of getpwuid(3), getgrgid(3), getpwnam(3) and getgrnam(3)
+ * man pages for infos about possible error values.
+ */
+static void __nothrow
+upwd_normalize_errno(void)
 {
-	upwd_assert(upwd_validate_user(user) > 0);
-	upwd_assert(uid);
+	switch (errno) {
+	case 0:
+	case ENOENT:
+	case EBADF:
+	case ESRCH:
+	case EWOULDBLOCK:
+	case EPERM:
+		errno = ENOENT;
 
-	struct passwd * pwd;
-
-	pwd = getpwnam(user);
-	if (!pwd) {
-		/*
-		 * See section «NOTES» of getgrnam(3) man page for infos about
-		 * possible errno values.
-		 */
-		switch (errno) {
-		case 0:
-		case ENOENT:
-		case EBADF:
-		case ESRCH:
-		case EWOULDBLOCK:
-		case EPERM:
-			return -ENOENT;
-
-		default:
-			return -errno;
-
-		}
-
-		unreachable();
+	default:
+		return;
 	}
-
-	*uid = pwd->pw_uid;
-
-	return 0;
 }
 
-int
-upwd_get_gid(const char * __restrict group, gid_t * __restrict gid)
+const struct passwd *
+upwd_get_user_byid(uid_t uid)
 {
-	upwd_assert(upwd_validate_group(group) > 0);
-	upwd_assert(gid);
-
-	struct group * grp;
+	const struct passwd * ent;
 
 	errno = 0;
 
-	grp = getgrnam(group);
-	if (!grp) {
-		/*
-		 * See section «NOTES» of getgrnam(3) man page for infos about
-		 * possible errno values.
-		 */
-		switch (errno) {
-		case 0:
-		case ENOENT:
-		case EBADF:
-		case ESRCH:
-		case EWOULDBLOCK:
-		case EPERM:
-			return -ENOENT;
-
-		default:
-			return -errno;
-
-		}
-
-		unreachable();
+	ent = getpwuid(uid);
+	if (!ent) {
+		upwd_normalize_errno();
+		return NULL;
 	}
 
-	*gid = grp->gr_gid;
+	return ent;
+}
 
-	return 0;
+const struct passwd *
+upwd_get_user_byname(const char * __restrict name)
+{
+	upwd_assert(upwd_validate_user_name(name) > 0);
+
+	const struct passwd * ent;
+
+	errno = 0;
+
+	ent = getpwnam(name);
+	if (!ent) {
+		upwd_normalize_errno();
+		return NULL;
+	}
+
+	return ent;
+}
+
+const struct group *
+upwd_get_group_byid(gid_t gid)
+{
+	const struct group * ent;
+
+	errno = 0;
+
+	ent = getgrgid(gid);
+	if (!ent) {
+		upwd_normalize_errno();
+		return NULL;
+	}
+
+	return ent;
+}
+
+const struct group *
+upwd_get_group_byname(const char * __restrict name)
+{
+	upwd_assert(upwd_validate_group_name(name) > 0);
+
+	const struct group * ent;
+
+	errno = 0;
+
+	ent = getgrnam(name);
+	if (!ent) {
+		upwd_normalize_errno();
+		return NULL;
+	}
+
+	return ent;
 }
