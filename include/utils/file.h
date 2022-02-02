@@ -303,17 +303,9 @@ ufile_close(int fd)
 }
 
 static inline int __ufile_nonull(1) __nothrow
-ufile_unlink(const char *path)
+ufile_unlink(const char * path)
 {
-	ufile_assert(upath_validate_path_name(path) > 0);
-
-	if (!unlink(path))
-		return 0;
-
-	ufile_assert(errno != EFAULT);
-	ufile_assert(errno != ENAMETOOLONG);
-
-	return -errno;
+	return upath_unlink(path);
 }
 
 static inline int __ufile_nonull(2) __nothrow

@@ -73,35 +73,6 @@ upath_is_file_name(const char *path, size_t len)
 	return !memchr(path, '/', len);
 }
 
-static inline int __upath_nonull(1) __nothrow __warn_result
-upath_chown(const char * path, uid_t owner, gid_t group)
-{
-	upath_assert(upath_validate_path_name(path) > 0);
-
-	if (!chown(path, owner, group))
-		return 0;
-
-	upath_assert(errno != EFAULT);
-	upath_assert(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
-static inline int __upath_nonull(1) __nothrow __warn_result
-upath_chmod(const char * path, mode_t mode)
-{
-	upath_assert(upath_validate_path_name(path) > 0);
-	upath_assert(!(mode & ~ALLPERMS));
-
-	if (!chmod(path, mode))
-		return 0;
-
-	upath_assert(errno != EFAULT);
-	upath_assert(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
 /******************************************************************************
  * Path components iterator
  ******************************************************************************/
@@ -198,19 +169,139 @@ upath_resolve(const char *path)
  * Path related syscall helpers
  ******************************************************************************/
 
+static inline int __upath_nonull(1, 2) __nothrow
+upath_lstat(const char * __restrict path, struct stat * __restrict stat)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(stat);
+
+	if (!lstat(path, stat))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
 static inline int __upath_nonull(1) __nothrow __warn_result
 upath_chdir(const char * path)
 {
-	upath_assert(upath_validate_path_name(path));
+	upath_assert(upath_validate_path_name(path) > 0);
 
-	if (chdir(path)) {
-		upath_assert(errno != EFAULT);
-		upath_assert(errno != ENAMETOOLONG);
+	if (!chdir(path))
+		return 0;
 
-		return -errno;
-	}
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
 
-	return 0;
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow __warn_result
+upath_chown(const char * path, uid_t owner, gid_t group)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+
+	if (!chown(path, owner, group))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow __warn_result
+upath_chmod(const char * path, mode_t mode)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(!(mode & ~ALLPERMS));
+
+	if (!chmod(path, mode))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow __warn_result
+upath_truncate(const char * path, off_t length)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(length >= 0);
+
+	if (!truncate(path, length))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != EINVAL);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow
+upath_unlink(const char * path)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+
+	if (!unlink(path))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow
+upath_mkdir(const char * path, mode_t mode)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(!(mode & ~ALLPERMS));
+
+	if (!mkdir(path, mode))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != EINVAL);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow
+upath_rmdir(const char * path)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+
+	if (!rmdir(path))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != EINVAL);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1, 2) __nothrow __warn_result
+upath_symlink(const char * target, const char * path)
+{
+	upath_assert(upath_validate_path_name(target) > 0);
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(strncmp(path, target, PATH_MAX));
+
+	if (!symlink(target, path))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
 }
 
 #endif /* _UTILS_PATH_H */

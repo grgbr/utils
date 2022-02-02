@@ -150,7 +150,7 @@ unsk_close(int fd)
 static inline int __unsk_nonull(1) __nothrow
 unsk_unlink(const char * path)
 {
-	if (!unlink(path) || (errno == ENOENT))
+	if (!upath_unlink(path) || (errno == ENOENT))
 		return 0;
 
 	return -errno;

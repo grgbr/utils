@@ -339,7 +339,7 @@ unsk_unlink(const char * path)
 {
 	unsk_assert(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);
 
-	if (!unlink(path) || (errno == ENOENT))
+	if (!upath_unlink(path) || (errno == ENOENT))
 		return 0;
 
 	unsk_assert(errno != EFAULT);
