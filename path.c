@@ -200,7 +200,7 @@ upath_normalize(const char *path,
 	const char *path_ptr = path;
 	const char *path_end = path + path_size;
 	char       *norm_ptr = norm;
-	const char *norm_end = norm + norm_size - 1;
+	const char *norm_end = norm + norm_size;
 
 	if (*path_ptr == '/')
 		*norm_ptr++ = '/';
@@ -280,9 +280,11 @@ upath_normalize(const char *path,
 		norm_ptr += comp.len + 1;
 	} while (path_ptr < path_end);
 
-	upath_assert(norm_ptr < norm_end);
+	upath_assert(norm_ptr <= norm_end);
 	if (((norm_ptr - norm) > 1) && (*(norm_ptr - 1) == '/'))
 		norm_ptr--;
+
+	upath_assert(norm_ptr < norm_end);
 	*norm_ptr = '\0';
 
 	return norm_ptr - norm;
