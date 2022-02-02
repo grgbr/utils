@@ -73,7 +73,7 @@ upwd_validate_group_name(const char * __restrict name)
 }
 
 extern const struct group *
-upwd_get_group_byid(gid_t uid);
+upwd_get_group_byid(gid_t gid);
 
 extern const struct group *
 upwd_get_group_byname(const char * __restrict name) __upwd_nonull(1);
