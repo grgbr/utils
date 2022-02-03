@@ -114,6 +114,18 @@ utime_coarse_now(struct timespec * now)
 	clock_gettime(CLOCK_MONOTONIC_COARSE, now);
 }
 
+static inline void __nonull(1) __nothrow
+utime_boot_now(struct timespec * now)
+{
+	clock_gettime(CLOCK_BOOTTIME, now);
+}
+
+static inline void __nonull(1) __nothrow
+utime_proc_now(struct timespec * now)
+{
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, now);
+}
+
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
 extern int
