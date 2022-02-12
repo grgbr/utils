@@ -538,7 +538,7 @@ struct unsk_clnt {
  * @size:  number of bytes to send
  * @flags: flags to send according to
  *
- * @flags support limited to MSG_DONTWAIT.
+ * @flags support limited to MSG_DONTWAIT and MSG_NOSIGNAL.
  *
  * See: sendmsg(2) and unix(7) man pages.
  *

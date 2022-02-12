@@ -408,7 +408,7 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 	unsk_assert(peer);
 	unsk_assert(peer->sun_family == AF_UNIX);
 	unsk_assert(!peer->sun_path[0]);
-	unsk_assert(!(flags & MSG_NOSIGNAL));
+	unsk_assert(!(flags & ~(MSG_DONTWAIT | MSG_NOSIGNAL)));
 
 	const struct iovec  vec = {
 		.iov_base = (void *)data,
