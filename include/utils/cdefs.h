@@ -1,27 +1,31 @@
 /**
- * @file      cdefs.h
- * @author    Grégor Boirie <gregor.boirie@free.fr>
- * @date      29 Aug 2017
- * @copyright GNU Public License v3
+ * @defgroup common Common
+ * Common definitions
  *
+ * @file
  * Common preprocessing definitions
  *
- * This file is part of Utils
+ * @ingroup      common
+ * @author       Grégor Boirie <gregor.boirie@free.fr>
+ * @date         29 Aug 2017
+ * @copyright    Copyright (C) 2017-2021 Grégor Boirie.
+ * @licensestart GNU Lesser General Public License (LGPL) v3
  *
- * Copyright (C) 2017 Grégor Boirie <gregor.boirie@free.fr>
+ * This file is part of libutils
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option) any
+ * later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+ * details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, If not, see <http://www.gnu.org/licenses/>.
+ * @licenseend
  */
 #ifndef _UTILS_H
 #define _UTILS_H
@@ -35,35 +39,152 @@
 #include <values.h>
 #include <sys/cdefs.h>
 
-#define __unused \
-	__attribute__((unused))
+/**
+ * Tell compiler that a function, variable, type or (goto) label may possibly
+ * be unused.
+ *
+ * May be used to prevent compiler from warning about unused functions,
+ * parameters, variables, etc...
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *      [GCC common variable attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#Common-Variable-Attributes)
+ *      [GCC common type attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Type-Attributes.html#Common-Type-Attributes)
+ *      [GCC label attributes](https://gcc.gnu.org/onlinedocs/gcc/Label-Attributes.html#Label-Attributes)
+ *
+ * @ingroup common
+ */
+#define __unused __attribute__((unused))
 
-#define __warn_result \
-	__attribute__((warn_unused_result))
+/**
+ * Declare to the compiler a function return value must be used.
+ *
+ * Request compiler to emit a warning when a caller of the function with this
+ * attribute does not use its return value.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
+#define __warn_result __attribute__((warn_unused_result))
 
-#define __noreturn \
-	__attribute__((noreturn))
+/**
+ * Tell compiler that a function cannot return.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
+#define __noreturn __attribute__((noreturn))
 
-#define __returns_nonull \
-	__attribute__((returns_nonnull))
+/**
+ * Tell compiler that a function return value should be a non-null pointer.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
+#define __returns_nonull __attribute__((returns_nonnull))
 
+/**
+ * Declare to the compiler a function argument should be a non-null pointer.
+ *
+ * When applied to a function, tell compiler that the specified arguments must
+ * be non-null pointers.
+ * @param[in] _arg_index index of first non-null pointer argument
+ * @param[in] ...        subsequent non-null pointer argument indices
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
 #define __nonull(_arg_index, ...) \
 	__attribute__((nonnull(_arg_index, ## __VA_ARGS__)))
 
+/**
+ * Tell compiler to check for printf() style format string argument consistency.
+ *
+ * @param[in] _format_index index of printf() format string argument
+ * @param[in] _arg_index    index of first type checked argument
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
 #define __printf(_format_index, _arg_index) \
 	__attribute__((format(printf, _format_index, _arg_index)))
 
-#define __nothrow \
-	__attribute__((nothrow))
+/**
+ * Tell compiler that a function does not throw exceptions.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
+#define __nothrow __attribute__((nothrow))
 
-#define __leaf \
-	__attribute__((leaf))
+/**
+ * Declare a function to the compiler as a leaf.
+ *
+ * Tell compiler that a call to an external function with this attribute must
+ * return to the current compilation unit only by return or by exception
+ * handling.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *
+ * @ingroup common
+ */
+#define __leaf __attribute__((leaf))
 
-#define __pure \
-	__attribute__((pure))
+/**
+ * Declare a function to the compiler as pure.
+ *
+ * Tell compiler that a function has no observable effects on the state of the
+ * program other than to return a value.
+ *
+ * Functions declared with the #__pure attribute can safely read any
+ * non-volatile objects, and modify the value of objects in a way that does not
+ * affect their return value or the observable state of the program.
+ *
+ * The #__pure attribute imposes similar but looser restrictions on a function’s
+ * definition than the #__const attribute: #__pure allows the function to read
+ * any non-volatile memory, even if it changes in between successive invocations
+ * of the function.
+ *
+ * Because a #__pure function cannot have any observable side effects it does
+ * not make sense for such a function to return void.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *      #__const
+ *
+ * @ingroup common
+ */
+#define __pure __attribute__((pure))
 
-#define __const \
-	__attribute__((const))
+/**
+ * Declare a function to the compiler as const.
+ *
+ * Tell compiler that a function return value is not affected by changes to the
+ * observable state of the program and that this function have no observable
+ * effects on such state other than to return a value.
+ *
+ * The #__const attribute prohibits a function from reading objects that affect
+ * its return value between successive invocations. However, functions declared
+ * with the attribute can safely read objects that do not change their return
+ * value, such as non-volatile constants.
+ *
+ * The #__const attribute imposes greater restrictions on a function’s
+ * definition than the similar #__pure attribute. Declaring the same function
+ * with both the #__const and the #__pure attribute is diagnosed.
+ *
+ * Because a #__const function cannot have any observable side effects it does
+ * not make sense for it to return void. Declaring such a function is diagnosed.
+ *
+ * @see [GCC common function attributes](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#Common-Function-Attributes)
+ *      #__pure
+ *
+ * @ingroup common
+ */
+#define __const __attribute__((const))
 
 #define __packed \
 	__attribute__((packed))
