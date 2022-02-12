@@ -2,6 +2,8 @@
  * @defgroup string String
  * String handling
  *
+ * A set of string manipulation utilities.
+ *
  * @file
  * String interface
  *
@@ -36,6 +38,20 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
+
+/**
+ * @def __ustr_nonull(_arg_index, ...)
+ *
+ * Declare to the compiler a @ref string function argument should be a non-null
+ * pointer.
+ *
+ * When applied to a function, tell compiler that the specified arguments must
+ * be non-null pointers.
+ * @param[in] _arg_index index of first non-null pointer argument
+ * @param[in] ...        subsequent non-null pointer argument indices
+ *
+ * @ingroup string
+ */
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
@@ -481,10 +497,6 @@ ustr_match_token(const char * __restrict string,
 /**
  * Token parsing callback.
  *
- * @param[inout] string  string to parse
- * @param[in]    size    maximum size of @p string
- * @param[inout] context callback specific parsing context
- *
  * While parsing, callback implementation MUST look only at the first @p size
  * characters in the string pointed to by @p string.
  *
@@ -494,6 +506,10 @@ ustr_match_token(const char * __restrict string,
  * * -ENODATA
  * * -EMSGSIZE
  *
+ * @param[inout] string  string to parse
+ * @param[in]    size    maximum size of @p string
+ * @param[inout] context callback specific parsing context
+ *
  * @return Parsing result
  * @retval 0       token matched
  * @retval -ENOENT no token matched
@@ -501,20 +517,13 @@ ustr_match_token(const char * __restrict string,
  *
  * @ingroup string
  */
-typedef int (ustr_parse_token_fn)(char * __restrict string,
-                                  size_t            size,
-                                  void * __restrict context) __ustr_nonull(1);
+typedef int ustr_parse_token_fn(char * __restrict string,
+                                size_t            size,
+                                void * __restrict context) __ustr_nonull(1);
 
 /**
  * Parse a string containing a sequence of token fields located at fixed
  * positions.
- *
- * @param[in]    string  string to parse
- * @param[in]    delim   token sequence delimiter character
- * @param[in]    parsers array of parsing callbacks
- * @param[in]    count   number of entries contained into @p parsers array /
- *                       number of expected token fields
- * @param[inout] context callback specific parsing context
  *
  * @p string is a null byte terminated string and must contain a sequence of
  * tokens separated by @p delim character called fields. For each field found,
@@ -537,6 +546,13 @@ typedef int (ustr_parse_token_fn)(char * __restrict string,
  * Once all expected fields have been parsed, this functions returns an error if
  * there are still unparsed trailing characters found at the end of @p string.
  *
+ * @param[in]    string  string to parse
+ * @param[in]    delim   token sequence delimiter character
+ * @param[in]    parsers array of parsing callbacks
+ * @param[in]    count   number of entries contained into @p parsers array /
+ *                       number of expected token fields
+ * @param[inout] context callback specific parsing context
+ *
  * @return Parsing result
  * @retval >=0       count of matched tokens / callbacks run
  * @retval -ENODATA  empty / missing token found
@@ -558,11 +574,6 @@ ustr_parse_token_fields(char * __restrict           string,
 /**
  * Parse a string containing a sequence of token fields
  *
- * @param[in]    string  string to parse
- * @param[in]    delim   token sequence delimiter character
- * @param[in]    parse   parsing callback
- * @param[inout] context callback specific parsing context
- *
  * @p string is a null byte terminated string and must contain a sequence of
  * tokens separated by @p delim character called fields. For each field found,
  * this function runs the @p parse parsing callback given in argument.
@@ -575,6 +586,11 @@ ustr_parse_token_fields(char * __restrict           string,
  * stops processing @p string and returns the error code to the caller.
  * Strings containing empty fields, i.e., a substring of 2 successive @p delim
  * characters, are not allowed and causes this function to return an error.
+ *
+ * @param[in]    string  string to parse
+ * @param[in]    delim   token sequence delimiter character
+ * @param[in]    parse   parsing callback
+ * @param[inout] context callback specific parsing context
  *
  * @return Parsing result
  * @retval >=0       count of matched tokens
