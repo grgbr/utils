@@ -170,12 +170,27 @@ upath_resolve(const char *path)
  ******************************************************************************/
 
 static inline int __upath_nonull(1, 2) __nothrow
-upath_lstat(const char * __restrict path, struct stat * __restrict stat)
+upath_stat(const char * __restrict path, struct stat * __restrict st)
 {
 	upath_assert(upath_validate_path_name(path) > 0);
-	upath_assert(stat);
+	upath_assert(st);
 
-	if (!lstat(path, stat))
+	if (!stat(path, st))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1, 2) __nothrow
+upath_lstat(const char * __restrict path, struct stat * __restrict st)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(st);
+
+	if (!lstat(path, st))
 		return 0;
 
 	upath_assert(errno != EFAULT);
