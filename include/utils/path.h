@@ -304,7 +304,7 @@ upath_rmdir(const char * path)
 }
 
 static inline int __upath_nonull(1, 2) __nothrow __warn_result
-upath_symlink(const char * target, const char * path)
+upath_symlink(const char * __restrict target, const char * __restrict path)
 {
 	upath_assert(upath_validate_path_name(target) > 0);
 	upath_assert(upath_validate_path_name(path) > 0);
