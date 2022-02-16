@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
@@ -311,6 +312,43 @@ upath_symlink(const char * __restrict target, const char * __restrict path)
 	upath_assert(strncmp(path, target, PATH_MAX));
 
 	if (!symlink(target, path))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow
+upath_mknod(const char * path, mode_t mode, dev_t dev)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(!(mode & ~(S_IFMT | ACCESSPERMS)));
+	upath_assert(S_ISREG(mode) ||
+	             S_ISCHR(mode) ||
+	             S_ISBLK(mode) ||
+	             S_ISFIFO(mode) ||
+	             S_ISSOCK(mode));
+	upath_assert((major(dev) > 0) || !(mode & (S_IFCHR | S_IFBLK)));
+
+	if (!mknod(path, mode, dev))
+		return 0;
+
+	upath_assert(errno != EFAULT);
+	upath_assert(errno != EINVAL);
+	upath_assert(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+static inline int __upath_nonull(1) __nothrow
+upath_mkfifo(const char * path, mode_t mode)
+{
+	upath_assert(upath_validate_path_name(path) > 0);
+	upath_assert(!(mode & ~ACCESSPERMS));
+
+	if (!mkfifo(path, mode))
 		return 0;
 
 	upath_assert(errno != EFAULT);
