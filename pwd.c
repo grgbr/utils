@@ -1,5 +1,47 @@
 #include "utils/pwd.h"
 
+int
+upwd_parse_uid(const char * __restrict string, uid_t * __restrict uid)
+{
+	upwd_assert(string);
+	upwd_assert(uid);
+
+	int      err;
+	uint32_t val;
+
+	/* TODO: build a compile time assertion. */
+	upwd_assert(sizeof(uid_t) == sizeof(uint32_t));
+
+	err = ustr_parse_uint32(string, &val);
+	if (err)
+		return err;
+
+	*uid = (uid_t)val;
+
+	return 0;
+}
+
+int
+upwd_parse_gid(const char * __restrict string, gid_t * __restrict gid)
+{
+	upwd_assert(string);
+	upwd_assert(gid);
+
+	int      err;
+	uint32_t val;
+
+	/* TODO: build a compile time assertion. */
+	upwd_assert(sizeof(gid_t) == sizeof(uint32_t));
+
+	err = ustr_parse_uint32(string, &val);
+	if (err)
+		return err;
+
+	*gid = (gid_t)val;
+
+	return 0;
+}
+
 /*
  * See section «NOTES» of getpwuid(3), getgrgid(3), getpwnam(3) and getgrnam(3)
  * man pages for infos about possible error values.
