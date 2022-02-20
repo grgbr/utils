@@ -196,16 +196,16 @@ ustr_parse_uint_range(const char * __restrict   string,
                       unsigned int * __restrict value,
                       unsigned int              min,
                       unsigned int              max)
-	__ustr_nonull(1, 2) __nothrow __warn_result;
+	__ustr_nonull(1, 2) __nothrow __leaf __warn_result;
 
-static inline int
-ustr_parse_uint(const char *string, unsigned int *value)
+static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+ustr_parse_uint(const char * __restrict string, unsigned int * __restrict value)
 {
 	return ustr_parse_uint_range(string, value, 0U, UINT_MAX);
 }
 
-static inline int
-ustr_parse_uint32(const char *string, uint32_t *value)
+static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+ustr_parse_uint32(const char * __restrict string, uint32_t * __restrict value)
 {
 	return ustr_parse_uint(string, value);
 }
