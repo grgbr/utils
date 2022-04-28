@@ -97,20 +97,26 @@ ustr_parse_bool(const char *string, bool *value)
 	ustr_assert(string);
 	ustr_assert(value);
 
-	char str[5];
+	/*
+	 * ustr_tolower add \0 at the end, we add 1 to the size.
+	 * We copy in str the first 6 bytes. 5 for the case "false" and 1 more
+	 * to exclude case "falseX" where the string start with false but have
+	 * other char after.
+	 */
+	char str[7];
 	int  ret = 0;
 
 	ustr_tolower(str, string, sizeof(str));
 
-	if (!strcmp(string, "yes") ||
-	    !strcmp(string, "y") ||
-	    !strcmp(string, "true") ||
-	    !strcmp(string, "1"))
+	if (!strcmp(str, "yes") ||
+	    !strcmp(str, "y") ||
+	    !strcmp(str, "true") ||
+	    !strcmp(str, "1"))
 		*value = true;
-	else if (!strcmp(string, "no") ||
-	         !strcmp(string, "n") ||
-	         !strcmp(string, "false") ||
-	         !strcmp(string, "0"))
+	else if (!strcmp(str, "no") ||
+	         !strcmp(str, "n") ||
+	         !strcmp(str, "false") ||
+	         !strcmp(str, "0"))
 		*value = false;
 	else
 		ret = -EINVAL;
