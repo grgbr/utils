@@ -58,7 +58,7 @@ static inline unsigned int __nothrow
 ufd_max_nr(void)
 {
 	struct rlimit lim;
-	int           err;
+	int           err __unused;
 
 	err = getrlimit(RLIMIT_NOFILE, &lim);
 	ufd_assert(!err);

@@ -35,7 +35,7 @@ umq_getattr(mqd_t mqd, struct mq_attr * attr)
 	umq_assert((int)mqd >= 0);
 	umq_assert(attr);
 
-	int err;
+	int err __unused;
 
 	err = mq_getattr(mqd, attr);
 	umq_assert(!err);
