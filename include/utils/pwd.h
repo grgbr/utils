@@ -33,10 +33,6 @@ extern int
 upwd_parse_uid(const char * __restrict string, uid_t * __restrict uid)
 	__upwd_nonull(1, 2) __nothrow __leaf;
 
-extern int
-upwd_parse_gid(const char * __restrict string, gid_t * __restrict gid)
-	__upwd_nonull(1, 2) __nothrow __leaf;
-
 static inline ssize_t __upwd_nonull(1) __pure __nothrow
 upwd_validate_user_name(const char * __restrict name)
 {
@@ -69,6 +65,10 @@ upwd_get_uid_byname(const char * __restrict name, uid_t * __restrict uid)
 
 	return 0;
 }
+
+extern int
+upwd_parse_gid(const char * __restrict string, gid_t * __restrict gid)
+	__upwd_nonull(1, 2) __nothrow __leaf;
 
 static inline ssize_t __upwd_nonull(1) __pure __nothrow
 upwd_validate_group_name(const char * __restrict name)
