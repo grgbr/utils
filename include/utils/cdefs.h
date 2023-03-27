@@ -204,6 +204,18 @@
 #define __dtor(_prio) \
 	__attribute__((destructor(_prio)))
 
+#define __pub_visi \
+	__attribute__((visibility("default")))
+
+#define __prot_visi \
+	__attribute__((visibility("hidden")))
+
+#define __hide_visi \
+	__attribute__((visibility("hidden")))
+
+#define __priv_visi \
+	__attribute__((visibility("internal")))
+
 #define PREFETCH_ACCESS_RO     (0)
 #define PREFETCH_ACCESS_RW     (1)
 #define PREFETCH_LOCALITY_TMP  (0)
