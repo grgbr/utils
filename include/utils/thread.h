@@ -477,7 +477,7 @@ uthr_kill(pthread_t thread, int sig)
 static inline void __nothrow
 uthr_yield(void)
 {
-	uthr_assert(!pthread_yield());
+	uthr_assert(!sched_yield());
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */

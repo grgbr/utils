@@ -242,8 +242,12 @@
 	                      _true_expr, \
 	                      _false_expr)
 
+#if !defined(array_nr)
+
 #define array_nr(_array) \
 	(sizeof(_array) / sizeof(_array[0]))
+
+#endif /* !defined(array_nr) */
 
 #define uabs(_a) \
 	({ \

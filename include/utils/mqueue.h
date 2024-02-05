@@ -69,7 +69,7 @@ umq_recv(mqd_t mqd, char * data, size_t size, unsigned int * prio)
 	umq_assert(data);
 	umq_assert(size);
 
-	int ret;
+	ssize_t ret;
 
 	ret = mq_receive(mqd, data, size, prio);
 	if (ret >= 0) {

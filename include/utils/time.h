@@ -164,10 +164,12 @@ utime_tspec_before_eq(const struct timespec * __restrict fst,
 static inline struct timespec __const __nothrow
 utime_tspec_from_msec(unsigned long msec)
 {
+	utime_assert(msec <= LONG_MAX);
+
 	ldiv_t          res;
 	struct timespec tspec;
 
-	res = ldiv(msec, 1000UL);
+	res = ldiv((long)msec, 1000L);
 
 	tspec.tv_sec = (time_t)res.quot;
 	tspec.tv_nsec = (long)res.rem;
