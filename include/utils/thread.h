@@ -485,7 +485,7 @@ uthr_yield(void)
 static inline void __nothrow
 uthr_yield(void)
 {
-	pthread_yield();
+	sched_yield();
 }
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
