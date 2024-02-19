@@ -372,7 +372,7 @@ ustr_skip_char(const char *string, int ch, size_t size)
 	while ((str < (string + size)) && (*str == ch))
 		str++;
 
-	return str - string;
+	return (size_t)(str - string);
 }
 
 static inline size_t
@@ -402,7 +402,7 @@ ustr_skip_notchar(const char * string, int ch, size_t size)
 	while ((str < (string + size)) && *str && (*str != ch))
 		str++;
 
-	return str - string;
+	return (size_t)(str - string);
 }
 
 static inline size_t

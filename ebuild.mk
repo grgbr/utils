@@ -72,3 +72,9 @@ endef
 
 pkgconfigs          := libutils.pc
 libutils.pc-tmpl    := libutils_pkgconf_tmpl
+
+################################################################################
+# Source code tags generation
+################################################################################
+
+tagfiles := $(shell find $(CURDIR) -type f)

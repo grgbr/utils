@@ -232,7 +232,7 @@ static inline int __upath_nonull(1) __nothrow __warn_result
 upath_chmod(const char * path, mode_t mode)
 {
 	upath_assert(upath_validate_path_name(path) > 0);
-	upath_assert(!(mode & ~ALLPERMS));
+	upath_assert(!(mode & ~((mode_t)ALLPERMS)));
 
 	if (!chmod(path, mode))
 		return 0;
@@ -277,7 +277,7 @@ static inline int __upath_nonull(1) __nothrow
 upath_mkdir(const char * path, mode_t mode)
 {
 	upath_assert(upath_validate_path_name(path) > 0);
-	upath_assert(!(mode & ~ALLPERMS));
+	upath_assert(!(mode & ~((mode_t)ALLPERMS)));
 
 	if (!mkdir(path, mode))
 		return 0;
@@ -324,7 +324,7 @@ static inline int __upath_nonull(1) __nothrow
 upath_mknod(const char * path, mode_t mode, dev_t dev)
 {
 	upath_assert(upath_validate_path_name(path) > 0);
-	upath_assert(!(mode & ~(S_IFMT | ACCESSPERMS)));
+	upath_assert(!(mode & ~((mode_t)S_IFMT | ACCESSPERMS)));
 	upath_assert(S_ISREG(mode) ||
 	             S_ISCHR(mode) ||
 	             S_ISBLK(mode) ||
@@ -346,7 +346,7 @@ static inline int __upath_nonull(1) __nothrow
 upath_mkfifo(const char * path, mode_t mode)
 {
 	upath_assert(upath_validate_path_name(path) > 0);
-	upath_assert(!(mode & ~ACCESSPERMS));
+	upath_assert(!(mode & ~((mode_t)ACCESSPERMS)));
 
 	if (!mkfifo(path, mode))
 		return 0;
