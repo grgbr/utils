@@ -84,7 +84,7 @@ static inline int __nothrow
 ufd_fchmod(int fd, mode_t mode)
 {
 	ufd_assert(fd >= 0);
-	ufd_assert(!(mode & ~ALLPERMS));
+	ufd_assert(!(mode & ~((mode_t)ALLPERMS)));
 
 	if (!fchmod(fd, mode))
 		return 0;
@@ -187,7 +187,7 @@ ufd_writev(int fd, const struct iovec * vectors, unsigned int count)
 
 	ssize_t ret;
 
-	ret = writev(fd, vectors, count);
+	ret = writev(fd, vectors, (int)count);
 
 	if (ret >= 0)
 		return ret;
@@ -278,11 +278,11 @@ ufd_close(int fd)
 #if !defined(SYS_close_range)
 /*
  * Glibc does not provides a definition for close_range(): let's do this.
- * Note: clone_range() definition comes with Glibc 2.34 and later versions.
+ * Note: close_range() definition comes with Glibc 2.34 and later versions.
  */
 
 static inline int __nothrow
-close_range(unsigned int first, unsigned int last, unsigned int flags)
+close_range(unsigned int first, unsigned int last, int flags)
 {
 	return syscall(__NR_close_range, first, last, flags);
 }
@@ -309,7 +309,7 @@ ufd_close_range(unsigned int first, unsigned int last, unsigned int flags)
 	ufd_assert(first <= last);
 	ufd_assert(!(flags & ~UFD_CLOSE_RANGE_FLAG_MASK));
 
-	if (!close_range(first, last, flags))
+	if (!close_range(first, last, (int)flags))
 		return 0;
 
 	ufd_assert(errno != EINVAL);
