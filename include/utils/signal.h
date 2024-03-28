@@ -203,10 +203,10 @@ usig_procmask(int                         how,
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
 
-const sigset_t * const         usig_inval_msk;
-const sigset_t * const         usig_empty_msk;
-const sigset_t * const         usig_full_msk;
-const struct sigaction * const usig_dflt_act;
+extern const sigset_t * const         usig_inval_msk;
+extern const sigset_t * const         usig_empty_msk;
+extern const sigset_t * const         usig_full_msk;
+extern const struct sigaction * const usig_dflt_act;
 
 struct usig_new_act {
 	unsigned int             no;
