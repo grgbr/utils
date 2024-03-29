@@ -17,30 +17,11 @@ config UTILS_VALGRIND
 	help
 	  Build utils library with support for valgrind inspection.
 
-config UTILS_BITOPS
-	bool "Bit operations"
-	default y
-	help
-	  Build utils library bit operations framework.
-
-config UTILS_BITMAP
-	bool "Bitmap"
-	default y
-	select UTILS_BITOPS
-	help
-	  Build utils library bitmap framework.
-
 config UTILS_ATOMIC
 	bool "Atomic operations"
 	default y
 	help
 	  Build utils library atomic operations framework.
-
-config UTILS_POW2
-	bool "Power of 2 operations"
-	default y
-	help
-	  Build utils library power of 2 operations framework.
 
 config UTILS_SIGNAL
 	bool "Signals"
