@@ -39,17 +39,6 @@
 #include <values.h>
 #include <sys/cdefs.h>
 
-#define unreachable() \
-	__builtin_unreachable()
-
-#define sizeof_member(_type, _member) \
-	(sizeof(((_type *)0)->_member))
-
-#define containerof(_ptr, _type, _member) \
-	({ \
-		((_type *)((char *)(_ptr) - offsetof(_type, _member))); \
-	 })
-
 #define choose_sized_expr(_const_expr, _size, _true_expr, _false_expr) \
 	__builtin_choose_expr((sizeof(_const_expr) * CHAR_BIT) == (_size), \
 	                      _true_expr, \
