@@ -27,7 +27,7 @@
  */
 #include "utils/timer.h"
 
-static struct dlist_node utimer_list = DLIST_INIT(utimer_list);
+static struct stroll_dlist_node utimer_list = STROLL_DLIST_INIT(utimer_list);
 
 void
 utimer_arm(struct utimer * timer)
@@ -35,22 +35,22 @@ utimer_arm(struct utimer * timer)
 	utimer_assert_timer(timer);
 	utime_assert_tspec(&timer->date);
 
-	struct dlist_node *     node;
-        const struct timespec * date = &timer->date;
+	struct stroll_dlist_node * node;
+        const struct timespec *    date = &timer->date;
 
-	dlist_remove_init(&timer->node);
+	stroll_dlist_remove_init(&timer->node);
 
-	for (node = dlist_prev(&utimer_list);
+	for (node = stroll_dlist_prev(&utimer_list);
 	     node != &utimer_list;
-	     node = dlist_prev(node)) {
-		const struct utimer * t = dlist_entry(node,
-		                                      struct utimer,
-		                                      node);
+	     node = stroll_dlist_prev(node)) {
+		const struct utimer * t = stroll_dlist_entry(node,
+		                                             struct utimer,
+		                                             node);
 		if (utime_tspec_after_eq(date, &t->date))
 			break;
 	}
 
-	dlist_append(node, &timer->node);
+	stroll_dlist_append(node, &timer->node);
 }
 
 void
@@ -78,12 +78,12 @@ utimer_arm_sec(struct utimer * timer, unsigned long sec)
 const struct timespec *
 utimer_issue_date(void)
 {
-	if (!dlist_empty(&utimer_list)) {
+	if (!stroll_dlist_empty(&utimer_list)) {
 		const struct utimer * timer;
 
-		timer = dlist_first_entry(&utimer_list,
-		                          struct utimer,
-		                          node);
+		timer = stroll_dlist_entry(stroll_dlist_next(&utimer_list),
+		                           struct utimer,
+		                           node);
 		utimer_assert_timer(timer);
 		utime_assert_tspec(&timer->date);
 
@@ -117,18 +117,18 @@ utimer_run(void)
 
 	utime_monotonic_now(&now);
 
-	while (!dlist_empty(&utimer_list)) {
+	while (!stroll_dlist_empty(&utimer_list)) {
 		struct utimer * timer;
 
-		timer = dlist_first_entry(&utimer_list,
-		                          struct utimer,
-		                          node);
+		timer = stroll_dlist_entry(stroll_dlist_next(&utimer_list),
+		                           struct utimer,
+		                           node);
 		utimer_assert_timer(timer);
 
 		if (utime_tspec_after_eq(&timer->date, &now))
 			break;
 
-		dlist_remove_init(&timer->node);
+		stroll_dlist_remove_init(&timer->node);
 		timer->expire(timer);
 	}
 }

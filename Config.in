@@ -50,7 +50,6 @@ config UTILS_TIME
 
 config UTILS_TIMER
 	bool "Timer"
-	select UTILS_DLIST
 	select UTILS_TIME
 	default y
 	help
@@ -90,26 +89,6 @@ config UTILS_DIR
 	select UTILS_PATH
 	help
 	  Build utils library POSIX filesystem directory wrappers.
-
-config UTILS_PILE
-	bool "Pile"
-	select UTILS_DLIST
-	default y
-	help
-	  Build utils library with piles support. Piles are unordered
-	  collections of dynamically allocated objects.
-
-config UTILS_DLIST
-	bool "Doubly linked list"
-	default y
-	help
-	  Build utils library with doubly linked list support.
-
-config UTILS_SLIST
-	bool "Singly linked list"
-	default y
-	help
-	  Build utils library with singly linked list support.
 
 config UTILS_STR
 	bool "String utilities"

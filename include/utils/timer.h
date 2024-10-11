@@ -29,7 +29,7 @@
 #define _UTILS_TIMER_H
 
 #include <utils/time.h>
-#include <utils/dlist.h>
+#include <stroll/dlist.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERNAL)
 
@@ -59,13 +59,13 @@ struct utimer;
 typedef void (utimer_expire_fn)(struct utimer * timer);
 
 struct utimer {
-	struct dlist_node  node;
-	struct timespec    date;
-	utimer_expire_fn * expire;
+	struct stroll_dlist_node node;
+	struct timespec          date;
+	utimer_expire_fn *       expire;
 };
 
 #define UTIMER_INIT(_timer) \
-	{ .node   = DLIST_INIT((_timer).node) }
+	{ .node   = STROLL_DLIST_INIT((_timer).node) }
 
 #define utimer_assert_timer(_timer) \
 	utimer_assert(_timer); \
@@ -84,7 +84,7 @@ utimer_is_armed(const struct utimer * timer)
 {
 	utimer_assert_timer(timer);
 
-	return !dlist_empty(&timer->node);
+	return !stroll_dlist_empty(&timer->node);
 }
 
 static inline void __utimer_nonull(1) __nothrow
@@ -93,7 +93,7 @@ utimer_cancel(struct utimer * timer)
 	utimer_assert_timer(timer);
 	utime_assert_tspec(&timer->date);
 
-	dlist_remove_init(&timer->node);
+	stroll_dlist_remove_init(&timer->node);
 }
 
 static inline void __utimer_nonull(1, 2) __nothrow
@@ -111,7 +111,7 @@ utimer_init(struct utimer * timer)
 {
 	utimer_assert(timer);
 
-	dlist_init(&timer->node);
+	stroll_dlist_init(&timer->node);
 }
 
 extern void
