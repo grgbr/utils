@@ -1,7 +1,8 @@
 #ifndef _UTILS_UNSK_H
 #define _UTILS_UNSK_H
 
-#include <utils/slist.h>
+#include <utils/config.h>
+#include <stroll/slist.h>
 #include <utils/poll.h>
 #include <utils/fd.h>
 #include <sys/socket.h>
@@ -165,15 +166,15 @@ unsk_unlink(const char * path)
 #define UNSK_BUFF_SIZE_MAX (256U * 1024U)
 
 struct unsk_buff {
-	struct slist_node node;
-	size_t            bytes;
+	struct stroll_slist_node node;
+	size_t                   bytes;
 };
 
 #define UNSK_BUFF_COUNT_MAX (128U)
 
 struct unsk_buffq {
-	struct slist busy;
-	struct slist free;
+	struct stroll_slist busy;
+	struct stroll_slist free;
 };
 
 static inline bool __unsk_nonull(1) __unsk_pure __nothrow
@@ -181,7 +182,7 @@ unsk_buffq_has_busy(const struct unsk_buffq * buffq)
 {
 	unsk_assert(buffq);
 
-	return !slist_empty(&buffq->busy);
+	return !stroll_slist_empty(&buffq->busy);
 }
 
 static inline bool __unsk_nonull(1) __unsk_pure __nothrow
@@ -189,7 +190,7 @@ unsk_buffq_has_free(const struct unsk_buffq * buffq)
 {
 	unsk_assert(buffq);
 
-	return !slist_empty(&buffq->free);
+	return !stroll_slist_empty(&buffq->free);
 }
 
 extern void

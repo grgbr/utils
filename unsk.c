@@ -24,26 +24,30 @@ unsk_buff_free(struct unsk_buff * buff)
 }
 
 static struct unsk_buff * __unsk_nonull(1) __nothrow __returns_nonull
-unsk_buffq_xtract(struct slist * list)
+unsk_buffq_xtract(struct stroll_slist * list)
 {
-	return slist_entry(slist_dqueue(list), struct unsk_buff, node);
+	return stroll_slist_entry(stroll_slist_dqueue_front(list),
+	                          struct unsk_buff,
+	                          node);
 }
 
 static
 struct unsk_buff * __unsk_nonull(1) __unsk_pure __nothrow __returns_nonull
-unsk_buffq_peek(const struct slist * list)
+unsk_buffq_peek(const struct stroll_slist * list)
 {
-	return slist_first_entry(list, struct unsk_buff, node);
+	return stroll_slist_first_entry(list,
+	                                struct unsk_buff,
+	                                node);
 }
 
 static void __unsk_nonull(1, 2) __nothrow
-unsk_buffq_requeue(struct slist * __restrict     list,
-                   struct unsk_buff * __restrict buff)
+unsk_buffq_requeue(struct stroll_slist * __restrict list,
+                   struct unsk_buff * __restrict    buff)
 {
 	unsk_assert(list);
 	unsk_assert(buff);
 
-	slist_append(list, slist_head(list), &buff->node);
+	stroll_slist_nqueue_front(list, &buff->node);
 }
 
 void
@@ -53,7 +57,7 @@ unsk_buffq_nqueue_busy(struct unsk_buffq * __restrict buffq,
 	unsk_assert(buffq);
 	unsk_assert(buff);
 
-	slist_nqueue(&buffq->busy, &buff->node);
+	stroll_slist_nqueue_back(&buffq->busy, &buff->node);
 }
 
 void
@@ -123,8 +127,8 @@ unsk_buffq_init(struct unsk_buffq * buffq,
 	size_t sz = buff_desc_sz + max_data_sz;
 	int    err;
 
-	slist_init(&buffq->busy);
-	slist_init(&buffq->free);
+	stroll_slist_init(&buffq->busy);
+	stroll_slist_init(&buffq->free);
 
 	while (max_buff_nr--) {
 		struct unsk_buff * buff;
@@ -133,7 +137,7 @@ unsk_buffq_init(struct unsk_buffq * buffq,
 		if (!buff)
 			goto free;
 
-		slist_nqueue(&buffq->free, &buff->node);
+		stroll_slist_nqueue_back(&buffq->free, &buff->node);
 	}
 
 	return 0;
@@ -141,7 +145,7 @@ unsk_buffq_init(struct unsk_buffq * buffq,
 free:
 	err = -errno;
 
-	while (!slist_empty(&buffq->free))
+	while (!stroll_slist_empty(&buffq->free))
 		unsk_buff_free(unsk_buffq_xtract(&buffq->free));
 
 	return err;
@@ -152,10 +156,10 @@ unsk_buffq_fini(struct unsk_buffq * buffq)
 {
 	unsk_assert(buffq);
 
-	while (!slist_empty(&buffq->busy))
+	while (!stroll_slist_empty(&buffq->busy))
 		unsk_buff_free(unsk_buffq_xtract(&buffq->busy));
 
-	while (!slist_empty(&buffq->free))
+	while (!stroll_slist_empty(&buffq->free))
 		unsk_buff_free(unsk_buffq_xtract(&buffq->free));
 }
 
