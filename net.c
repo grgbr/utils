@@ -1,10 +1,31 @@
-#include <utils/net.h>
-#include <utils/path.h>
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
 
-static ssize_t
-unet_iface_syspath_prefix_len(const char *path, size_t size)
+#include "utils/net.h"
+#include "utils/path.h"
+
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
+
+#include <stroll/assert.h>
+
+#define unet_assert_intern(_expr) \
+	stroll_assert("utils:unet", _expr)
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+#define unet_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+static __utils_nonull(1) __utils_pure __utils_nothrow
+ssize_t
+unet_iface_syspath_prefix_len(const char * __restrict path, size_t size)
 {
-	unet_assert(path);
+	unet_assert_intern(path);
 
 	size_t len;
 
@@ -12,7 +33,7 @@ unet_iface_syspath_prefix_len(const char *path, size_t size)
 	                      size,
 	                      UNET_IFACE_SYSPATH_PREFIX,
 	                      sizeof(UNET_IFACE_SYSPATH_PREFIX) - 1);
-	unet_assert(len <= size);
+	unet_assert_intern(len <= size);
 
 	if (len) {
 		if (path[len] == '/')
@@ -30,13 +51,14 @@ unet_iface_syspath_prefix_len(const char *path, size_t size)
 	return 0;
 }
 
-static int
-unet_match_iface_syspath_suffix(struct upath_comp *comp,
-                                const char        *path,
-                                size_t             size)
+static __utils_nonull(1, 2) __utils_nothrow
+int
+unet_match_iface_syspath_suffix(struct upath_comp * __restrict comp,
+                                const char * __restrict        path,
+                                size_t                         size)
 {
-	unet_assert(comp);
-	unet_assert(path);
+	unet_assert_intern(comp);
+	unet_assert_intern(path);
 
 	int ret;
 
@@ -44,7 +66,7 @@ unet_match_iface_syspath_suffix(struct upath_comp *comp,
 		return -ENOENT;
 
 	ret = upath_prev_comp(comp, path, size);
-	unet_assert(!ret || (ret == -ENOENT));
+	unet_assert_intern(!ret || (ret == -ENOENT));
 	if (ret)
 		return ret;
 
@@ -57,10 +79,11 @@ unet_match_iface_syspath_suffix(struct upath_comp *comp,
 	return 1;
 }
 
-static ssize_t
-unet_iface_syspath_suffix_len(const char *path, size_t size)
+static __utils_nonull(1) __utils_nothrow
+ssize_t
+unet_iface_syspath_suffix_len(const char * __restrict path, size_t size)
 {
-	unet_assert(path);
+	unet_assert_intern(path);
 
 	int               ret;
 	struct upath_comp comp;
@@ -91,14 +114,16 @@ unet_iface_syspath_suffix_len(const char *path, size_t size)
 	return len;
 }
 
-static ssize_t
-unet_strip_iface_syspath(char *path, size_t size)
-{
-	unet_assert(path);
 
-	ssize_t  len;
-	char    *start;
-	ssize_t  suff_len;
+static __utils_nonull(1) __utils_nothrow
+ssize_t
+unet_strip_iface_syspath(char * __restrict path, size_t size)
+{
+	unet_assert_intern(path);
+
+	ssize_t   len;
+	char    * start;
+	ssize_t   suff_len;
 
 	if (!size)
 		return -ENOENT;
@@ -129,10 +154,11 @@ unet_strip_iface_syspath(char *path, size_t size)
 }
 
 ssize_t
-unet_normalize_iface_syspath(const char *orig, char **norm)
+unet_normalize_iface_syspath(const char * __restrict orig,
+                             char ** __restrict      norm)
 {
-	unet_assert(orig);
-	unet_assert(norm);
+	unet_assert_api(orig);
+	unet_assert_api(norm);
 
 	ssize_t ret;
 
@@ -159,10 +185,11 @@ free:
 }
 
 ssize_t
-unet_resolve_iface_syspath(const char *orig, char **real)
+unet_resolve_iface_syspath(const char * __restrict orig,
+                           char ** __restrict      real)
 {
-	unet_assert(orig);
-	unet_assert(real);
+	unet_assert_api(orig);
+	unet_assert_api(real);
 
 	ssize_t ret;
 

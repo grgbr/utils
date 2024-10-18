@@ -1,30 +1,10 @@
-/**
- * @file      signal.h
- * @author    Grégor Boirie <gregor.boirie@free.fr>
- * @date      04 Oct 2021
- * @copyright GNU Public License v3
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
- * Process signal implementation
- *
- * @defgroup signal Signal
- *
- * This file is part of Utils
- *
- * Copyright (C) 2021 Grégor Boirie <gregor.boirie@free.fr>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 #include "utils/signal.h"
 
 static sigset_t                __usig_inval_msk;
@@ -40,7 +20,8 @@ static struct sigaction        __usig_dflt_act = {
 };
 const struct sigaction * const usig_dflt_act = &__usig_dflt_act;
 
-static void __ctor() __nothrow
+static __ctor() __utils_nothrow
+void
 usig_ctor(void)
 {
 	usig_emptyset(&__usig_empty_msk);
@@ -95,8 +76,8 @@ usig_setup_actions(const struct usig_new_act nevv[__restrict_arr],
                    struct usig_orig_act      orig[__restrict_arr],
                    unsigned int              nr)
 {
-	usig_assert(nevv);
-	usig_assert(nr);
+	usig_assert_api(nevv);
+	usig_assert_api(nr);
 
 	unsigned int s;
 
@@ -104,8 +85,8 @@ usig_setup_actions(const struct usig_new_act nevv[__restrict_arr],
 		const struct usig_new_act * nact = &nevv[s];
 		struct usig_orig_act *      oact = orig ? &orig[s] : NULL;
 
-		usig_assert(!usig_ismember(&__usig_inval_msk, nact->no));
-		usig_assert(nact->act);
+		usig_assert_api(!usig_ismember(&__usig_inval_msk, nact->no));
+		usig_assert_api(nact->act);
 
 		if (oact) {
 			oact->no = nact->no;
@@ -120,15 +101,15 @@ void
 usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
                      unsigned int               nr)
 {
-	usig_assert(orig);
-	usig_assert(nr);
+	usig_assert_api(orig);
+	usig_assert_api(nr);
 
 	unsigned int s;
 
 	for (s = 0; s < nr; s++) {
 		const struct usig_orig_act * oact = &orig[s];
 
-		usig_assert(!usig_ismember(&__usig_inval_msk, oact->no));
+		usig_assert_api(!usig_ismember(&__usig_inval_msk, oact->no));
 
 		usig_action(oact->no, &oact->act, NULL);
 	}
@@ -139,19 +120,15 @@ usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
 int
 usig_read_fd(int fd, struct signalfd_siginfo * infos, unsigned int count)
 {
-	usig_assert(fd >= 0);
-	usig_assert(infos);
-	usig_assert(count);
+	usig_assert_api(fd >= 0);
+	usig_assert_api(infos);
+	usig_assert_api(count);
 
 	ssize_t ret;
 
-	ret = read(fd, infos, count * sizeof(*infos));
+	ret = ufd_read(fd, (char *)infos, count * sizeof(*infos));
 	if (ret < 0) {
-		usig_assert(errno != EBADF);
-		usig_assert(errno != EFAULT);
-		usig_assert(errno != EINVAL);
-		usig_assert(errno != EIO);
-		usig_assert(errno != EISDIR);
+		usig_assert_api(errno != EIO);
 
 		return -errno;
 	}

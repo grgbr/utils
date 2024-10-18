@@ -1,35 +1,43 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
+ * UNIX socket interface
+ *
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      04 Oct 2021
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
+ */
+
 #ifndef _UTILS_UNSK_H
 #define _UTILS_UNSK_H
 
-#include <utils/config.h>
+#include <utils/cdefs.h>
 #include <stroll/slist.h>
 #include <utils/poll.h>
 #include <utils/fd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __unsk_nonull(_arg_index, ...)
+#define unsk_assert_api(_expr) \
+	stroll_assert("utils:unsk", _expr)
 
-#define __unsk_pure
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#define unsk_assert(_expr) \
-	uassert("unsk", _expr)
+#define unsk_assert_api(_expr)
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-#define __unsk_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
-
-#define __unsk_pure \
-	__pure
-
-#define unsk_assert(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 /******************************************************************************
  * low-level UNIX socket wrappers
@@ -42,59 +50,63 @@
 	(offsetof(struct sockaddr_un, sun_path) + sizeof(_path))
 
 extern int
-unsk_is_named_path_ok(const char * path) __unsk_pure __nothrow __leaf;
+unsk_is_named_path_ok(const char * __restrict path)
+	__utils_pure __utils_nothrow __leaf __warn_result;
 
-extern int
-unsk_connect_dgram(int                             fd,
-                   const char * __restrict         peer_path,
-                   struct sockaddr_un * __restrict peer_addr,
-                   socklen_t * __restrict          addr_len)
-	__unsk_nonull(2, 3, 4) __nothrow __leaf;
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
-
-static inline void __unsk_nonull(3) __nothrow
-unsk_setsockopt(int fd, int option, const void * value, socklen_t size)
+static inline __utils_nonull(3) __utils_nothrow
+void
+unsk_setsockopt(int                     fd,
+                int                     option,
+                const void * __restrict value,
+                socklen_t               size)
 {
-	unsk_assert(fd >= 0);
-	unsk_assert(option);
-	unsk_assert(value);
-	unsk_assert(size);
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(option);
+	unsk_assert_api(value);
+	unsk_assert_api(size);
 
-	unsk_assert(!setsockopt(fd, SOL_SOCKET, option, value, size));
+	unsk_assert_api(!setsockopt(fd, SOL_SOCKET, option, value, size));
 }
 
 extern ssize_t
-unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
-	__unsk_nonull(2) __warn_result;
+unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
+	__utils_nonull(2) __warn_result;
 
 extern ssize_t
-unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
-	__unsk_nonull(2) __warn_result;
+unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
+	__utils_nonull(2) __warn_result;
 
 extern int
-unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
-	__unsk_nonull(2) __nothrow __leaf;
+unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
+	__utils_nonull(2) __utils_nothrow __leaf;
 
 extern int
-unsk_open(int type, int flags) __nothrow __leaf;
+unsk_open(int type, int flags) __utils_nothrow __leaf;
 
 extern int
 unsk_close(int fd);
 
 extern int
-unsk_unlink(const char * path) __unsk_nonull(1) __nothrow __leaf;
+unsk_unlink(const char * __restrict path)
+	__utils_nonull(1) __utils_nothrow __leaf;
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __unsk_nonull(3) __nothrow
-unsk_setsockopt(int fd, int option, const void * value, socklen_t size)
+static inline __utils_nonull(3) __utils_nothrow
+void
+unsk_setsockopt(int                     fd,
+                int                     option,
+                const void * __restrict value,
+                socklen_t               size)
 {
 	setsockopt(fd, SOL_SOCKET, option, value, size);
 }
 
-static inline ssize_t __unsk_nonull(2) __warn_result
-unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
+static inline __utils_nonull(2) __warn_result
+ssize_t
+unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
 {
 	ssize_t ret;
 
@@ -107,8 +119,9 @@ unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
 	return -errno;
 }
 
-static inline ssize_t __unsk_nonull(2) __warn_result
-unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
+static inline __utils_nonull(2) __warn_result
+ssize_t
+unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
 {
 	ssize_t ret;
 
@@ -121,8 +134,9 @@ unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
 	return -errno;
 }
 
-static inline int __unsk_nonull(2) __nothrow
-unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
+static inline __utils_nonull(2) __utils_nothrow
+int
+unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
 {
 	if (!bind(fd, (struct sockaddr *)addr, size))
 		return 0;
@@ -130,7 +144,8 @@ unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
 	return -errno;
 }
 
-static inline int __nothrow
+static inline __utils_nothrow
+int
 unsk_open(int type, int flags)
 {
 	int fd;
@@ -142,14 +157,16 @@ unsk_open(int type, int flags)
 	return -errno;
 }
 
-static inline int
+static inline
+int
 unsk_close(int fd)
 {
 	return ufd_close(fd);
 }
 
-static inline int __unsk_nonull(1) __nothrow
-unsk_unlink(const char * path)
+static inline __utils_nonull(1) __utils_nothrow
+int
+unsk_unlink(const char * __restrict path)
 {
 	if (!upath_unlink(path) || (errno == ENOENT))
 		return 0;
@@ -157,7 +174,14 @@ unsk_unlink(const char * path)
 	return -errno;
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+extern int
+unsk_connect_dgram(int                             fd,
+                   const char * __restrict         peer_path,
+                   struct sockaddr_un * __restrict peer_addr,
+                   socklen_t * __restrict          addr_len)
+	__utils_nonull(2, 3, 4) __utils_nothrow;
 
 /******************************************************************************
  * UNIX socket buffer and queue handling
@@ -177,61 +201,65 @@ struct unsk_buffq {
 	struct stroll_slist free;
 };
 
-static inline bool __unsk_nonull(1) __unsk_pure __nothrow
-unsk_buffq_has_busy(const struct unsk_buffq * buffq)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow
+bool
+unsk_buffq_has_busy(const struct unsk_buffq * __restrict buffq)
 {
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	return !stroll_slist_empty(&buffq->busy);
 }
 
-static inline bool __unsk_nonull(1) __unsk_pure __nothrow
-unsk_buffq_has_free(const struct unsk_buffq * buffq)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow
+bool
+unsk_buffq_has_free(const struct unsk_buffq * __restrict buffq)
 {
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	return !stroll_slist_empty(&buffq->free);
 }
 
+extern struct unsk_buff *
+unsk_buffq_peek_busy(const struct unsk_buffq * __restrict buffq)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __returns_nonull;
+
+extern struct unsk_buff *
+unsk_buffq_peek_free(const struct unsk_buffq * __restrict buffq)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __returns_nonull;
+
 extern void
 unsk_buffq_nqueue_busy(struct unsk_buffq * __restrict buffq,
                        struct unsk_buff * __restrict  buff)
-	__unsk_nonull(1, 2) __leaf __nothrow;
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
 
 extern void
 unsk_buffq_requeue_busy(struct unsk_buffq * __restrict buffq,
                         struct unsk_buff * __restrict  buff)
-	__unsk_nonull(1, 2) __nothrow;
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
 
 extern struct unsk_buff *
-unsk_buffq_peek_busy(const struct unsk_buffq * buffq)
-	__unsk_nonull(1) __unsk_pure __nothrow __returns_nonull;
+unsk_buffq_dqueue_busy(struct unsk_buffq * __restrict buffq)
+	__utils_nonull(1) __utils_nothrow __leaf __returns_nonull;
 
 extern struct unsk_buff *
-unsk_buffq_dqueue_busy(struct unsk_buffq * buffq)
-	__unsk_nonull(1) __nothrow __returns_nonull;
-
-extern struct unsk_buff *
-unsk_buffq_peek_free(const struct unsk_buffq * buffq)
-	__unsk_nonull(1) __unsk_pure __nothrow __returns_nonull;
-
-extern struct unsk_buff *
-unsk_buffq_dqueue_free(struct unsk_buffq * buffq)
-	__unsk_nonull(1) __nothrow __returns_nonull;
+unsk_buffq_dqueue_free(struct unsk_buffq * __restrict buffq)
+	__utils_nonull(1) __utils_nothrow __leaf __returns_nonull;
 
 extern void
 unsk_buffq_release(struct unsk_buffq * __restrict buffq,
                    struct unsk_buff * __restrict  buff)
-	__unsk_nonull(1, 2) __nothrow;
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
 
 extern int
-unsk_buffq_init(struct unsk_buffq * buffq,
-                size_t              buff_desc_sz,
-                size_t              max_data_sz,
-                unsigned int        max_buff_nr) __unsk_nonull(1) __nothrow;
+unsk_buffq_init(struct unsk_buffq * __restrict buffq,
+                size_t                         buff_desc_sz,
+                size_t                         max_data_sz,
+                unsigned int                   max_buff_nr)
+	__utils_nonull(1) __utils_nothrow __leaf;
 
 extern void
-unsk_buffq_fini(struct unsk_buffq * buffq) __unsk_nonull(1) __nothrow;
+unsk_buffq_fini(struct unsk_buffq * __restrict buffq)
+	__utils_nonull(1) __utils_nothrow __leaf;
 
 struct unsk_dgram_buff {
 	struct unsk_buff   unsk;
@@ -239,74 +267,78 @@ struct unsk_dgram_buff {
 	char               data[];
 };
 
-static inline
-struct unsk_dgram_buff * __unsk_nonull(1) __unsk_pure __nothrow __returns_nonull
-unsk_dgram_from_buff(const struct unsk_buff * buff)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
+struct unsk_dgram_buff *
+unsk_dgram_from_buff(const struct unsk_buff * __restrict buff)
 {
-	unsk_assert(buff);
+	unsk_assert_api(buff);
 
 	return containerof(buff, struct unsk_dgram_buff, unsk);
 }
 
-static inline void __unsk_nonull(1, 2) __nothrow
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
 unsk_dgram_buffq_nqueue_busy(struct unsk_buffq * __restrict      buffq,
                              struct unsk_dgram_buff * __restrict buff)
 {
-	unsk_assert(buff);
+	unsk_assert_api(buff);
 
 	unsk_buffq_nqueue_busy(buffq, &buff->unsk);
 }
 
-static inline void __unsk_nonull(1, 2) __nothrow
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
 unsk_dgram_buffq_requeue_busy(struct unsk_buffq * __restrict      buffq,
                               struct unsk_dgram_buff * __restrict buff)
 {
-	unsk_assert(buff);
+	unsk_assert_api(buff);
 
 	unsk_buffq_requeue_busy(buffq, &buff->unsk);
 }
 
-static inline
-struct unsk_dgram_buff * __unsk_nonull(1) __unsk_pure __nothrow __returns_nonull
-unsk_dgram_buffq_peek_busy(const struct unsk_buffq * buffq)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
+struct unsk_dgram_buff *
+unsk_dgram_buffq_peek_busy(const struct unsk_buffq * __restrict buffq)
 {
 	return unsk_dgram_from_buff(unsk_buffq_peek_busy(buffq));
 }
 
-static inline
-struct unsk_dgram_buff * __unsk_nonull(1) __nothrow __returns_nonull
-unsk_dgram_buffq_dqueue_busy(struct unsk_buffq * buffq)
+static inline __utils_nonull(1) __utils_nothrow __returns_nonull
+struct unsk_dgram_buff *
+unsk_dgram_buffq_dqueue_busy(struct unsk_buffq * __restrict buffq)
 {
 	return unsk_dgram_from_buff(unsk_buffq_dqueue_busy(buffq));
 }
 
-static inline
-struct unsk_dgram_buff * __unsk_nonull(1) __unsk_pure __nothrow __returns_nonull
-unsk_dgram_buffq_peek_free(const struct unsk_buffq * buffq)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
+struct unsk_dgram_buff *
+unsk_dgram_buffq_peek_free(const struct unsk_buffq * __restrict buffq)
 {
 	return unsk_dgram_from_buff(unsk_buffq_peek_free(buffq));
 }
 
-static inline
-struct unsk_dgram_buff * __unsk_nonull(1) __nothrow __returns_nonull
-unsk_dgram_buffq_dqueue_free(struct unsk_buffq * buffq)
+static inline __utils_nonull(1) __utils_nothrow __returns_nonull
+struct unsk_dgram_buff *
+unsk_dgram_buffq_dqueue_free(struct unsk_buffq * __restrict buffq)
 {
 	return unsk_dgram_from_buff(unsk_buffq_dqueue_free(buffq));
 }
 
-static inline void __unsk_nonull(1, 2) __nothrow
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
 unsk_dgram_buffq_release(struct unsk_buffq * __restrict      buffq,
                          struct unsk_dgram_buff * __restrict buff)
 {
-	unsk_assert(buff);
+	unsk_assert_api(buff);
 
 	unsk_buffq_release(buffq, &buff->unsk);
 }
 
-static inline int __unsk_nonull(1) __nothrow
-unsk_dgram_buffq_init(struct unsk_buffq * buffq,
-                      size_t              max_data_sz,
-                      unsigned int        max_buff_nr)
+static inline __utils_nonull(1) __utils_nothrow
+int
+unsk_dgram_buffq_init(struct unsk_buffq * __restrict buffq,
+                      size_t                         max_data_sz,
+                      unsigned int                   max_buff_nr)
 {
 	return unsk_buffq_init(buffq,
 	                       sizeof(struct unsk_dgram_buff),
@@ -343,8 +375,9 @@ struct unsk_svc {
  * * -EINVAL       - path is empty,
  * * -ENAMETOOLONG - path length too long.
  */
-static inline int __unsk_pure __nothrow
-unsk_svc_is_path_ok(const char * path)
+static inline __utils_pure __utils_nothrow
+int
+unsk_svc_is_path_ok(const char * __restrict path)
 {
 	return unsk_is_named_path_ok(path);
 }
@@ -359,7 +392,7 @@ unsk_svc_is_path_ok(const char * path)
  * @peer:  address of peer abstract socket to send to
  * @flags: flags to send according to
  *
- * @flags support limited to MSG_DONTWAIT.
+ * @flags support limited to MSG_DONTWAIT and MSG_MORE.
  *
  * See: sendmsg(2) and unix(7) man pages.
  *
@@ -372,11 +405,11 @@ unsk_svc_is_path_ok(const char * path)
  */
 extern int
 unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
-                    const void *                          data,
+                    const void * __restrict               data,
                     size_t                                size,
                     const struct sockaddr_un * __restrict peer,
                     int                                   flags)
-	__unsk_nonull(1, 2, 4) __warn_result;
+	__utils_nonull(1, 2, 4) __warn_result;
 
 /**
  * unsk_dgram_svc_recv() - Fetch a datagram from a service side UNIX
@@ -405,12 +438,12 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
  */
 extern ssize_t
 unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
-                    void *                             data,
+                    void * __restrict                  data,
                     size_t                             size,
                     struct sockaddr_un *               peer,
                     struct ucred * __restrict          creds,
                     int                                flags)
-	__unsk_nonull(1, 2, 4, 5) __warn_result;
+	__utils_nonull(1, 2, 4, 5) __warn_result;
 
 /**
  * unsk_svc_bind() - Bind a UNIX service named socket to a local filesystem
@@ -458,7 +491,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
  */
 extern int
 unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
-	__unsk_nonull(1, 2) __nothrow;
+	__utils_nonull(1, 2) __utils_nothrow;
 
 /**
  * unsk_dgram_svc_open() - Open a service / server side UNIX datagram socket.
@@ -479,8 +512,8 @@ unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
  * * -ENOBUFS      - same as -ENOMEM.
  */
 extern int
-unsk_dgram_svc_open(struct unsk_svc * sock, int flags)
-	__unsk_nonull(1) __nothrow;
+unsk_dgram_svc_open(struct unsk_svc * __restrict sock, int flags)
+	__utils_nonull(1) __utils_nothrow;
 
 /**
  * unsk_svc_close() - Close all endpoints of a service / server side UNIX
@@ -491,7 +524,7 @@ unsk_dgram_svc_open(struct unsk_svc * sock, int flags)
  * See: close(2), shutdown(2) and unix(7) man pages.
  */
 extern int
-unsk_svc_close(const struct unsk_svc * sock) __unsk_nonull(1);
+unsk_svc_close(const struct unsk_svc * __restrict sock) __utils_nonull(1);
 
 /******************************************************************************
  * Client side UNIX socket handling
@@ -539,7 +572,7 @@ struct unsk_clnt {
  * @size:  number of bytes to send
  * @flags: flags to send according to
  *
- * @flags support limited to MSG_DONTWAIT and MSG_NOSIGNAL.
+ * @flags support limited to MSG_DONTWAIT and MSG_MORE.
  *
  * See: sendmsg(2) and unix(7) man pages.
  *
@@ -555,11 +588,11 @@ struct unsk_clnt {
  * * -ENOMEM       - no memory available.
  */
 extern int
-unsk_dgram_clnt_send(const struct unsk_clnt * sock,
-                     const void *             data,
-                     size_t                   size,
-                     int                      flags)
-	__unsk_nonull(1, 2) __warn_result;
+unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
+                     const void * __restrict             data,
+                     size_t                              size,
+                     int                                 flags)
+	__utils_nonull(1, 2) __warn_result;
 
 /**
  * unsk_dgram_clnt_recv() - Fetch a datagram from a client side UNIX
@@ -589,7 +622,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
                      void * __restrict                   data,
                      size_t                              size,
                      int                                 flags)
-	__unsk_nonull(1, 2) __warn_result;
+	__utils_nonull(1, 2) __warn_result;
 
 /**
  * unsk_dgram_clnt_connect() - Connect a UNIX datagram client socket to
@@ -609,7 +642,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 extern int
 unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
                         const char * __restrict       path)
-	__unsk_nonull(1, 2) __nothrow;
+	__utils_nonull(1, 2) __utils_nothrow;
 
 /**
  * unsk_dgram_clnt_open() - Open a client side UNIX datagram socket.
@@ -630,8 +663,8 @@ unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
  * * -ENOBUFS      - same as -ENOMEM.
  */
 extern int
-unsk_dgram_clnt_open(struct unsk_clnt * sock, int flags)
-	__unsk_nonull(1) __nothrow;
+unsk_dgram_clnt_open(struct unsk_clnt * __restrict sock, int flags)
+	__utils_nonull(1) __utils_nothrow;
 
 /**
  * unsk_clnt_close() - Close all endpoints of a client side UNIX socket.
@@ -641,7 +674,7 @@ unsk_dgram_clnt_open(struct unsk_clnt * sock, int flags)
  * See: close(2), shutdown(2) and unix(7) man pages.
  */
 extern void
-unsk_clnt_close(const struct unsk_clnt * sock) __unsk_nonull(1);
+unsk_clnt_close(const struct unsk_clnt * __restrict sock) __utils_nonull(1);
 
 /******************************************************************************
  * Asynchronous service / server side UNIX socket handling
@@ -654,28 +687,30 @@ struct unsk_async_svc {
 	struct unsk_svc     sock;
 };
 
-static inline void __upoll_nonull(1, 2) __nothrow
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
 unsk_async_svc_apply_watch(struct unsk_async_svc * __restrict svc,
                            const struct upoll * __restrict    poller)
 {
-	unsk_assert(svc);
+	unsk_assert_api(svc);
 
 	upoll_apply(poller, svc->sock.fd, &svc->work);
 }
 
-static inline
-struct unsk_async_svc * __unsk_nonull(1) __unsk_pure __nothrow __returns_nonull
-unsk_async_svc_from_worker(const struct upoll_worker * worker)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
+struct unsk_async_svc *
+unsk_async_svc_from_worker(const struct upoll_worker * __restrict worker)
 {
 	return containerof(worker, struct unsk_async_svc, work);
 }
 
-static inline int __unsk_nonull(1, 2) __warn_result
+static inline __utils_nonull(1, 2) __warn_result
+int
 unsk_dgram_async_svc_send(const struct unsk_async_svc * __restrict  svc,
                           const struct unsk_dgram_buff * __restrict buff,
                           int                                       flags)
 {
-	unsk_assert(svc);
+	unsk_assert_api(svc);
 
 	return unsk_dgram_svc_send(&svc->sock,
 	                           buff->data,
@@ -690,21 +725,21 @@ unsk_dgram_async_svc_recv(const struct unsk_async_svc * __restrict svc,
                           size_t                                   size,
                           struct ucred * __restrict                creds,
                           int                                      flags)
-	__unsk_nonull(1, 2, 4) __warn_result;
+	__utils_nonull(1, 2, 4) __warn_result;
 
 extern int
-unsk_dgram_async_svc_open(struct unsk_async_svc *         svc,
-                          const char * __restrict         path,
-                          int                             sock_flags,
-                          const struct upoll * __restrict poller,
-                          uint32_t                        poll_flags,
-                          upoll_dispatch_fn *             dispatch)
-	__unsk_nonull(1, 2, 4, 6) __nothrow;
+unsk_dgram_async_svc_open(struct unsk_async_svc * __restrict svc,
+                          const char * __restrict            path,
+                          int                                sock_flags,
+                          const struct upoll * __restrict    poller,
+                          uint32_t                           poll_flags,
+                          upoll_dispatch_fn *                dispatch)
+	__utils_nonull(1, 2, 4, 6) __utils_nothrow;
 
 extern int
 unsk_dgram_async_svc_close(struct unsk_async_svc * __restrict svc,
                            const struct upoll * __restrict    poller)
-	__unsk_nonull(1, 2);
+	__utils_nonull(1, 2);
 
 #endif /* defined(CONFIG_UTILS_POLL_UNSK) */
 

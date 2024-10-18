@@ -1,12 +1,14 @@
-config UTILS_ASSERT
-	bool "Assertion"
+config UTILS_ASSERT_API
+	bool "API assertion"
 	default n
 	help
-	  Build utils library assertion framework.
+	  Build Utils library with high-level API assertions enabled to ensure
+	  that API functions exposed by Utils will perform full verification of
+	  arguments consistency.
 
-config UTILS_ASSERT_INTERNAL
+config UTILS_ASSERT_INTERN
 	bool "Internal assertion"
-	select UTILS_ASSERT
+	select UTILS_ASSERT_API
 	default n
 	help
 	  Build utils library with internal assertions enabled.
@@ -32,12 +34,14 @@ config UTILS_SIGNAL
 config UTILS_SIGNAL_FD
 	bool "Signals file descriptor"
 	select UTILS_SIGNAL
+	select UTILS_FD
 	default y
 	help
 	  Build utils library Linux signalfd wrappers.
 
 config UTILS_THREAD
 	bool "Threads"
+	select UTILS_TIME
 	default y
 	help
 	  Build utils library POSIX thread wrappers.
@@ -64,6 +68,7 @@ config UTILS_PATH
 
 config UTILS_FD
 	bool "File descriptors"
+	select UTILS_PATH
 	default y
 	help
 	  Build utils library POSIX file descriptor related wrappers.
@@ -78,7 +83,6 @@ config UTILS_PIPE
 config UTILS_FILE
 	bool "File"
 	default y
-	select UTILS_PATH
 	select UTILS_FD
 	help
 	  Build utils library POSIX filesystem file wrappers.
@@ -86,7 +90,7 @@ config UTILS_FILE
 config UTILS_DIR
 	bool "Directory"
 	default y
-	select UTILS_PATH
+	select UTILS_FD
 	help
 	  Build utils library POSIX filesystem directory wrappers.
 
@@ -98,24 +102,17 @@ config UTILS_STR
 
 config UTILS_POLL
 	bool "Polling"
+	select UTILS_FD
 	default y
 	help
 	  Build utils library with polling support.
 
 config UTILS_UNSK
 	bool "UNIX sockets"
-	select UTILS_SLIST
-	select UTILS_PATH
+	select UTILS_FD
 	default y
 	help
 	  Build utils library with UNIX socket support.
-
-config UTILS_MQUEUE
-	bool "Message queue"
-	select UTILS_PATH
-	default y
-	help
-	  Build utils library with POSIX message queue support.
 
 config UTILS_POLL_UNSK
 	bool "Poll'able UNIX sockets"
@@ -125,9 +122,15 @@ config UTILS_POLL_UNSK
 	help
 	  Build utils library with poll'able UNIX socket support.
 
+config UTILS_MQUEUE
+	bool "Message queue"
+	select UTILS_PATH
+	default y
+	help
+	  Build utils library with POSIX message queue support.
+
 config UTILS_NET
 	bool "Network object utilities"
-	select UTILS_STR
 	select UTILS_PATH
 	default y
 	help
@@ -140,3 +143,5 @@ config UTILS_PWD
 	help
 	  Build utils library with support for browsing system password and
 	  group databases.
+
+# ex: ft=kconfig:

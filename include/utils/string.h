@@ -1,34 +1,23 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 /**
- * @defgroup string String
- * String handling
- *
- * A set of string manipulation utilities.
- *
  * @file
  * String interface
  *
- * @ingroup      string
- * @author       Grégor Boirie <gregor.boirie@free.fr>
- * @date         29 Aug 2017
- * @copyright    Copyright (C) 2017-2021 Grégor Boirie.
- * @licensestart GNU Lesser General Public License (LGPL) v3
+ * A set of string manipulation utilities.
  *
- * This file is part of libutils
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option) any
- * later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, If not, see <http://www.gnu.org/licenses/>.
- * @licenseend
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      29 Aug 2017
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
  */
+
 #ifndef _UTILS_STRING_H
 #define _UTILS_STRING_H
 
@@ -39,84 +28,93 @@
 #include <errno.h>
 #include <sys/types.h>
 
-/**
- * @def __ustr_nonull(_arg_index, ...)
- *
- * Declare to the compiler a @ref string function argument should be a non-null
- * pointer.
- *
- * When applied to a function, tell compiler that the specified arguments must
- * be non-null pointers.
- * @param[in] _arg_index index of first non-null pointer argument
- * @param[in] ...        subsequent non-null pointer argument indices
- *
- * @ingroup string
- */
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#include <stroll/assert.h>
 
-#include <utils/assert.h>
+#define ustr_assert_api(_expr) \
+	stroll_assert("utils:ustr", _expr)
 
-#define ustr_assert(_expr) \
-	uassert("ustr", _expr)
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#define __ustr_nonull(_arg_index, ...)
+#define ustr_assert_api(_expr)
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#define ustr_assert(_expr)
+extern void
+ustr_tolower(char * __restrict lower, const char * __restrict orig, size_t size)
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
 
-#define __ustr_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
+extern void
+ustr_tolower_inp(char *string, size_t size)
+	__utils_nonull(1) __utils_nothrow __leaf;
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+extern void
+ustr_toupper(char * __restrict upper, const char * __restrict orig, size_t size)
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
+
+extern void
+ustr_toupper_inp(char * __restrict string, size_t size)
+	__utils_nonull(1) __utils_nothrow __leaf;
 
 extern int
-ustr_parse_bool(const char *string, bool *value);
+ustr_parse_bool(const char * __restrict string, bool * __restrict value)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 extern int
-ustr_parse_base_ullong(const char *string, unsigned long long *value, int base);
+ustr_parse_base_ullong(const char * __restrict         string,
+                       unsigned long long * __restrict value,
+                       int                             base)
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
-static inline int
-ustr_parse_ullong(const char *string, unsigned long long *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_ullong(const char * __restrict         string,
+                  unsigned long long * __restrict value)
 {
 	return ustr_parse_base_ullong(string, value, 0);
 }
 
-static inline int
-ustr_parse_xllong(const char *string, unsigned long long *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_xllong(const char * __restrict         string,
+                  unsigned long long * __restrict value)
 {
 	return ustr_parse_base_ullong(string, value, 16);
 }
 
 extern int
-ustr_parse_ullong_range(const char         *string,
-                        unsigned long long *value,
-                        unsigned long long  min,
-                        unsigned long long  max);
+ustr_parse_ullong_range(const char * __restrict         string,
+                        unsigned long long * __restrict value,
+                        unsigned long long              min,
+                        unsigned long long              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 extern int
-ustr_parse_xllong_range(const char         *string,
-                        unsigned long long *value,
-                        unsigned long long  min,
-                        unsigned long long  max);
+ustr_parse_xllong_range(const char * __restrict         string,
+                        unsigned long long * __restrict value,
+                        unsigned long long              min,
+                        unsigned long long              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 extern int
-ustr_parse_llong(const char *string, long long *value);
+ustr_parse_llong(const char * __restrict string, long long * __restrict value)
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
 extern int
-ustr_parse_llong_range(const char *string,
-                       long long  *value,
-                       long long   min,
-                       long long   max);
+ustr_parse_llong_range(const char * __restrict string,
+                       long long  * __restrict value,
+                       long long               min,
+                       long long               max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 extern int
 ustr_parse_base_ulong(const char * __restrict    string,
                       unsigned long * __restrict value,
                       int                        base)
-	__ustr_nonull(1, 2) __nothrow __leaf __warn_result;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
-static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+static inline int __utils_nonull(1, 2) __utils_nothrow __warn_result
 ustr_parse_ulong(const char * __restrict    string,
                  unsigned long * __restrict value)
 {
@@ -124,65 +122,79 @@ ustr_parse_ulong(const char * __restrict    string,
 }
 
 extern int
-ustr_parse_ulong_range(const char    *string,
-                       unsigned long *value,
-                       unsigned long  min,
-                       unsigned long  max);
+ustr_parse_ulong_range(const char * __restrict    string,
+                       unsigned long * __restrict value,
+                       unsigned long              min,
+                       unsigned long              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int __ustr_nonull(1, 2) __nothrow __warn_result
-ustr_parse_xlong(const char *string, unsigned long *value)
+static inline int __utils_nonull(1, 2) __utils_nothrow __warn_result
+ustr_parse_xlong(const char * __restrict string,
+                 unsigned long * __restrict value)
 {
 	return ustr_parse_base_ulong(string, value, 16);
 }
 
 extern int
-ustr_parse_xlong_range(const char    *string,
-                       unsigned long *value,
-                       unsigned long  min,
-                       unsigned long  max);
+ustr_parse_xlong_range(const char * __restrict    string,
+                       unsigned long * __restrict value,
+                       unsigned long              min,
+                       unsigned long              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 extern int
-ustr_parse_long(const char *string, long *value);
+ustr_parse_long(const char * __restrict string, long * __restrict value)
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
 extern int
-ustr_parse_long_range(const char *string, long *value, long min, long max);
+ustr_parse_long_range(const char * __restrict string,
+                      long * __restrict       value,
+                      long                    min,
+                      long                    max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 #if __WORDSIZE == 64
 
-static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
 ustr_parse_uint64(const char * __restrict string, uint64_t * __restrict value)
 {
 	return ustr_parse_ulong(string, value);
 }
 
-static inline int
-ustr_parse_x64(const char *string, uint64_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_x64(const char * __restrict string, uint64_t * __restrict value)
 {
 	return ustr_parse_xlong(string, value);
 }
 
-static inline int
-ustr_parse_int64(const char *string, int64_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_int64(const char * __restrict string, int64_t * __restrict value)
 {
 	return ustr_parse_long(string, value);
 }
 
 #elif __WORDSIZE == 32
 
-static inline int
-ustr_parse_uint64(const char *string, uint64_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_uint64(const char * __restrict string, uint64_t * __restrict value)
 {
 	return ustr_parse_ullong(string, value);
 }
 
-static inline int
-ustr_parse_x64(const char *string, uint64_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_x64(const char * __restrict string, uint64_t * __restrict value)
 {
 	return ustr_parse_xllong(string, value);
 }
 
-static inline int
-ustr_parse_int64(const char *string, int64_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_int64(const char * __restrict string, int64_t * __restrict value)
 {
 	return ustr_parse_llong(string, value);
 }
@@ -196,270 +208,254 @@ ustr_parse_uint_range(const char * __restrict   string,
                       unsigned int * __restrict value,
                       unsigned int              min,
                       unsigned int              max)
-	__ustr_nonull(1, 2) __nothrow __leaf __warn_result;
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
 ustr_parse_uint(const char * __restrict string, unsigned int * __restrict value)
 {
 	return ustr_parse_uint_range(string, value, 0U, UINT_MAX);
 }
 
-static inline int __ustr_nonull(1, 2) __nothrow __warn_result
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
 ustr_parse_uint32(const char * __restrict string, uint32_t * __restrict value)
 {
 	return ustr_parse_uint(string, value);
 }
 
 extern int
-ustr_parse_xint_range(const char   *string,
-                      unsigned int *value,
-                      unsigned int  min,
-                      unsigned int  max);
+ustr_parse_xint_range(const char * __restrict   string,
+                      unsigned int * __restrict value,
+                      unsigned int              min,
+                      unsigned int              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_xint(const char *string, unsigned int *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_xint(const char * __restrict string, unsigned int * __restrict value)
 {
 	return ustr_parse_xint_range(string, value, 0U, UINT_MAX);
 }
 
-static inline int
-ustr_parse_x32(const char *string, uint32_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_x32(const char * __restrict string, uint32_t * __restrict value)
 {
 	return ustr_parse_xint(string, value);
 }
 
 extern int
-ustr_parse_int_range(const char *string, int *value, int min, int max);
+ustr_parse_int_range(const char * __restrict string,
+                     int * __restrict        value,
+                     int                     min,
+                     int                     max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_int(const char *string, int *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_int(const char * __restrict string, int * __restrict value)
 {
 	return ustr_parse_int_range(string, value, INT_MIN, INT_MAX);
 }
 
-static inline int
-ustr_parse_int32(const char *string, int32_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_int32(const char * __restrict string, int32_t * __restrict value)
 {
 	return ustr_parse_int(string, value);
 }
 
 extern int
-ustr_parse_ushrt_range(const char     *string,
-                       unsigned short *value,
-                       unsigned short  min,
-                       unsigned short  max);
+ustr_parse_ushrt_range(const char * __restrict     string,
+                       unsigned short * __restrict value,
+                       unsigned short              min,
+                       unsigned short              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_ushrt(const char *string, unsigned short *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_ushrt(const char * __restrict     string,
+                 unsigned short * __restrict value)
 {
 	return ustr_parse_ushrt_range(string, value, 0U, USHRT_MAX);
 }
 
-static inline int
-ustr_parse_uint16(const char *string, uint16_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_uint16(const char * __restrict string, uint16_t * __restrict value)
 {
 	return ustr_parse_ushrt(string, value);
 }
 
 extern int
-ustr_parse_xshrt_range(const char     *string,
-                       unsigned short *value,
-                       unsigned short  min,
-                       unsigned short  max);
+ustr_parse_xshrt_range(const char * __restrict     string,
+                       unsigned short * __restrict value,
+                       unsigned short              min,
+                       unsigned short              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_xshrt(const char *string, unsigned short *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_xshrt(const char * __restrict     string,
+                 unsigned short * __restrict value)
 {
 	return ustr_parse_xshrt_range(string, value, 0U, USHRT_MAX);
 }
 
-static inline int
-ustr_parse_x16(const char *string, uint16_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_x16(const char * __restrict string, uint16_t * __restrict value)
 {
 	return ustr_parse_xshrt(string, value);
 }
 
 extern int
-ustr_parse_shrt_range(const char *string, short *value, short min, short max);
+ustr_parse_shrt_range(const char * __restrict string,
+                      short * __restrict      value,
+                      short                   min,
+                      short                   max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_shrt(const char *string, short *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_shrt(const char * __restrict string, short * __restrict value)
 {
 	return ustr_parse_shrt_range(string, value, SHRT_MIN, SHRT_MAX);
 }
 
-static inline int
-ustr_parse_int16(const char *string, int16_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_int16(const char * __restrict string, int16_t * __restrict value)
 {
 	return ustr_parse_shrt(string, value);
 }
 
 extern int
-ustr_parse_uchar_range(const char    *string,
-                       unsigned char *value,
-                       unsigned char  min,
-                       unsigned char  max);
+ustr_parse_uchar_range(const char * __restrict    string,
+                       unsigned char * __restrict value,
+                       unsigned char              min,
+                       unsigned char              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_uchar(const char *string, unsigned char *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_uchar(const char * __restrict    string,
+                 unsigned char * __restrict value)
 {
 	return ustr_parse_uchar_range(string, value, 0U, UCHAR_MAX);
 }
 
-static inline int
-ustr_parse_uint8(const char *string, uint8_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_uint8(const char * __restrict string, uint8_t * __restrict value)
 {
 	return ustr_parse_uchar(string, value);
 }
 
 extern int
-ustr_parse_xchar_range(const char    *string,
-                       unsigned char *value,
-                       unsigned char  min,
-                       unsigned char  max);
+ustr_parse_xchar_range(const char * __restrict    string,
+                       unsigned char * __restrict value,
+                       unsigned char              min,
+                       unsigned char              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_xchar(const char *string, unsigned char *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_xchar(const char * __restrict    string,
+                 unsigned char * __restrict value)
 {
 	return ustr_parse_xchar_range(string, value, 0U, UCHAR_MAX);
 }
 
-static inline int
-ustr_parse_x8(const char *string, uint8_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_x8(const char * __restrict string, uint8_t * __restrict value)
 {
 	return ustr_parse_xchar(string, value);
 }
 
 extern int
-ustr_parse_char_range(const char  *string,
-                      signed char *value,
-                      signed char  min,
-                      signed char  max);
+ustr_parse_char_range(const char * __restrict  string,
+                      signed char * __restrict value,
+                      signed char              min,
+                      signed char              max)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
-static inline int
-ustr_parse_char(const char *string, signed char *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_char(const char * __restrict string, signed char * __restrict value)
 {
 	return ustr_parse_char_range(string, value, SCHAR_MIN, SCHAR_MAX);
 }
 
-static inline int
-ustr_parse_int8(const char *string, int8_t *value)
+static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
+int
+ustr_parse_int8(const char * __restrict string, int8_t * __restrict value)
 {
 	return ustr_parse_char(string, value);
 }
 
-extern void
-ustr_tolower(char *lower, const char *orig, size_t size);
-
-extern void
-ustr_tolower_inp(char *string, size_t size);
-
-extern void
-ustr_toupper(char *upper, const char *orig, size_t size);
-
-extern void
-ustr_toupper_inp(char *string, size_t size);
-
-static inline size_t
-ustr_skip_char(const char *string, int ch, size_t size)
-{
-	ustr_assert(string);
-	ustr_assert(ch);
-	ustr_assert(size);
-
-	const char *str = string;
-
-	while ((str < (string + size)) && (*str == ch))
-		str++;
-
-	return (size_t)(str - string);
-}
-
-static inline size_t
-ustr_rskip_char(const char *string, int ch, size_t size)
-{
-	ustr_assert(string);
-	ustr_assert(ch);
-	ustr_assert(size);
-
-	const char *str = string + size - 1;
-
-	while ((str >= string) && (*str == ch))
-		str--;
-
-	return size - (size_t)((str + 1) - string);
-}
-
-static inline size_t __ustr_nonull(1) __pure __nothrow
-ustr_skip_notchar(const char * string, int ch, size_t size)
-{
-	ustr_assert(string);
-	ustr_assert(ch);
-	ustr_assert(size);
-
-	const char *str = string;
-
-	while ((str < (string + size)) && *str && (*str != ch))
-		str++;
-
-	return (size_t)(str - string);
-}
-
-static inline size_t
-ustr_rskip_notchar(const char *string, int ch, size_t size)
-{
-	ustr_assert(string);
-	ustr_assert(ch);
-	ustr_assert(size);
-
-	const char *str = string + size - 1;
-
-	if (!*str)
-		return 0;
-
-	while ((str >= string) && (*str != ch))
-		str--;
-
-	return size - (size_t)((str + 1) - string);
-}
+extern size_t
+ustr_skip_char(const char * __restrict string, int ch, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern size_t
-ustr_skip_space(const char *string, size_t size);
+ustr_rskip_char(const char * __restrict string, int ch, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern size_t
-ustr_rskip_space(const char *string, size_t size);
+ustr_skip_notchar(const char * __restrict string, int ch, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern size_t
-ustr_skip_notspace(const char *string, size_t size);
+ustr_rskip_notchar(const char * __restrict string, int ch, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern size_t
-ustr_rskip_notspace(const char *string, size_t size);
+ustr_skip_space(const char * __restrict string, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
-static inline ssize_t __ustr_nonull(1) __pure __nothrow
-ustr_parse(const char * __restrict str, size_t max_size)
+extern size_t
+ustr_rskip_space(const char * __restrict string, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
+extern size_t
+ustr_skip_notspace(const char * __restrict string, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
+extern size_t
+ustr_rskip_notspace(const char * __restrict string, size_t size)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
+static inline __utils_nonull(1) __utils_pure __utils_nothrow
+ssize_t
+ustr_parse(const char * __restrict string, size_t max_size)
 {
-	ustr_assert(str);
-	ustr_assert(max_size);
+	ustr_assert_api(string);
+	ustr_assert_api(max_size);
 
 	size_t len;
 
-	len = strnlen(str, max_size);
+	len = strnlen(string, max_size);
 
 	return (len != max_size) ? (ssize_t)len : -ENAMETOOLONG;
 }
 
 extern char *
-ustr_clone(const char *orig, size_t len);
+ustr_clone(const char * __restrict orig, size_t len)
+	__utils_nonull(1) __utils_nothrow __leaf __warn_result;
 
 extern char *
-ustr_sized_clone(const char *orig, size_t max_size);
+ustr_sized_clone(const char * __restrict orig, size_t max_size)
+	__utils_nonull(1) __utils_nothrow __warn_result;
 
 extern size_t
 ustr_prefix_len(const char * __restrict string,
                 size_t                  str_len,
                 const char * __restrict prefix,
                 size_t                  pref_len)
-	__ustr_nonull(1, 3) __pure __nothrow __leaf;
+	__utils_nonull(1, 3) __utils_pure __utils_nothrow __leaf __warn_result;
 
 #define ustr_const_prefix_len(_string, _len, _prefix) \
 	ustr_prefix_len(_string, _len, _prefix, sizeof(_prefix) - 1)
@@ -469,21 +465,22 @@ ustr_suffix_len(const char * __restrict string,
                 size_t                  str_len,
                 const char * __restrict suffix,
                 size_t                  suff_len)
-	__ustr_nonull(1, 3) __pure __nothrow __leaf;
+	__utils_nonull(1, 3) __utils_pure __utils_nothrow __leaf __warn_result;
 
 #define ustr_const_suffix_len(_string, _len, _suffix) \
 	ustr_suffix_len(_string, _len, _suffix, sizeof(_suffix) - 1)
 
-static inline bool __ustr_nonull(1, 3) __pure __nothrow
+static inline __utils_nonull(1, 3) __utils_pure __utils_nothrow __warn_result
+bool
 ustr_match_token(const char * __restrict string,
                  size_t                  str_len,
                  const char * __restrict token,
                  size_t                  tok_len)
 {
-	ustr_assert(string);
-	ustr_assert(token);
-	ustr_assert(token[0]);
-	ustr_assert(tok_len);
+	ustr_assert_api(string);
+	ustr_assert_api(token);
+	ustr_assert_api(token[0]);
+	ustr_assert_api(tok_len);
 
 	if (str_len != tok_len)
 		return false;
@@ -514,12 +511,10 @@ ustr_match_token(const char * __restrict string,
  * @retval 0       token matched
  * @retval -ENOENT no token matched
  * @retval <0      callback specific negative errno like error code
- *
- * @ingroup string
  */
 typedef int ustr_parse_token_fn(char * __restrict string,
                                 size_t            size,
-                                void * __restrict context) __ustr_nonull(1);
+                                void * __restrict context) __utils_nonull(1);
 
 /**
  * Parse a string containing a sequence of token fields located at fixed
@@ -560,8 +555,6 @@ typedef int ustr_parse_token_fn(char * __restrict string,
  * @retval -EMSGSIZE all expected fields matched, but @p string contains
  *                   trailing garbage character(s)
  * @retval <0        parsing callback negative errno like error code
- *
- * @ingroup string
  */
 extern int
 ustr_parse_token_fields(char * __restrict           string,
@@ -569,7 +562,7 @@ ustr_parse_token_fields(char * __restrict           string,
                         ustr_parse_token_fn * const parsers[__restrict_arr],
                         unsigned int                count,
                         void * __restrict           context)
-	__ustr_nonull(1, 3);
+	__utils_nonull(1, 3) __warn_result;
 
 /**
  * Parse a string containing a sequence of token fields
@@ -597,14 +590,12 @@ ustr_parse_token_fields(char * __restrict           string,
  * @retval -ENODATA  empty / missing token found
  * @retval -ENOENT   unexpected / unmatched token
  * @retval <0        parsing callback negative errno like error code
- *
- * @ingroup string
  */
 extern int
 ustr_parse_each_token(char * __restrict     string,
                       int                   delim,
                       ustr_parse_token_fn * parse,
                       void * __restrict     context)
-	__ustr_nonull(1, 3);
+	__utils_nonull(1, 3) __warn_result;
 
 #endif /* _UTILS_STRING_H */

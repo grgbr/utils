@@ -1,62 +1,43 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 /**
- * @file      timer.h
+ * @file
+ * Timer interface
+ *
  * @author    Grégor Boirie <gregor.boirie@free.fr>
  * @date      29 Aug 2021
- * @copyright GNU Public License v3
- *
- * Timers interface
- *
- * @defgroup timer Timers
- *
- * This file is part of Utils
- *
- * Copyright (C) 2021 Grégor Boirie <gregor.boirie@free.fr>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
  */
+
 #ifndef _UTILS_TIMER_H
 #define _UTILS_TIMER_H
 
 #include <utils/time.h>
 #include <stroll/dlist.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __utimer_nonull(_arg_index, ...)
+#define utimer_assert_api(_expr) \
+	stroll_assert("utils:utimer", _expr)
 
-#define __utimer_pure
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#define utimer_assert(_expr) \
-	uassert("utimer", _expr)
+#define utimer_assert_api(_expr)
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-#define __utimer_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
-
-#define __utimer_pure \
-	__pure
-
-#define utimer_assert(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 struct utimer;
 
-typedef void (utimer_expire_fn)(struct utimer * timer);
+typedef void (utimer_expire_fn)(struct utimer * __restrict);
 
 struct utimer {
 	struct stroll_dlist_node node;
@@ -68,27 +49,30 @@ struct utimer {
 	{ .node   = STROLL_DLIST_INIT((_timer).node) }
 
 #define utimer_assert_timer(_timer) \
-	utimer_assert(_timer); \
-	utimer_assert((_timer)->expire)
+	utimer_assert_api(_timer); \
+	utimer_assert_api((_timer)->expire)
 
-static inline struct timespec * __utimer_nonull(1) __utimer_pure  __nothrow
-utimer_expiry_date(const struct utimer * timer)
+static inline __utils_nonull(1) __utils_pure  __utils_nothrow __returns_nonull
+struct timespec *
+utimer_expiry_date(const struct utimer * __restrict timer)
 {
 	utimer_assert_timer(timer);
 
 	return (struct timespec *)&timer->date;
 }
 
-static inline bool __utimer_nonull(1) __utimer_pure __nothrow
-utimer_is_armed(const struct utimer * timer)
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+bool
+utimer_is_armed(const struct utimer * __restrict timer)
 {
 	utimer_assert_timer(timer);
 
 	return !stroll_dlist_empty(&timer->node);
 }
 
-static inline void __utimer_nonull(1) __nothrow
-utimer_cancel(struct utimer * timer)
+static inline __utils_nonull(1) __utils_nothrow
+void
+utimer_cancel(struct utimer * __restrict timer)
 {
 	utimer_assert_timer(timer);
 	utime_assert_tspec(&timer->date);
@@ -96,41 +80,44 @@ utimer_cancel(struct utimer * timer)
 	stroll_dlist_remove_init(&timer->node);
 }
 
-static inline void __utimer_nonull(1, 2) __nothrow
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
 utimer_setup(struct utimer * __restrict timer,
              utimer_expire_fn *         expire)
 {
-	utimer_assert(timer);
-	utimer_assert(expire);
+	utimer_assert_api(timer);
+	utimer_assert_api(expire);
 
 	timer->expire = expire;
 }
 
-static inline void __utimer_nonull(1) __nothrow
-utimer_init(struct utimer * timer)
+static inline __utils_nonull(1) __utils_nothrow
+void
+utimer_init(struct utimer * __restrict timer)
 {
-	utimer_assert(timer);
+	utimer_assert_api(timer);
 
 	stroll_dlist_init(&timer->node);
 }
 
 extern void
-utimer_arm(struct utimer * timer) __utimer_nonull(1) __leaf __nothrow;
+utimer_arm(struct utimer * __restrict timer)
+	__utils_nonull(1) __utils_nothrow __leaf;
 
 extern void
-utimer_arm_msec(struct utimer * timer, unsigned long msec)
-	__utimer_nonull(1) __nothrow;
+utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
+	__utils_nonull(1) __utils_nothrow;
 
 extern void
-utimer_arm_sec(struct utimer * timer, unsigned long sec)
-	__utimer_nonull(1) __nothrow;
+utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
+	__utils_nonull(1) __utils_nothrow;
 
 extern const struct timespec *
-utimer_issue_date(void) __utimer_pure __leaf __nothrow;
+utimer_issue_date(void) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern long
-utimer_issue_msec(void) __nothrow;
+utimer_issue_msec(void) __utils_nothrow __warn_result;
 
-extern void utimer_run(void) __nothrow;
+extern void utimer_run(void) __utils_nothrow;
 
 #endif /* _UTILS_TIMER_H */

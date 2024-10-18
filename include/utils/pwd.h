@@ -1,39 +1,47 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
+ * System password / group database interface
+ *
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      13 Jan 2022
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
+ */
+
 #ifndef _UTILS_PWD_H
 #define _UTILS_PWD_H
 
-#include <utils/cdefs.h>
 #include <utils/string.h>
 #include <pwd.h>
 #include <grp.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __upwd_nonull(_arg_index, ...)
+#define upwd_assert_api(_expr) \
+	stroll_assert("utils:upwd", _expr)
 
-#define __upwd_pure
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#define upwd_assert(_expr) \
-	uassert("upwd", _expr)
+#define upwd_assert_api(_expr)
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-#define __upwd_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
-
-#define __upwd_pure \
-	__pure
-
-#define upwd_assert(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 extern int
 upwd_parse_uid(const char * __restrict string, uid_t * __restrict uid)
-	__upwd_nonull(1, 2) __nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
-static inline ssize_t __upwd_nonull(1) __pure __nothrow
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+ssize_t
 upwd_validate_user_name(const char * __restrict name)
 {
 	/*
@@ -44,33 +52,22 @@ upwd_validate_user_name(const char * __restrict name)
 }
 
 extern const struct passwd *
-upwd_get_user_byid(uid_t uid);
+upwd_get_user_byid(uid_t uid) __warn_result;
 
 extern const struct passwd *
-upwd_get_user_byname(const char * __restrict name) __upwd_nonull(1);
+upwd_get_user_byname(const char * __restrict name)
+	__utils_nonull(1) __warn_result;
 
-static inline int __upwd_nonull(1, 2)
+extern int
 upwd_get_uid_byname(const char * __restrict name, uid_t * __restrict uid)
-{
-	upwd_assert(upwd_validate_user_name(name) > 0);
-	upwd_assert(uid);
-
-	const struct passwd * pwd;
-
-	pwd = upwd_get_user_byname(name);
-	if (!pwd)
-		return -errno;
-
-	*uid = pwd->pw_uid;
-
-	return 0;
-}
+	__utils_nonull(1, 2) __warn_result;
 
 extern int
 upwd_parse_gid(const char * __restrict string, gid_t * __restrict gid)
-	__upwd_nonull(1, 2) __nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
-static inline ssize_t __upwd_nonull(1) __pure __nothrow
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+ssize_t
 upwd_validate_group_name(const char * __restrict name)
 {
 	/*
@@ -81,26 +78,14 @@ upwd_validate_group_name(const char * __restrict name)
 }
 
 extern const struct group *
-upwd_get_group_byid(gid_t gid);
+upwd_get_group_byid(gid_t gid) __warn_result;
 
 extern const struct group *
-upwd_get_group_byname(const char * __restrict name) __upwd_nonull(1);
+upwd_get_group_byname(const char * __restrict name)
+	__utils_nonull(1) __warn_result;
 
-static inline int __upwd_nonull(1, 2)
+extern int
 upwd_get_gid_byname(const char * __restrict name, gid_t * __restrict gid)
-{
-	upwd_assert(upwd_validate_group_name(name) > 0);
-	upwd_assert(gid);
-
-	const struct group * grp;
-
-	grp = upwd_get_group_byname(name);
-	if (!grp)
-		return -errno;
-
-	*gid = grp->gr_gid;
-
-	return 0;
-}
+	__utils_nonull(1, 2) __warn_result;
 
 #endif /* _UTILS_PWD_H */

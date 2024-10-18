@@ -1,33 +1,25 @@
-/**
- * @file      fd.h
- * @author    Grégor Boirie <gregor.boirie@free.fr>
- * @date      27 Oct 2021
- * @copyright GNU Public License v3
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
  * File descriptor interface
  *
- * @defgroup fd File descriptors
- *
- * This file is part of Utils
- *
- * Copyright (C) 2021 Grégor Boirie <gregor.boirie@free.fr>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      27 Oct 2021
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
  */
+
 #ifndef _UTILS_FD_H
 #define _UTILS_FD_H
 
+#include <utils/cdefs.h>
 #include <utils/path.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -36,89 +28,98 @@
 #include <sys/resource.h>
 #include <sys/syscall.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __ufd_nonull(_arg_index, ...)
+#define ufd_assert_api(_expr) \
+	stroll_assert("utils:ufd", _expr)
 
-#define ufd_assert(_expr) \
-	uassert("ufd", _expr)
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#define ufd_assert_api(_expr)
 
-#define __ufd_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#define ufd_assert(_expr)
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#define ufd_assert_intern(_expr) \
+	stroll_assert("utils:ufd", _expr)
 
-static inline unsigned int __nothrow
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+#define ufd_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+static inline __utils_nothrow
+unsigned int
 ufd_max_nr(void)
 {
 	struct rlimit lim;
 	int           err __unused;
 
 	err = getrlimit(RLIMIT_NOFILE, &lim);
-	ufd_assert(!err);
+	ufd_assert_intern(!err);
 
 	return (unsigned int)lim.rlim_cur;
 }
 
-static inline int __nothrow __warn_result
+static inline __utils_nothrow __warn_result
+int
 ufd_fchown(int fd, uid_t owner, gid_t group)
 {
-	ufd_assert(fd >= 0);
+	ufd_assert_api(fd >= 0);
 
 	if (!fchown(fd, owner, group))
 		return 0;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EFAULT);
+	ufd_assert_api(errno != EBADF);
 
 	return -errno;
 }
 
-static inline int __nothrow
+static inline __utils_nothrow
+int
 ufd_fchmod(int fd, mode_t mode)
 {
-	ufd_assert(fd >= 0);
-	ufd_assert(!(mode & ~((mode_t)ALLPERMS)));
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(!(mode & ~((mode_t)ALLPERMS)));
 
 	if (!fchmod(fd, mode))
 		return 0;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EFAULT);
+	ufd_assert_api(errno != EBADF);
 
 	return -errno;
 }
 
-static inline int __ufd_nonull(2) __nothrow
+static inline __utils_nonull(2) __utils_nothrow
+int 
 ufd_fstat(int fd, struct stat * __restrict st)
 {
-	ufd_assert(fd >= 0);
-	ufd_assert(st);
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(st);
 
 	if (!fstat(fd, st))
 		return 0;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EFAULT);
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
 
 	return -errno;
 }
 
-static inline off_t __nothrow
+static inline __utils_nothrow
+off_t
 ufd_lseek(int fd, off_t off, int whence)
 {
-	ufd_assert(fd >= 0);
-	ufd_assert((whence == SEEK_SET) ||
-	           (whence == SEEK_CUR) ||
-	           (whence == SEEK_END) ||
-	           (whence == SEEK_DATA) ||
-	           (whence == SEEK_HOLE));
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api((whence == SEEK_SET) ||
+	               (whence == SEEK_CUR) ||
+	               (whence == SEEK_END) ||
+	               (whence == SEEK_DATA) ||
+	               (whence == SEEK_HOLE));
 
 	off_t ret;
 
@@ -126,19 +127,20 @@ ufd_lseek(int fd, off_t off, int whence)
 	if (ret >= 0)
 		return ret;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EOVERFLOW);
-	ufd_assert(errno != ESPIPE);
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EOVERFLOW);
+	ufd_assert_api(errno != ESPIPE);
 
 	return ret;
 }
 
-static inline ssize_t __ufd_nonull(2) __warn_result
-ufd_read(int fd, char * data, size_t size)
+static inline __utils_nonull(2) __warn_result
+ssize_t
+ufd_read(int fd, char * __restrict data, size_t size)
 {
-	ufd_assert(fd >= 0);
-	ufd_assert(data);
-	ufd_assert(size);
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(data);
+	ufd_assert_api(size);
 
 	ssize_t ret;
 
@@ -146,19 +148,49 @@ ufd_read(int fd, char * data, size_t size)
 	if (ret >= 0)
 		return ret;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EFAULT);
-	ufd_assert(errno != EISDIR);
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != EINVAL);
+	ufd_assert_api(errno != EISDIR);
 
 	return -errno;
 }
 
-static inline ssize_t __ufd_nonull(2) __warn_result
-ufd_write(int fd, const char *data, size_t size)
+extern ssize_t
+ufd_nointr_read(int fd, char * __restrict data, size_t size)
+	__utils_nonull(2) __warn_result;
+
+static inline __utils_nonull(2) __warn_result
+ssize_t
+ufd_readv(int fd, const struct iovec * __restrict vectors, unsigned int count)
 {
-	ufd_assert(fd >= 0);
-	ufd_assert(data);
-	ufd_assert(size);
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(vectors);
+	ufd_assert_api(count);
+	ufd_assert_api(count < IOV_MAX);
+
+	ssize_t ret;
+
+	ret = readv(fd, vectors, (int)count);
+
+	if (ret >= 0)
+		return ret;
+
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != EINVAL);
+	ufd_assert_api(errno != EISDIR);
+
+	return -errno;
+}
+
+static inline __utils_nonull(2) __warn_result
+ssize_t
+ufd_write(int fd, const char * __restrict data, size_t size)
+{
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(data);
+	ufd_assert_api(size);
 
 	ssize_t ret;
 
@@ -167,23 +199,25 @@ ufd_write(int fd, const char *data, size_t size)
 	if (ret >= 0)
 		return ret;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EFAULT);
-	ufd_assert(errno != EINVAL);
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != EINVAL);
 
 	return -errno;
 }
 
-extern ssize_t __ufd_nonull(2) __warn_result
-ufd_nointr_write(int fd, const char *data, size_t size);
+extern ssize_t
+ufd_nointr_write(int fd, const char * __restrict data, size_t size)
+	__utils_nonull(2) __warn_result;
 
-static inline ssize_t __ufd_nonull(2) __warn_result
-ufd_writev(int fd, const struct iovec * vectors, unsigned int count)
+static inline __utils_nonull(2) __warn_result
+ssize_t
+ufd_writev(int fd, const struct iovec * __restrict vectors, unsigned int count)
 {
-	ufd_assert(fd >= 0);
-	ufd_assert(vectors);
-	ufd_assert(count);
-	ufd_assert(count < IOV_MAX);
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(vectors);
+	ufd_assert_api(count);
+	ufd_assert_api(count < IOV_MAX);
 
 	ssize_t ret;
 
@@ -192,24 +226,24 @@ ufd_writev(int fd, const struct iovec * vectors, unsigned int count)
 	if (ret >= 0)
 		return ret;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EFAULT);
-	ufd_assert(errno != EINVAL);
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != EINVAL);
 
 	return -errno;
 }
 
-static inline int __nothrow
+static inline __utils_nothrow
+int
 ufd_dup2(int old_fd, int new_fd)
 {
-	ufd_assert(old_fd >= 0);
-	ufd_assert(new_fd >= 0);
+	ufd_assert_api(old_fd >= 0);
+	ufd_assert_api(new_fd >= 0);
 
 	if (dup2(old_fd, new_fd) >= 0)
 		return 0;
 
-	ufd_assert(errno != EBADF);
-	ufd_assert(errno != EINVAL);
+	ufd_assert_api(errno != EBADF);
 
 	/*
 	 * This is related to a possible race condition between new_fd closing
@@ -217,20 +251,22 @@ ufd_dup2(int old_fd, int new_fd)
 	 * and / or async-signal-unsafe implementations.
 	 * See section NOTES of dup2(2) man page for more infos.
 	 */
-	ufd_assert(errno != EBUSY);
+	ufd_assert_api(errno != EBUSY);
 
 	return -errno;
 }
 
-static inline int __ufd_nonull(1)
-ufd_open(const char *path, int flags)
+static inline __utils_nonull(1)
+int
+ufd_open(const char * __restrict path, int flags)
 {
-	ufd_assert(upath_validate_path_name(path) > 0);
-	ufd_assert(!((flags & O_DIRECTORY) && (flags & (O_WRONLY | O_RDWR))));
+	ufd_assert_api(upath_validate_path_name(path) > 0);
+	ufd_assert_api(!((flags & O_DIRECTORY) &&
+	                 (flags & (O_WRONLY | O_RDWR))));
 	/* O_TMPFILE requires the (creation) mode argument. */
-	ufd_assert((flags & O_TMPFILE) != O_TMPFILE);
-	ufd_assert(!(flags & O_CREAT));
-	ufd_assert(!(flags & O_EXCL));
+	ufd_assert_api((flags & O_TMPFILE) != O_TMPFILE);
+	ufd_assert_api(!(flags & O_CREAT));
+	ufd_assert_api(!(flags & O_EXCL));
 
 	int fd;
 
@@ -238,21 +274,55 @@ ufd_open(const char *path, int flags)
 	if (fd >= 0)
 		return fd;
 
-	ufd_assert(errno != EFAULT);
-	ufd_assert(errno != ENAMETOOLONG);
+	ufd_assert_intern(errno != EFAULT);
+	ufd_assert_intern(errno != ENAMETOOLONG);
 
 	return -errno;
 }
 
-static inline int
+extern int
+ufd_nointr_open(const char * __restrict path, int flags) __utils_nonull(1);
+
+static inline __utils_nonull(2)
+int
+ufd_open_at(int dir, const char * __restrict path, int flags)
+{
+	ufd_assert_api(dir >= 0);
+	ufd_assert_api(upath_validate_path_name(path) > 0);
+	ufd_assert_api(!((flags & O_DIRECTORY) &&
+	                 (flags & (O_WRONLY | O_RDWR))));
+	/* O_TMPFILE requires the (creation) mode argument. */
+	ufd_assert_api((flags & O_TMPFILE) != O_TMPFILE);
+	ufd_assert_api(!(flags & O_CREAT));
+	ufd_assert_api(!(flags & O_EXCL));
+
+	int fd;
+
+	fd = openat(dir, path, flags);
+	if (fd >= 0)
+		return fd;
+
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_intern(errno != EFAULT);
+	ufd_assert_intern(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+extern int
+ufd_nointr_open_at(int dir, const char * __restrict path, int flags)
+	__utils_nonull(2);
+
+static inline
+int
 ufd_close(int fd)
 {
-	ufd_assert(fd >= 0);
+	ufd_assert_api(fd >= 0);
 
 	if (!close(fd))
 		return 0;
 
-	ufd_assert(errno != EBADF);
+	ufd_assert_api(errno != EBADF);
 
 	/*
 	 * Note that, as specified by POSIX.1-2013: 
@@ -281,7 +351,8 @@ ufd_close(int fd)
  * Note: close_range() definition comes with Glibc 2.34 and later versions.
  */
 
-static inline int __nothrow
+static inline __nothrow
+int
 close_range(unsigned int first, unsigned int last, int flags)
 {
 	return syscall(__NR_close_range, first, last, flags);
@@ -303,21 +374,23 @@ close_range(unsigned int first, unsigned int last, int flags)
 
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5,11,0) */
 
-static inline int __nothrow
+static inline __utils_nothrow
+int
 ufd_close_range(unsigned int first, unsigned int last, unsigned int flags)
 {
-	ufd_assert(first <= last);
-	ufd_assert(!(flags & ~UFD_CLOSE_RANGE_FLAG_MASK));
+	ufd_assert_api(first <= last);
+	ufd_assert_api(!(flags & ~UFD_CLOSE_RANGE_FLAG_MASK));
 
 	if (!close_range(first, last, (int)flags))
 		return 0;
 
-	ufd_assert(errno != EINVAL);
+	ufd_assert_api(errno != EINVAL);
 
 	return -errno;
 }
 
-static inline int __nothrow
+static inline __utils_nothrow
+int
 ufd_close_fds(unsigned int first, unsigned int last)
 {
 	return ufd_close_range(first, last, 0);
@@ -326,7 +399,7 @@ ufd_close_fds(unsigned int first, unsigned int last)
 #else /* !(defined(__NR_close_range) && defined(__USE_GNU)) */
 
 extern int
-ufd_close_fds(unsigned int first, unsigned int last);
+ufd_close_fds(unsigned int first, unsigned int last) __leaf;
 
 #endif /* defined(__NR_close_range) && defined(__USE_GNU) */
 

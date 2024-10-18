@@ -1,63 +1,64 @@
-/**
- * @file      timer.c
- * @author    Grégor Boirie <gregor.boirie@free.fr>
- * @date      29 Aug 2021
- * @copyright GNU Public License v3
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
- * Timers implementation
- *
- * @defgroup timer Timers
- *
- * This file is part of Utils
- *
- * Copyright (C) 2021 Grégor Boirie <gregor.boirie@free.fr>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 #include "utils/timer.h"
+
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
+
+#include <stroll/assert.h>
+
+#define utimer_assert_intern(_expr) \
+	stroll_assert("utils:utimer", _expr)
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+#define utimer_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
 
 static struct stroll_dlist_node utimer_list = STROLL_DLIST_INIT(utimer_list);
 
+static __utils_nonull(1, 2) __utils_pure __utils_nothrow
+int
+utimer_cmp(const struct stroll_dlist_node * __restrict first,
+           const struct stroll_dlist_node * __restrict second,
+           void *                                      data __unused)
+{
+	utimer_assert_intern(first);
+	utimer_assert_intern(second);
+
+	const struct utimer * fst = stroll_dlist_entry(first,
+	                                               struct utimer,
+	                                               node);
+	const struct utimer * snd = stroll_dlist_entry(second,
+	                                               struct utimer,
+	                                               node);
+
+	return utime_tspec_cmp(&fst->date, &snd->date);
+}
+
 void
-utimer_arm(struct utimer * timer)
+utimer_arm(struct utimer * __restrict timer)
 {
 	utimer_assert_timer(timer);
 	utime_assert_tspec(&timer->date);
 
-	struct stroll_dlist_node * node;
-        const struct timespec *    date = &timer->date;
-
 	stroll_dlist_remove_init(&timer->node);
-
-	for (node = stroll_dlist_prev(&utimer_list);
-	     node != &utimer_list;
-	     node = stroll_dlist_prev(node)) {
-		const struct utimer * t = stroll_dlist_entry(node,
-		                                             struct utimer,
-		                                             node);
-		if (utime_tspec_after_eq(date, &t->date))
-			break;
-	}
-
-	stroll_dlist_append(node, &timer->node);
+	stroll_dlist_insert_inorder_back(&utimer_list,
+	                                 &timer->node,
+	                                 utimer_cmp,
+	                                 NULL);
 }
 
 void
-utimer_arm_msec(struct utimer * timer, unsigned long msec)
+utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
 {
 	utimer_assert_timer(timer);
-	utime_assert(msec);
+	utimer_assert_api(msec);
 
 	utime_monotonic_now(&timer->date);
 	utime_tspec_add_msec(&timer->date, msec);
@@ -65,10 +66,10 @@ utimer_arm_msec(struct utimer * timer, unsigned long msec)
 }
 
 void
-utimer_arm_sec(struct utimer * timer, unsigned long sec)
+utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
 {
 	utimer_assert_timer(timer);
-	utime_assert(sec);
+	utimer_assert_api(sec);
 
 	utime_monotonic_now(&timer->date);
 	utime_tspec_add_sec(&timer->date, sec);
@@ -104,7 +105,7 @@ utimer_issue_msec(void)
 
 		utime_monotonic_now(&now);
 
-		return umax(utime_tspec_diff_msec(tspec, &now), 0L);
+		return stroll_max(utime_tspec_diff_msec(tspec, &now), 0L);
 	}
 
 	return -1;

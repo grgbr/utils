@@ -1,44 +1,35 @@
-/**
- * @defgroup string String
- * String handling
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
- * @file
- * String implementation
- *
- * @ingroup      string
- * @author       Grégor Boirie <gregor.boirie@free.fr>
- * @date         29 Aug 2017
- * @copyright    Copyright (C) 2017-2021 Grégor Boirie.
- * @licensestart GNU Lesser General Public License (LGPL) v3
- *
- * This file is part of libutils
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option) any
- * later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, If not, see <http://www.gnu.org/licenses/>.
- * @licenseend
- */
-#include <utils/string.h>
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+#include "utils/string.h"
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
 
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
+
+#include <stroll/assert.h>
+
+#define ustr_assert_intern(_expr) \
+	stroll_assert("utils:ustr", _expr)
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+#define ustr_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
+
 void
-ustr_tolower(char *lower, const char *orig, size_t size)
+ustr_tolower(char * __restrict lower, const char * __restrict orig, size_t size)
 {
-	ustr_assert(lower);
-	ustr_assert(orig);
-	ustr_assert(size);
+	ustr_assert_api(lower);
+	ustr_assert_api(orig);
+	ustr_assert_api(size);
 
 	unsigned int c;
 
@@ -49,10 +40,10 @@ ustr_tolower(char *lower, const char *orig, size_t size)
 }
 
 void
-ustr_tolower_inp(char *string, size_t size)
+ustr_tolower_inp(char * __restrict string, size_t size)
 {
-	ustr_assert(string);
-	ustr_assert(size);
+	ustr_assert_api(string);
+	ustr_assert_api(size);
 
 	unsigned int c;
 
@@ -63,11 +54,11 @@ ustr_tolower_inp(char *string, size_t size)
 }
 
 void
-ustr_toupper(char *upper, const char *orig, size_t size)
+ustr_toupper(char * __restrict upper, const char * __restrict orig, size_t size)
 {
-	ustr_assert(upper);
-	ustr_assert(orig);
-	ustr_assert(size);
+	ustr_assert_api(upper);
+	ustr_assert_api(orig);
+	ustr_assert_api(size);
 
 	unsigned int c;
 
@@ -78,10 +69,10 @@ ustr_toupper(char *upper, const char *orig, size_t size)
 }
 
 void
-ustr_toupper_inp(char *string, size_t size)
+ustr_toupper_inp(char * __restrict string, size_t size)
 {
-	ustr_assert(string);
-	ustr_assert(size);
+	ustr_assert_api(string);
+	ustr_assert_api(size);
 
 	unsigned int c;
 
@@ -92,10 +83,10 @@ ustr_toupper_inp(char *string, size_t size)
 }
 
 int
-ustr_parse_bool(const char *string, bool *value)
+ustr_parse_bool(const char * __restrict string, bool * __restrict value)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	/*
 	 * ustr_tolower add \0 at the end, we add 1 to the size.
@@ -125,11 +116,13 @@ ustr_parse_bool(const char *string, bool *value)
 }
 
 int
-ustr_parse_base_ullong(const char *string, unsigned long long *value, int base)
+ustr_parse_base_ullong(const char * __restrict         string,
+                       unsigned long long * __restrict value,
+                       int                             base)
 {
-	ustr_assert(string);
-	ustr_assert(value);
-	ustr_assert(!base || (base >= 2 && base <= 36));
+	ustr_assert_api(string);
+	ustr_assert_api(value);
+	ustr_assert_api(!base || (base >= 2 && base <= 36));
 
 	unsigned long long  val;
 	char               *err;
@@ -147,13 +140,13 @@ ustr_parse_base_ullong(const char *string, unsigned long long *value, int base)
 }
 
 int
-ustr_parse_ullong_range(const char         *string,
-                        unsigned long long *value,
-                        unsigned long long  min,
-                        unsigned long long  max)
+ustr_parse_ullong_range(const char * __restrict         string,
+                        unsigned long long * __restrict value,
+                        unsigned long long              min,
+                        unsigned long long              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long long val;
 	int                err;
@@ -171,13 +164,13 @@ ustr_parse_ullong_range(const char         *string,
 }
 
 int
-ustr_parse_xllong_range(const char         *string,
-                        unsigned long long *value,
-                        unsigned long long  min,
-                        unsigned long long  max)
+ustr_parse_xllong_range(const char * __restrict         string,
+                        unsigned long long * __restrict value,
+                        unsigned long long              min,
+                        unsigned long long              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long long val;
 	int                err;
@@ -195,10 +188,10 @@ ustr_parse_xllong_range(const char         *string,
 }
 
 int
-ustr_parse_llong(const char *string, long long *value)
+ustr_parse_llong(const char * __restrict string, long long * __restrict value)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long long  val;
 	char      *err;
@@ -216,13 +209,13 @@ ustr_parse_llong(const char *string, long long *value)
 }
 
 int
-ustr_parse_llong_range(const char *string,
-                       long long  *value,
-                       long long   min,
-                       long long   max)
+ustr_parse_llong_range(const char * __restrict string,
+                       long long  * __restrict value,
+                       long long               min,
+                       long long               max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long long val;
 	int       err;
@@ -244,9 +237,9 @@ ustr_parse_base_ulong(const char * __restrict    string,
                       unsigned long * __restrict value,
                       int                        base)
 {
-	ustr_assert(string);
-	ustr_assert(value);
-	ustr_assert(!base || (base >= 2 && base <= 36));
+	ustr_assert_api(string);
+	ustr_assert_api(value);
+	ustr_assert_api(!base || (base >= 2 && base <= 36));
 
 	unsigned long  val;
 	char          *err;
@@ -264,13 +257,13 @@ ustr_parse_base_ulong(const char * __restrict    string,
 }
 
 int
-ustr_parse_ulong_range(const char    *string,
-                       unsigned long *value,
-                       unsigned long  min,
-                       unsigned long  max)
+ustr_parse_ulong_range(const char * __restrict    string,
+                       unsigned long * __restrict value,
+                       unsigned long              min,
+                       unsigned long              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -288,13 +281,13 @@ ustr_parse_ulong_range(const char    *string,
 }
 
 int
-ustr_parse_xlong_range(const char    *string,
-                       unsigned long *value,
-                       unsigned long  min,
-                       unsigned long  max)
+ustr_parse_xlong_range(const char * __restrict    string,
+                       unsigned long * __restrict value,
+                       unsigned long              min,
+                       unsigned long              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -312,10 +305,10 @@ ustr_parse_xlong_range(const char    *string,
 }
 
 int
-ustr_parse_long(const char *string, long *value)
+ustr_parse_long(const char * __restrict string, long * __restrict value)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long  val;
 	char *err;
@@ -333,10 +326,13 @@ ustr_parse_long(const char *string, long *value)
 }
 
 int
-ustr_parse_long_range(const char *string, long *value, long min, long max)
+ustr_parse_long_range(const char * __restrict string,
+                      long * __restrict       value,
+                      long                    min,
+                      long                    max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long val;
 	int  err;
@@ -354,13 +350,13 @@ ustr_parse_long_range(const char *string, long *value, long min, long max)
 }
 
 int
-ustr_parse_uint_range(const char   * __restrict string,
+ustr_parse_uint_range(const char * __restrict   string,
                       unsigned int * __restrict value,
                       unsigned int              min,
                       unsigned int              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -378,13 +374,13 @@ ustr_parse_uint_range(const char   * __restrict string,
 }
 
 int
-ustr_parse_xint_range(const char   *string,
-                      unsigned int *value,
-                      unsigned int  min,
-                      unsigned int  max)
+ustr_parse_xint_range(const char * __restrict   string,
+                      unsigned int * __restrict value,
+                      unsigned int              min,
+                      unsigned int              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -402,10 +398,13 @@ ustr_parse_xint_range(const char   *string,
 }
 
 int
-ustr_parse_int_range(const char *string, int *value, int min, int max)
+ustr_parse_int_range(const char * __restrict string,
+                     int * __restrict        value,
+                     int                     min,
+                     int                     max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long val;
 	int  err;
@@ -423,13 +422,13 @@ ustr_parse_int_range(const char *string, int *value, int min, int max)
 }
 
 int
-ustr_parse_ushrt_range(const char     *string,
-                       unsigned short *value,
-                       unsigned short  min,
-                       unsigned short  max)
+ustr_parse_ushrt_range(const char * __restrict     string,
+                       unsigned short * __restrict value,
+                       unsigned short              min,
+                       unsigned short              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -447,13 +446,13 @@ ustr_parse_ushrt_range(const char     *string,
 }
 
 int
-ustr_parse_xshrt_range(const char     *string,
-                       unsigned short *value,
-                       unsigned short  min,
-                       unsigned short  max)
+ustr_parse_xshrt_range(const char * __restrict     string,
+                       unsigned short * __restrict value,
+                       unsigned short              min,
+                       unsigned short              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -471,10 +470,13 @@ ustr_parse_xshrt_range(const char     *string,
 }
 
 int
-ustr_parse_shrt_range(const char *string, short *value, short min, short max)
+ustr_parse_shrt_range(const char * __restrict string,
+                      short * __restrict      value,
+                      short                   min,
+                      short                   max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long val;
 	int  err;
@@ -492,13 +494,13 @@ ustr_parse_shrt_range(const char *string, short *value, short min, short max)
 }
 
 int
-ustr_parse_uchar_range(const char    *string,
-                       unsigned char *value,
-                       unsigned char  min,
-                       unsigned char  max)
+ustr_parse_uchar_range(const char * __restrict    string,
+                       unsigned char * __restrict value,
+                       unsigned char              min,
+                       unsigned char              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -516,13 +518,13 @@ ustr_parse_uchar_range(const char    *string,
 }
 
 int
-ustr_parse_xchar_range(const char    *string,
-                       unsigned char *value,
-                       unsigned char  min,
-                       unsigned char  max)
+ustr_parse_xchar_range(const char * __restrict    string,
+                       unsigned char * __restrict value,
+                       unsigned char              min,
+                       unsigned char              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	unsigned long val;
 	int           err;
@@ -540,13 +542,13 @@ ustr_parse_xchar_range(const char    *string,
 }
 
 int
-ustr_parse_char_range(const char  *string,
-                      signed char *value,
-                      signed char  min,
-                      signed char  max)
+ustr_parse_char_range(const char * __restrict  string,
+                      signed char * __restrict value,
+                      signed char              min,
+                      signed char              max)
 {
-	ustr_assert(string);
-	ustr_assert(value);
+	ustr_assert_api(string);
+	ustr_assert_api(value);
 
 	long val;
 	int  err;
@@ -564,10 +566,73 @@ ustr_parse_char_range(const char  *string,
 }
 
 size_t
-ustr_skip_space(const char *string, size_t size)
+ustr_skip_char(const char * __restrict string, int ch, size_t size)
 {
-	ustr_assert(string);
-	ustr_assert(size);
+	ustr_assert_api(string);
+	ustr_assert_api(ch);
+	ustr_assert_api(size);
+
+	const char * str = string;
+
+	while ((str < (string + size)) && (*str == ch))
+		str++;
+
+	return (size_t)(str - string);
+}
+
+size_t
+ustr_rskip_char(const char * __restrict string, int ch, size_t size)
+{
+	ustr_assert_api(string);
+	ustr_assert_api(ch);
+	ustr_assert_api(size);
+
+	const char * str = string + size - 1;
+
+	while ((str >= string) && (*str == ch))
+		str--;
+
+	return size - (size_t)((str + 1) - string);
+}
+
+size_t
+ustr_skip_notchar(const char * __restrict string, int ch, size_t size)
+{
+	ustr_assert_api(string);
+	ustr_assert_api(ch);
+	ustr_assert_api(size);
+
+	const char * str = string;
+
+	while ((str < (string + size)) && *str && (*str != ch))
+		str++;
+
+	return (size_t)(str - string);
+}
+
+size_t
+ustr_rskip_notchar(const char * __restrict string, int ch, size_t size)
+{
+	ustr_assert_api(string);
+	ustr_assert_api(ch);
+	ustr_assert_api(size);
+
+	const char *str = string + size - 1;
+
+	if (!*str)
+		return 0;
+
+	while ((str >= string) && (*str != ch))
+		str--;
+
+	return size - (size_t)((str + 1) - string);
+}
+
+size_t
+ustr_skip_space(const char * __restrict string, size_t size)
+{
+	ustr_assert_api(string);
+	ustr_assert_api(size);
 
 	const char *str = string;
 
@@ -578,10 +643,10 @@ ustr_skip_space(const char *string, size_t size)
 }
 
 size_t
-ustr_rskip_space(const char *string, size_t size)
+ustr_rskip_space(const char * __restrict string, size_t size)
 {
-	ustr_assert(string);
-	ustr_assert(size);
+	ustr_assert_api(string);
+	ustr_assert_api(size);
 
 	const char *str = string + size - 1;
 
@@ -592,10 +657,10 @@ ustr_rskip_space(const char *string, size_t size)
 }
 
 size_t
-ustr_skip_notspace(const char *string, size_t size)
+ustr_skip_notspace(const char * __restrict string, size_t size)
 {
-	ustr_assert(string);
-	ustr_assert(size);
+	ustr_assert_api(string);
+	ustr_assert_api(size);
 
 	const char *str = string;
 
@@ -606,10 +671,10 @@ ustr_skip_notspace(const char *string, size_t size)
 }
 
 size_t
-ustr_rskip_notspace(const char *string, size_t size)
+ustr_rskip_notspace(const char * __restrict string, size_t size)
 {
-	ustr_assert(string);
-	ustr_assert(size);
+	ustr_assert_api(string);
+	ustr_assert_api(size);
 
 	const char *str = string + size - 1;
 
@@ -623,9 +688,9 @@ ustr_rskip_notspace(const char *string, size_t size)
 }
 
 char *
-ustr_clone(const char *orig, size_t len)
+ustr_clone(const char * __restrict orig, size_t len)
 {
-	ustr_assert(orig);
+	ustr_assert_api(orig);
 
 	char *str;
 
@@ -642,10 +707,10 @@ ustr_clone(const char *orig, size_t len)
 }
 
 char *
-ustr_sized_clone(const char *orig, size_t max_size)
+ustr_sized_clone(const char * __restrict orig, size_t max_size)
 {
-	ustr_assert(orig);
-	ustr_assert(max_size);
+	ustr_assert_api(orig);
+	ustr_assert_api(max_size);
 
 	ssize_t len;
 
@@ -664,8 +729,8 @@ ustr_prefix_len(const char * __restrict string,
                 const char * __restrict prefix,
                 size_t                  pref_len)
 {
-	ustr_assert(string);
-	ustr_assert(prefix);
+	ustr_assert_api(string);
+	ustr_assert_api(prefix);
 
 	if (!str_len || ! pref_len || (pref_len > str_len))
 		return 0;
@@ -679,8 +744,8 @@ ustr_suffix_len(const char * __restrict string,
                 const char * __restrict suffix,
                 size_t                  suff_len)
 {
-	ustr_assert(string);
-	ustr_assert(suffix);
+	ustr_assert_api(string);
+	ustr_assert_api(suffix);
 
 	if (!str_len || ! suff_len || (suff_len > str_len))
 		return 0;
@@ -697,9 +762,9 @@ ustr_parse_token_fields(char * __restrict           string,
                         unsigned int                count,
                         void * __restrict           context)
 {
-	ustr_assert(string);
-	ustr_assert(parsers);
-	ustr_assert(count);
+	ustr_assert_api(string);
+	ustr_assert_api(parsers);
+	ustr_assert_api(count);
 
 	unsigned int cnt = 0;
 	char *       str = string;
@@ -724,7 +789,7 @@ ustr_parse_token_fields(char * __restrict           string,
 			return ret;
 
 		cnt++;
-		ustr_assert(cnt <= count);
+		ustr_assert_intern(cnt <= count);
 
 		if (out)
 			/* End of string: return the number of matches. */
@@ -744,8 +809,8 @@ ustr_parse_each_token(char * __restrict     string,
                       ustr_parse_token_fn * parse,
                       void * __restrict     context)
 {
-	ustr_assert(string);
-	ustr_assert(parse);
+	ustr_assert_api(string);
+	ustr_assert_api(parse);
 
 	unsigned int cnt = 0;
 	char *       str = string;

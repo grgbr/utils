@@ -2,8 +2,6 @@ config-in           := Config.in
 config-h            := utils/config.h
 
 solibs              := libutils.so
-libutils.so-objs     = sys.o
-libutils.so-objs    += $(call kconf_enabled,UTILS_ASSERT,assert.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_SIGNAL,signal.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_THREAD,thread.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_TIME,time.o)
@@ -12,8 +10,6 @@ libutils.so-objs    += $(call kconf_enabled,UTILS_PATH,path.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_FD,fd.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_FILE,file.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_DIR,dir.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_DLIST,dlist.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_SLIST,slist.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_STR,string.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_POLL,poll.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_UNSK,unsk.o)
@@ -28,7 +24,6 @@ libutils.so-pkgconf := libstroll
 
 HEADERDIR           := $(CURDIR)/include
 headers              = utils/cdefs.h
-headers             += $(call kconf_enabled,UTILS_ASSERT,utils/assert.h)
 headers             += $(call kconf_enabled,UTILS_ATOMIC,utils/atomic.h)
 headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
@@ -39,8 +34,6 @@ headers             += $(call kconf_enabled,UTILS_FD,utils/fd.h)
 headers             += $(call kconf_enabled,UTILS_PIPE,utils/pipe.h)
 headers             += $(call kconf_enabled,UTILS_FILE,utils/file.h)
 headers             += $(call kconf_enabled,UTILS_DIR,utils/dir.h)
-headers             += $(call kconf_enabled,UTILS_DLIST,utils/dlist.h)
-headers             += $(call kconf_enabled,UTILS_SLIST,utils/slist.h)
 headers             += $(call kconf_enabled,UTILS_STR,utils/string.h)
 headers             += $(call kconf_enabled,UTILS_POLL,utils/poll.h)
 headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
@@ -56,13 +49,15 @@ includedir=$${prefix}/include
 
 Name: libutils
 Description: Utils library
-Version: %%PKG_VERSION%%
-Requires:
+Version: $(VERSION)
+Requires: libstroll
 Cflags: -I$${includedir} $(call kconf_enabled,UTILS_THREAD,-pthread)
 Libs: -L$${libdir} \
+      -Wl,--push-state,--as-needed \
       -lutils \
       $(call kconf_enabled,UTILS_THREAD,-pthread) \
-      $(call kconf_enabled,UTILS_MQUEUE,-lrt)
+      $(call kconf_enabled,UTILS_MQUEUE,-lrt) \
+      -Wl,--pop-state
 endef
 
 pkgconfigs          := libutils.pc
