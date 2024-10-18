@@ -104,7 +104,7 @@ utimer_issue_msec(void)
 
 		utime_monotonic_now(&now);
 
-		return umax(utime_tspec_diff_msec(tspec, &now), 0L);
+		return stroll_max(utime_tspec_diff_msec(tspec, &now), 0L);
 	}
 
 	return -1;

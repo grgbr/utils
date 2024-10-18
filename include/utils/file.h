@@ -1,5 +1,23 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 #ifndef _UTILS_FILE_H
 #define _UTILS_FILE_H
+
+/**
+ * @file
+ * System file interface
+ *
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      30 Jul 2020
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
+ */
 
 #include <utils/fd.h>
 #include <stdio.h>

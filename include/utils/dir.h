@@ -6,33 +6,28 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __udir_nonull(_arg_index, ...)
+#define udir_assert_api(_expr) \
+	stroll_assert("utils:udir", _expr)
 
-#define udir_assert(_expr) \
-	uassert("udir", _expr)
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#define udir_assert_api(_expr)
 
-#define __udir_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
-
-#define udir_assert(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 static inline int
 udir_sync(int fd)
 {
-	udir_assert(fd >= 0);
+	udir_assert_api(fd >= 0);
 
 	if (fsync(fd)) {
-		udir_assert(errno != EBADF);
-		udir_assert(errno != EINVAL);
-		udir_assert(errno != EROFS);
+		udir_assert_api(errno != EBADF);
+		udir_assert_api(errno != EINVAL);
+		udir_assert_api(errno != EROFS);
 
 		return -errno;
 	}
@@ -44,11 +39,11 @@ udir_sync(int fd)
  * May only be opened in read-only mode. Otherwise returns with an errno set to
  * -EISDIR.
  */
-static inline int __udir_nonull(1)
+static inline int __utils_nonull(1)
 udir_open(const char *path, int flags)
 {
-	udir_assert(upath_validate_path_name(path) > 0);
-	udir_assert(!(flags & (O_WRONLY | O_RDWR)));
+	udir_assert_api(upath_validate_path_name(path) > 0);
+	udir_assert_api(!(flags & (O_WRONLY | O_RDWR)));
 
 	int fd;
 
@@ -56,13 +51,13 @@ udir_open(const char *path, int flags)
 	if (fd >= 0)
 		return fd;
 
-	udir_assert(fd != -EOPNOTSUPP);
+	udir_assert_api(fd != -EOPNOTSUPP);
 
 	return fd;
 }
 
 extern int
-udir_nointr_open(const char *path, int flags) __udir_nonull(1);
+udir_nointr_open(const char *path, int flags) __utils_nonull(1);
 
 static inline int
 udir_close(int fd)

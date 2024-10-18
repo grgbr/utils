@@ -1,3 +1,10 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 #include "utils/fd.h"
 #include <stdlib.h>
 #include <stdbool.h>
@@ -6,6 +13,9 @@
 ssize_t
 ufd_nointr_write(int fd, const char *data, size_t size)
 {
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(data);
+
 	ssize_t ret;
 
 	do {
@@ -22,7 +32,7 @@ ufd_nointr_write(int fd, const char *data, size_t size)
 /*
  * Valgrind opens multiple files for internal purposes (e.g., its output
  * channels, vgdb pipes...)
- * While performing a runtime analysis, these file descriptor should not be
+ * While performing a runtime analysis, these file descriptors should not be
  * closed. Any attempt to close() them will fail with a EBADF error since
  * Valgrind "overloads" close() to pretend these are not opened.
  *
@@ -35,15 +45,17 @@ ufd_nointr_write(int fd, const char *data, size_t size)
  *
  * See function setup_file_descriptors() in Valgrind's core source code.
  */
-static inline unsigned int __nothrow
+static inline __nothrow
+unsigned int
 ufd_adjust_last_fd(unsigned int fd)
 {
-	return umin(fd, ufd_max_nr() - 1);
+	return stroll_min(fd, ufd_max_nr() - 1);
 }
 
 #else  /* !defined(UTILS_VALGRIND) */
 
-static inline unsigned int __nothrow __const
+static inline __nothrow __const
+unsigned int
 ufd_adjust_last_fd(unsigned int fd)
 {
 	return fd;
@@ -54,14 +66,14 @@ ufd_adjust_last_fd(unsigned int fd)
 int
 ufd_close_fds(unsigned int first, unsigned int last)
 {
-	ufd_assert(first <= last);
+	ufd_assert_api(first <= last);
 
 	DIR * dir;
 	int   ret;
 
 	dir = opendir("/proc/self/fd");
 	if (!dir) {
-		ufd_assert(errno != EBADF);
+		ufd_assert_intern(errno != EBADF);
 		return -errno;
 	}
 
@@ -73,7 +85,7 @@ ufd_close_fds(unsigned int first, unsigned int last)
 		errno = 0;
 		ent = readdir(dir);
 		if (!ent) {
-			ufd_assert(errno != EBADF);
+			ufd_assert_intern(errno != EBADF);
 			break;
 		}
 
