@@ -3,7 +3,6 @@ config-h            := utils/config.h
 
 solibs              := libutils.so
 libutils.so-objs     = sys.o
-libutils.so-objs    += $(call kconf_enabled,UTILS_ASSERT,assert.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_SIGNAL,signal.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_THREAD,thread.o)
 libutils.so-objs    += $(call kconf_enabled,UTILS_TIME,time.o)
@@ -28,7 +27,6 @@ libutils.so-pkgconf := libstroll
 
 HEADERDIR           := $(CURDIR)/include
 headers              = utils/cdefs.h
-headers             += $(call kconf_enabled,UTILS_ASSERT,utils/assert.h)
 headers             += $(call kconf_enabled,UTILS_ATOMIC,utils/atomic.h)
 headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
@@ -56,13 +54,15 @@ includedir=$${prefix}/include
 
 Name: libutils
 Description: Utils library
-Version: %%PKG_VERSION%%
-Requires:
+Version: $(VERSION)
+Requires: libstroll
 Cflags: -I$${includedir} $(call kconf_enabled,UTILS_THREAD,-pthread)
 Libs: -L$${libdir} \
+      -Wl,--push-state,--as-needed \
       -lutils \
       $(call kconf_enabled,UTILS_THREAD,-pthread) \
-      $(call kconf_enabled,UTILS_MQUEUE,-lrt)
+      $(call kconf_enabled,UTILS_MQUEUE,-lrt) \
+      -Wl,--pop-state
 endef
 
 pkgconfigs          := libutils.pc

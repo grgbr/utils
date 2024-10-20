@@ -11,11 +11,20 @@
 #include <dirent.h>
 
 ssize_t
-ufd_nointr_write(int fd, const char *data, size_t size)
+ufd_nointr_read(int fd, char * __restrict data, size_t size)
 {
-	ufd_assert_api(fd >= 0);
-	ufd_assert_api(data);
+	ssize_t ret;
 
+	do {
+		ret = ufd_read(fd, data, size);
+	} while (ret == -EINTR);
+
+	return ret;
+}
+
+ssize_t
+ufd_nointr_write(int fd, const char * __restrict data, size_t size)
+{
 	ssize_t ret;
 
 	do {
@@ -23,6 +32,30 @@ ufd_nointr_write(int fd, const char *data, size_t size)
 	} while (ret == -EINTR);
 
 	return ret;
+}
+
+int
+ufd_nointr_open(const char * __restrict path, int flags)
+{
+	int fd;
+
+	do {
+		fd = ufd_open(path, flags);
+	} while (fd == -EINTR);
+
+	return fd;
+}
+
+int
+ufd_nointr_open_at(int dir, const char * __restrict path, int flags)
+{
+	int fd;
+
+	do {
+		fd = ufd_open_at(dir, path, flags);
+	} while (fd == -EINTR);
+
+	return fd;
 }
 
 #if !defined(__NR_close_range) || !defined(__USE_GNU)

@@ -1,22 +1,17 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 #include "utils/file.h"
 
-ssize_t __ufile_nonull(2) __warn_result
-ufile_nointr_read(int fd, char *data, size_t size)
+int
+ufile_nointr_full_read(int fd, char * __restrict data, size_t size)
 {
-	ssize_t ret;
-
-	do {
-		ret = ufile_read(fd, data, size);
-	} while (ret == -EINTR);
-
-	return ret;
-}
-
-int __ufile_nonull(2) __warn_result
-ufile_nointr_full_read(int fd, char *data, size_t size)
-{
-	ufile_assert(fd >= 0);
-	ufile_assert(!(!!data ^ !!size));
+	ufile_assert_api(fd >= 0);
+	ufile_assert_api(!(!!data ^ !!size));
 
 	unsigned int off = 0;
 
@@ -35,27 +30,11 @@ ufile_nointr_full_read(int fd, char *data, size_t size)
 	return 0;
 }
 
-ssize_t
-ufile_nointr_write(int fd, const char * data, size_t size)
-{
-	ufile_assert(fd >= 0);
-	ufile_assert(data);
-	ufile_assert(size);
-
-	ssize_t ret;
-
-	do {
-		ret = ufile_write(fd, data, size);
-	} while (ret == -EINTR);
-
-	return ret;
-}
-
 int
-ufile_nointr_full_write(int fd, const char * data, size_t size)
+ufile_nointr_full_write(int fd, const char * __restrict data, size_t size)
 {
-	ufile_assert(fd >= 0);
-	ufile_assert(!(!!data ^ !!size));
+	ufile_assert_api(fd >= 0);
+	ufile_assert_api(!(!!data ^ !!size));
 
 	unsigned int off = 0;
 
@@ -74,32 +53,8 @@ ufile_nointr_full_write(int fd, const char * data, size_t size)
 	return 0;
 }
 
-int __ufile_nonull(1)
-ufile_nointr_open(const char *path, int flags)
-{
-	int fd;
-
-	do {
-		fd = ufile_open(path, flags);
-	} while (fd == -EINTR);
-
-	return fd;
-}
-
-int __ufile_nonull(2)
-ufile_nointr_open_at(int dir, const char *path, int flags)
-{
-	int fd;
-
-	do {
-		fd = ufile_open_at(dir, path, flags);
-	} while (fd == -EINTR);
-
-	return fd;
-}
-
-int __ufile_nonull(1)
-ufile_nointr_new(const char *path, int flags, mode_t mode)
+int
+ufile_nointr_new(const char * __restrict path, int flags, mode_t mode)
 {
 	int fd;
 
@@ -110,8 +65,11 @@ ufile_nointr_new(const char *path, int flags, mode_t mode)
 	return fd;
 }
 
-int __ufile_nonull(2)
-ufile_nointr_new_at(int dir, const char *path, int flags, mode_t mode)
+int
+ufile_nointr_new_at(int                     dir,
+                    const char * __restrict path,
+                    int                     flags,
+                    mode_t                  mode)
 {
 	int fd;
 

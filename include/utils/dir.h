@@ -1,7 +1,24 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
+ * System directory interface
+ *
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      30 Jul 2020
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
+ */
+
 #ifndef _UTILS_DIR_H
 #define _UTILS_DIR_H
 
-#include <utils/path.h>
 #include <utils/fd.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -19,7 +36,8 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline int
+static inline
+int
 udir_sync(int fd)
 {
 	udir_assert_api(fd >= 0);
@@ -39,8 +57,9 @@ udir_sync(int fd)
  * May only be opened in read-only mode. Otherwise returns with an errno set to
  * -EISDIR.
  */
-static inline int __utils_nonull(1)
-udir_open(const char *path, int flags)
+static inline __utils_nonull(1)
+int
+udir_open(const char * __restrict path, int flags)
 {
 	udir_assert_api(upath_validate_path_name(path) > 0);
 	udir_assert_api(!(flags & (O_WRONLY | O_RDWR)));
@@ -57,9 +76,10 @@ udir_open(const char *path, int flags)
 }
 
 extern int
-udir_nointr_open(const char *path, int flags) __utils_nonull(1);
+udir_nointr_open(const char * __restrict path, int flags) __utils_nonull(1);
 
-static inline int
+static inline
+int
 udir_close(int fd)
 {
 	return ufd_close(fd);

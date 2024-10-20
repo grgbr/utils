@@ -1,30 +1,21 @@
-/**
- * @file      signal.h
- * @author    Grégor Boirie <gregor.boirie@free.fr>
- * @date      29 Aug 2017
- * @copyright GNU Public License v3
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
  * Process signal interface
  *
- * @defgroup signal Signal
- *
- * This file is part of Utils
- *
- * Copyright (C) 2017 Grégor Boirie <gregor.boirie@free.fr>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      29 Aug 2017
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
  */
+
 #ifndef _UTILS_SIGNAL_H
 #define _UTILS_SIGNAL_H
 
@@ -32,40 +23,37 @@
 #include <stdbool.h>
 #include <signal.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __usig_nonull(_arg_index, ...)
+#define usig_assert_api(_expr) \
+	stroll_assert("utils:usig", _expr)
 
-#define usig_assert(_expr) \
-	uassert("usignal", _expr)
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#else /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#define usig_assert_api(_expr)
 
-#define __usig_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#define usig_assert(_expr)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
-
-static inline void __nothrow
+static inline __utils_nothrow
+void
 usig_action(int                                 signum,
             const struct sigaction * __restrict act,
             struct sigaction * __restrict       oldact)
 {
-	usig_assert(signum > 0);
-	usig_assert(act || oldact);
+	usig_assert_api(signum > 0);
+	usig_assert_api(act || oldact);
 
-	usig_assert(!sigaction(signum, act, oldact));
+	usig_assert_api(!sigaction(signum, act, oldact));
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __nothrow
+static inline __utils_nothrow
+void
 usig_action(int                                 signum,
             const struct sigaction * __restrict act,
             struct sigaction * __restrict       oldact)
@@ -73,127 +61,140 @@ usig_action(int                                 signum,
 	sigaction(signum, act, oldact);
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline int __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+int
 usig_isemptyset(const sigset_t * set)
 {
-	usig_assert(set);
+	usig_assert_api(set);
 
 	return !!sigisemptyset(set);
 }
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-static inline void __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_emptyset(sigset_t * set)
 {
-	usig_assert(set);
+	usig_assert_api(set);
 
-	usig_assert(!sigemptyset(set));
+	usig_assert_api(!sigemptyset(set));
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_emptyset(sigset_t * set)
 {
 	sigemptyset(set);
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-static inline void __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_fillset(sigset_t * set)
 {
-	usig_assert(set);
+	usig_assert_api(set);
 
-	usig_assert(!sigfillset(set));
+	usig_assert_api(!sigfillset(set));
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_fillset(sigset_t * set)
 {
 	sigfillset(set);
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
+
 #include <errno.h>
-static inline void __usig_nonull(1) __nothrow
+
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_addset(sigset_t * set, int signum)
 {
-	usig_assert(set);
-	usig_assert(signum > 0);
+	usig_assert_api(set);
+	usig_assert_api(signum > 0);
 
-	usig_assert(!sigaddset(set, signum));
+	usig_assert_api(!sigaddset(set, signum));
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_addset(sigset_t * set, int signum)
 {
 	sigaddset(set, signum);
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-static inline void __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+void
 usig_delset(sigset_t * set, int signum)
 {
-	usig_assert(set);
-	usig_assert(signum > 0);
+	usig_assert_api(set);
+	usig_assert_api(signum > 0);
 
-	usig_assert(!sigdelset(set, signum));
+	usig_assert_api(!sigdelset(set, signum));
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __usig_nonull(1) __nothrow
+static inline void __utils_nonull(1) __utils_nothrow
 usig_delset(sigset_t * set, int signum)
 {
 	sigdelset(set, signum);
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline bool __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+bool
 usig_ismember(const sigset_t * set, int signum)
 {
-	usig_assert(set);
-	usig_assert(signum > 0);
+	usig_assert_api(set);
+	usig_assert_api(signum > 0);
 
 	int ret;
 
 	ret = sigismember(set, signum);
-	usig_assert(ret >= 0);
+	usig_assert_api(ret >= 0);
 
 	return !!ret;
 }
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-static inline void __nothrow
+static inline __utils_nothrow
+void
 usig_procmask(int                         how,
               const sigset_t * __restrict set,
               sigset_t * __restrict       oldset)
 {
-	usig_assert(set || oldset);
+	usig_assert_api(set || oldset);
 
-	usig_assert(!sigprocmask(how, set, oldset));
+	usig_assert_api(!sigprocmask(how, set, oldset));
 }
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-static inline void __nothrow
+static inline __utils_nothrow
+void
 usig_procmask(int                         how,
               const sigset_t * __restrict set,
               sigset_t * __restrict       oldset)
@@ -201,7 +202,7 @@ usig_procmask(int                         how,
 	sigprocmask(how, set, oldset);
 }
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 extern const sigset_t * const         usig_inval_msk;
 extern const sigset_t * const         usig_empty_msk;
@@ -221,11 +222,13 @@ struct usig_orig_act {
 extern void
 usig_setup_actions(const struct usig_new_act nevv[__restrict_arr],
                    struct usig_orig_act      orig[__restrict_arr],
-                   unsigned int              nr) __usig_nonull(1) __nothrow;
+                   unsigned int              nr)
+	__utils_nonull(1) __utils_nothrow;
 
 extern void
 usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
-                     unsigned int               nr) __usig_nonull(1) __nothrow;
+                     unsigned int               nr)
+	__utils_nonull(1) __utils_nothrow;
 
 #if defined(CONFIG_UTILS_SIGNAL_FD)
 
@@ -234,21 +237,22 @@ usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
 
 extern int
 usig_read_fd(int fd, struct signalfd_siginfo * infos, unsigned int count)
-	__usig_nonull(2) __leaf __warn_result;
+	__utils_nonull(2) __leaf __warn_result;
 
-static inline int __usig_nonull(1) __nothrow
+static inline __utils_nonull(1) __utils_nothrow
+int
 usig_open_fd(const sigset_t * mask, int flags)
 {
-	usig_assert(mask);
-	usig_assert(!usig_isemptyset(mask));
-	usig_assert(!(flags & ~(SFD_NONBLOCK | SFD_CLOEXEC)));
+	usig_assert_api(mask);
+	usig_assert_api(!usig_isemptyset(mask));
+	usig_assert_api(!(flags & ~(SFD_NONBLOCK | SFD_CLOEXEC)));
 
 	int fd;
 
 	fd = signalfd(-1, mask, flags);
 	if (fd < 0) {
-		usig_assert(errno != EBADF);
-		usig_assert(errno != EINVAL);
+		usig_assert_api(errno != EBADF);
+		usig_assert_api(errno != EINVAL);
 
 		return -errno;
 	}
@@ -256,16 +260,17 @@ usig_open_fd(const sigset_t * mask, int flags)
 	return fd;
 }
 
-static inline int
+static inline
+int
 usig_close_fd(int fd)
 {
-	usig_assert(fd >= 0);
+	usig_assert_api(fd >= 0);
 
 	int ret;
 
 	ret = ufd_close(fd);
 
-	usig_assert(!ret || (ret == -EINTR));
+	usig_assert_api(!ret || (ret == -EINTR));
 
 	return ret;
 }

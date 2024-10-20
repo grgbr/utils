@@ -1,11 +1,18 @@
-#include <utils/path.h>
-#include <utils/string.h>
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+#include "utils/path.h"
+#include "utils/string.h"
 
 int
-upath_parse_mode(const char * string, mode_t * mode)
+upath_parse_mode(const char * __restrict string, mode_t * mode)
 {
-	upath_assert(string);
-	upath_assert(mode);
+	upath_assert_api(string);
+	upath_assert_api(mode);
 
 	int           ret;
 	unsigned long val;
@@ -23,10 +30,10 @@ upath_parse_mode(const char * string, mode_t * mode)
 }
 
 ssize_t
-upath_validate_path(const char *path, size_t max_size)
+upath_validate_path(const char * __restrict path, size_t max_size)
 {
-	upath_assert(path);
-	upath_assert(max_size);
+	upath_assert_api(path);
+	upath_assert_api(max_size);
 
 	size_t len;
 
@@ -45,11 +52,13 @@ upath_validate_path(const char *path, size_t max_size)
  ******************************************************************************/
 
 int
-upath_next_comp(struct upath_comp *comp, const char *path, size_t size)
+upath_next_comp(struct upath_comp * __restrict comp,
+                const char * __restrict        path,
+                size_t                         size)
 {
-	upath_assert(comp);
-	upath_assert(path);
-	upath_assert(size);
+	upath_assert_api(comp);
+	upath_assert_api(path);
+	upath_assert_api(size);
 
 	size_t len;
 
@@ -61,7 +70,7 @@ upath_next_comp(struct upath_comp *comp, const char *path, size_t size)
 	else
 		comp->len = 0;
 
-	upath_assert((comp->start + comp->len) <= (path + size));
+	upath_assert_intern((comp->start + comp->len) <= (path + size));
 	if (!comp->len)
 		return -ENOENT;
 	else if (comp->len >= NAME_MAX)
@@ -71,11 +80,13 @@ upath_next_comp(struct upath_comp *comp, const char *path, size_t size)
 }
 
 int
-upath_prev_comp(struct upath_comp *comp, const char *path, size_t size)
+upath_prev_comp(struct upath_comp * __restrict comp,
+                const char * __restrict        path,
+                size_t                         size)
 {
-	upath_assert(comp);
-	upath_assert(path);
-	upath_assert(size);
+	upath_assert_api(comp);
+	upath_assert_api(path);
+	upath_assert_api(size);
 
 	size_t len;
 
@@ -88,7 +99,7 @@ upath_prev_comp(struct upath_comp *comp, const char *path, size_t size)
 
 	comp->start = path + size - (len + comp->len);
 
-	upath_assert((comp->start + comp->len) <= (path + size));
+	upath_assert_intern((comp->start + comp->len) <= (path + size));
 	if (!comp->len)
 		return -ENOENT;
 	else if (comp->len >= NAME_MAX)
@@ -102,11 +113,11 @@ upath_prev_comp(struct upath_comp *comp, const char *path, size_t size)
  ******************************************************************************/
 
 const struct upath_comp *
-upath_comp_iter_next(struct upath_comp_iter *iter)
+upath_comp_iter_next(struct upath_comp_iter * __restrict iter)
 {
-	upath_assert(iter);
-	upath_assert(iter->stop);
-	upath_assert((iter->curr.start + iter->curr.len) <= iter->stop);
+	upath_assert_api(iter);
+	upath_assert_api(iter->stop);
+	upath_assert_api((iter->curr.start + iter->curr.len) <= iter->stop);
 
 	int         err;
 	const char *next = iter->curr.start + iter->curr.len;
@@ -127,12 +138,12 @@ upath_comp_iter_next(struct upath_comp_iter *iter)
 }
 
 const struct upath_comp *
-upath_comp_iter_first(struct upath_comp_iter *iter,
-                      const char             *path,
-                      size_t                  size)
+upath_comp_iter_first(struct upath_comp_iter * __restrict iter,
+                      const char * __restrict             path,
+                      size_t                              size)
 {
-	upath_assert(iter);
-	upath_assert(path);
+	upath_assert_api(iter);
+	upath_assert_api(path);
 
 	iter->curr.start = path;
 	iter->curr.len = 0;
@@ -142,11 +153,11 @@ upath_comp_iter_first(struct upath_comp_iter *iter,
 }
 
 const struct upath_comp *
-upath_comp_iter_prev(struct upath_comp_iter *iter)
+upath_comp_iter_prev(struct upath_comp_iter * __restrict iter)
 {
-	upath_assert(iter);
-	upath_assert(iter->stop);
-	upath_assert(iter->curr.start >= iter->stop);
+	upath_assert_api(iter);
+	upath_assert_api(iter->stop);
+	upath_assert_api(iter->curr.start >= iter->stop);
 
 	int    err;
 	size_t sz = iter->curr.start - iter->stop;
@@ -166,12 +177,12 @@ upath_comp_iter_prev(struct upath_comp_iter *iter)
 }
 
 const struct upath_comp *
-upath_comp_iter_last(struct upath_comp_iter *iter,
-                     const char             *path,
-                     size_t                  size)
+upath_comp_iter_last(struct upath_comp_iter * __restrict iter,
+                     const char * __restrict             path,
+                     size_t                              size)
 {
-	upath_assert(iter);
-	upath_assert(path);
+	upath_assert_api(iter);
+	upath_assert_api(path);
 
 	iter->curr.start = path + size;
 	iter->curr.len = 0;
@@ -185,22 +196,22 @@ upath_comp_iter_last(struct upath_comp_iter *iter,
  ******************************************************************************/
 
 ssize_t
-upath_normalize(const char *path,
-                size_t      path_size,
-                char       *norm,
-                size_t      norm_size)
+upath_normalize(const char * __restrict path,
+                size_t                  path_size,
+                char * __restrict       norm,
+                size_t                  norm_size)
 {
-	upath_assert(path);
-	upath_assert(path_size);
-	upath_assert(path_size <= PATH_MAX);
-	upath_assert(norm);
-	upath_assert(norm_size);
-	upath_assert(norm_size <= PATH_MAX);
+	upath_assert_api(path);
+	upath_assert_api(path_size);
+	upath_assert_api(path_size <= PATH_MAX);
+	upath_assert_api(norm);
+	upath_assert_api(norm_size);
+	upath_assert_api(norm_size <= PATH_MAX);
 
-	const char *path_ptr = path;
-	const char *path_end = path + path_size;
-	char       *norm_ptr = norm;
-	const char *norm_end = norm + norm_size;
+	const char * path_ptr = path;
+	const char * path_end = path + path_size;
+	char       * norm_ptr = norm;
+	const char * norm_end = norm + norm_size;
 
 	if (*path_ptr == '/')
 		*norm_ptr++ = '/';
@@ -217,7 +228,7 @@ upath_normalize(const char *path,
 			return err;
 		}
 
-		upath_assert(comp.start < path_end);
+		upath_assert_intern(comp.start < path_end);
 		path_ptr = comp.start + comp.len;
 
 		if (upath_comp_is_current(&comp))
@@ -229,7 +240,7 @@ upath_normalize(const char *path,
 			struct upath_comp prev;
 
 			err = upath_prev_comp(&prev, norm, norm_ptr - norm);
-			upath_assert(!err || (err == -ENOENT));
+			upath_assert_intern(!err || (err == -ENOENT));
 			if (!err) {
 				/* An upper path component exists... */
 				if (!upath_comp_is_parent(&prev)) {
@@ -261,7 +272,7 @@ upath_normalize(const char *path,
 			 * Hence, we need to append an additional '../' entry to
 			 * the normalized path.
 			 */
-			upath_assert(*norm != '/');
+			upath_assert_intern(*norm != '/');
 		}
 
 		if ((norm_ptr + comp.len) >= norm_end)
@@ -280,11 +291,11 @@ upath_normalize(const char *path,
 		norm_ptr += comp.len + 1;
 	} while (path_ptr < path_end);
 
-	upath_assert(norm_ptr <= norm_end);
+	upath_assert_intern(norm_ptr <= norm_end);
 	if (((norm_ptr - norm) > 1) && (*(norm_ptr - 1) == '/'))
 		norm_ptr--;
 
-	upath_assert(norm_ptr < norm_end);
+	upath_assert_intern(norm_ptr < norm_end);
 	*norm_ptr = '\0';
 
 	return norm_ptr - norm;

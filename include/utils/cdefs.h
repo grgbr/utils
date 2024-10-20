@@ -29,6 +29,7 @@
 #if defined(CONFIG_UTILS_ASSERT_API) || defined(CONFIG_UTILS_ASSERT_INTERN)
 
 #define __utils_nonull(_arg_index, ...)
+#define __utils_const
 #define __utils_pure
 #define __utils_nothrow
 
@@ -36,6 +37,7 @@
             defined(CONFIG_UTILS_ASSERT_INTERN)) */
 
 #define __utils_nonull(_arg_index, ...)  __nonull(_arg_index, ## __VA_ARGS__)
+#define __utils_const                    __const
 #define __utils_pure                     __pure
 #define __utils_nothrow                  __nothrow
 

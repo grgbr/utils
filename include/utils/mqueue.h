@@ -1,3 +1,21 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
+ * POSIX message queue interface
+ *
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      13 Jan 2022
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
+ */
+
 #ifndef _UTILS_MQUEUE_H
 #define _UTILS_MQUEUE_H
 
@@ -7,46 +25,67 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
+#if defined(CONFIG_UTILS_ASSERT_API)
 
-#include <utils/assert.h>
+#include <stroll/assert.h>
 
-#define __umq_nonull(_arg_index, ...)
+#define umq_assert_api(_expr) \
+	stroll_assert("utils:umq", _expr)
 
-#define umq_assert(_expr) \
-	uassert("umq", _expr)
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#define umq_assert_api(_expr)
 
-#define __umq_nonull(_arg_index, ...) \
-	__nonull(_arg_index, ## __VA_ARGS__)
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-#define umq_assert(_expr)
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
 
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
+#define umq_assert_intern(_expr) \
+	stroll_assert("utils:umq", _expr)
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+#define umq_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 extern ssize_t
 umq_validate_name(const char * __restrict name)
-	__umq_nonull(1) __pure __nothrow __leaf;
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf;
 
-static inline void __umq_nonull(2) __nothrow
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nonull(2) __utils_nothrow
+void
 umq_getattr(mqd_t mqd, struct mq_attr * attr)
 {
-	umq_assert((int)mqd >= 0);
-	umq_assert(attr);
+	umq_assert_api((int)mqd >= 0);
+	umq_assert_api(attr);
 
-	int err __unused;
-
-	err = mq_getattr(mqd, attr);
-	umq_assert(!err);
+	umq_assert_api(!mq_getattr(mqd, attr));
 }
 
-static inline int
-umq_send(mqd_t mqd, const char * data, size_t size, unsigned int prio)
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(2) __utils_nothrow
+void
+umq_getattr(mqd_t mqd, struct mq_attr * attr)
 {
-	umq_assert((int)mqd >= 0);
-	umq_assert(!size || data);
-	umq_assert(prio < MQ_PRIO_MAX);
+	mq_getattr(mqd, attr);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline
+int
+umq_send(mqd_t                   mqd,
+         const char * __restrict data,
+         size_t                  size,
+         unsigned int            prio)
+{
+	umq_assert_api((int)mqd >= 0);
+	umq_assert_api(!size || data);
+	umq_assert_api(prio < MQ_PRIO_MAX);
 
 	int err;
 
@@ -54,42 +93,47 @@ umq_send(mqd_t mqd, const char * data, size_t size, unsigned int prio)
 	if (!err)
 		return 0;
 
-	umq_assert(errno != EBADF);
-	umq_assert(errno != EINVAL);
-	umq_assert(errno != EMSGSIZE);
-	umq_assert(errno != ETIMEDOUT);
+	umq_assert_api(errno != EBADF);
+	umq_assert_api(errno != EINVAL);
+	umq_assert_api(errno != EMSGSIZE);
+	umq_assert_api(errno != ETIMEDOUT);
 
 	return -errno;
 }
 
-static inline ssize_t __umq_nonull(2)
-umq_recv(mqd_t mqd, char * data, size_t size, unsigned int * prio)
+static inline __utils_nonull(2)
+ssize_t
+umq_recv(mqd_t                     mqd,
+         char * __restrict         data,
+         size_t                    size,
+         unsigned int * __restrict prio)
 {
-	umq_assert((int)mqd >= 0);
-	umq_assert(data);
-	umq_assert(size);
+	umq_assert_api((int)mqd >= 0);
+	umq_assert_api(data);
+	umq_assert_api(size);
 
 	ssize_t ret;
 
 	ret = mq_receive(mqd, data, size, prio);
 	if (ret >= 0) {
-		umq_assert((size_t)ret <= size);
+		umq_assert_api((size_t)ret <= size);
 		return ret;
 	}
 
-	umq_assert(errno != EBADF);
-	umq_assert(errno != EINVAL);
-	umq_assert(errno != ETIMEDOUT);
+	umq_assert_api(errno != EBADF);
+	umq_assert_api(errno != EINVAL);
+	umq_assert_api(errno != ETIMEDOUT);
 
 	return -errno;
 }
 
-static inline mqd_t __umq_nonull(1) __nothrow
-umq_open(const char * name, int flags)
+static inline __utils_nonull(1) __utils_nothrow
+mqd_t
+umq_open(const char * __restrict name, int flags)
 {
-	umq_assert(umq_validate_name(name) > 0);
-	umq_assert(!(flags &
-	             ~(O_RDONLY | O_WRONLY | O_RDWR | O_CLOEXEC | O_NONBLOCK)));
+	umq_assert_api(umq_validate_name(name) > 0);
+	umq_assert_api(!(flags & ~(O_RDONLY | O_WRONLY | O_RDWR |
+	                           O_CLOEXEC | O_NONBLOCK)));
 
 	mqd_t mqd;
 
@@ -97,8 +141,8 @@ umq_open(const char * name, int flags)
 	if ((int)mqd >= 0)
 		return mqd;
 
-	umq_assert(errno != EINVAL);
-	umq_assert(errno != ENAMETOOLONG);
+	umq_assert_intern(errno != EINVAL);
+	umq_assert_intern(errno != ENAMETOOLONG);
 
 	return -errno;
 }
@@ -109,17 +153,21 @@ umq_open(const char * name, int flags)
 #define UMQ_MSG_MAX_NR (32767U)
 #endif /* defined(HARD_MSGMAX) */
 
-static inline mqd_t __umq_nonull(1) __nothrow
-umq_new(const char * name, int flags, mode_t mode, struct mq_attr * attr)
+static inline __utils_nonull(1) __utils_nothrow
+mqd_t
+umq_new(const char * __restrict     name,
+        int                         flags,
+        mode_t                      mode,
+        struct mq_attr * __restrict attr)
 {
-	umq_assert(umq_validate_name(name) > 0);
-	umq_assert(!(flags &
-	             ~(O_RDONLY | O_WRONLY | O_RDWR | O_CLOEXEC | O_NONBLOCK |
-	               O_NOATIME | O_CREAT | O_EXCL)));
-	umq_assert(!attr ||
-	           ((attr->mq_maxmsg > 0) &&
-	            (attr->mq_maxmsg <= (long)UMQ_MSG_MAX_NR) &&
-	            (attr->mq_msgsize > 0)));
+	umq_assert_api(umq_validate_name(name) > 0);
+	umq_assert_api(!(flags & ~(O_RDONLY | O_WRONLY | O_RDWR |
+	                           O_CLOEXEC | O_NONBLOCK | O_NOATIME |
+	                           O_CREAT | O_EXCL)));
+	umq_assert_api(!attr ||
+	               ((attr->mq_maxmsg > 0) &&
+	                (attr->mq_maxmsg <= (long)UMQ_MSG_MAX_NR) &&
+	                (attr->mq_msgsize > 0)));
 
 	mqd_t mqd;
 
@@ -127,32 +175,44 @@ umq_new(const char * name, int flags, mode_t mode, struct mq_attr * attr)
 	if ((int)mqd >= 0)
 		return mqd;
 
-	umq_assert(attr || (errno != EINVAL));
-	umq_assert(errno != ENAMETOOLONG);
+	umq_assert_api(attr || (errno != EINVAL));
+	umq_assert_intern(errno != ENAMETOOLONG);
 
 	return -errno;
 }
 
-static inline void __nothrow
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nothrow
+void
 umq_close(mqd_t mqd)
 {
-	umq_assert((int)mqd >= 0);
+	umq_assert_api((int)mqd >= 0);
 
-	int err __unused;
-
-	err = mq_close(mqd);
-	umq_assert(!err);
+	umq_assert_api(!mq_close(mqd));
 }
 
-static inline int __umq_nonull(1) __nothrow
-umq_unlink(const char * name)
+#else /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nothrow
+void
+umq_close(mqd_t mqd)
 {
-	umq_assert(umq_validate_name(name) > 0);
+	mq_close(mqd);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(1) __utils_nothrow
+int
+umq_unlink(const char * __restrict name)
+{
+	umq_assert_api(umq_validate_name(name) > 0);
 
 	if (!mq_unlink(name))
 		return 0;
 
-	umq_assert(errno != ENAMETOOLONG);
+	umq_assert_intern(errno != ENAMETOOLONG);
 
 	return -errno;
 }

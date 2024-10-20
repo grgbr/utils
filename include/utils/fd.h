@@ -43,8 +43,6 @@
 
 #if defined(CONFIG_UTILS_ASSERT_INTERN)
 
-#include <stroll/assert.h>
-
 #define ufd_assert_intern(_expr) \
 	stroll_assert("utils:ufd", _expr)
 
@@ -138,7 +136,7 @@ ufd_lseek(int fd, off_t off, int whence)
 
 static inline __utils_nonull(2) __warn_result
 ssize_t
-ufd_read(int fd, char * data, size_t size)
+ufd_read(int fd, char * __restrict data, size_t size)
 {
 	ufd_assert_api(fd >= 0);
 	ufd_assert_api(data);
@@ -152,6 +150,35 @@ ufd_read(int fd, char * data, size_t size)
 
 	ufd_assert_api(errno != EBADF);
 	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != EINVAL);
+	ufd_assert_api(errno != EISDIR);
+
+	return -errno;
+}
+
+extern ssize_t
+ufd_nointr_read(int fd, char * __restrict data, size_t size)
+	__utils_nonull(2) __warn_result;
+
+static inline __utils_nonull(2) __warn_result
+ssize_t
+ufd_readv(int fd, const struct iovec * __restrict vectors, unsigned int count)
+{
+	ufd_assert_api(fd >= 0);
+	ufd_assert_api(vectors);
+	ufd_assert_api(count);
+	ufd_assert_api(count < IOV_MAX);
+
+	ssize_t ret;
+
+	ret = readv(fd, vectors, (int)count);
+
+	if (ret >= 0)
+		return ret;
+
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != EINVAL);
 	ufd_assert_api(errno != EISDIR);
 
 	return -errno;
@@ -159,7 +186,7 @@ ufd_read(int fd, char * data, size_t size)
 
 static inline __utils_nonull(2) __warn_result
 ssize_t
-ufd_write(int fd, const char *data, size_t size)
+ufd_write(int fd, const char * __restrict data, size_t size)
 {
 	ufd_assert_api(fd >= 0);
 	ufd_assert_api(data);
@@ -180,12 +207,12 @@ ufd_write(int fd, const char *data, size_t size)
 }
 
 extern ssize_t
-ufd_nointr_write(int fd, const char *data, size_t size)
+ufd_nointr_write(int fd, const char * __restrict data, size_t size)
 	__utils_nonull(2) __warn_result;
 
 static inline __utils_nonull(2) __warn_result
 ssize_t
-ufd_writev(int fd, const struct iovec * vectors, unsigned int count)
+ufd_writev(int fd, const struct iovec * __restrict vectors, unsigned int count)
 {
 	ufd_assert_api(fd >= 0);
 	ufd_assert_api(vectors);
@@ -231,7 +258,7 @@ ufd_dup2(int old_fd, int new_fd)
 
 static inline __utils_nonull(1)
 int
-ufd_open(const char *path, int flags)
+ufd_open(const char * __restrict path, int flags)
 {
 	ufd_assert_api(upath_validate_path_name(path) > 0);
 	ufd_assert_api(!((flags & O_DIRECTORY) &&
@@ -252,6 +279,39 @@ ufd_open(const char *path, int flags)
 
 	return -errno;
 }
+
+extern int
+ufd_nointr_open(const char * __restrict path, int flags) __utils_nonull(1);
+
+static inline __utils_nonull(2)
+int
+ufd_open_at(int dir, const char * __restrict path, int flags)
+{
+	ufd_assert_api(dir >= 0);
+	ufd_assert_api(upath_validate_path_name(path) > 0);
+	ufd_assert_api(!((flags & O_DIRECTORY) &&
+	                 (flags & (O_WRONLY | O_RDWR))));
+	/* O_TMPFILE requires the (creation) mode argument. */
+	ufd_assert_api((flags & O_TMPFILE) != O_TMPFILE);
+	ufd_assert_api(!(flags & O_CREAT));
+	ufd_assert_api(!(flags & O_EXCL));
+
+	int fd;
+
+	fd = openat(dir, path, flags);
+	if (fd >= 0)
+		return fd;
+
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_intern(errno != EFAULT);
+	ufd_assert_intern(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+extern int
+ufd_nointr_open_at(int dir, const char * __restrict path, int flags)
+	__utils_nonull(2);
 
 static inline
 int
@@ -339,7 +399,7 @@ ufd_close_fds(unsigned int first, unsigned int last)
 #else /* !(defined(__NR_close_range) && defined(__USE_GNU)) */
 
 extern int
-ufd_close_fds(unsigned int first, unsigned int last);
+ufd_close_fds(unsigned int first, unsigned int last) __leaf;
 
 #endif /* defined(__NR_close_range) && defined(__USE_GNU) */
 

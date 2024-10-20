@@ -1,7 +1,25 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+/**
+ * @file
+ * UNIX socket interface
+ *
+ * @author    Grégor Boirie <gregor.boirie@free.fr>
+ * @date      04 Oct 2021
+ * @copyright Copyright (C) 2017-2024 Grégor Boirie.
+ * @license   [GNU Lesser General Public License (LGPL) v3]
+ *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
+ */
+
 #ifndef _UTILS_UNSK_H
 #define _UTILS_UNSK_H
 
-#include <utils/config.h>
+#include <utils/cdefs.h>
 #include <stroll/slist.h>
 #include <utils/poll.h>
 #include <utils/fd.h>
