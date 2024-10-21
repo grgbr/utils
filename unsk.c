@@ -1,3 +1,10 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
 #include "utils/unsk.h"
 #include <stdlib.h>
 
@@ -7,45 +14,304 @@
 #define UNSK_ABSTRACT_ADDR_LEN \
 	(sizeof(sa_family_t) + 1 + UNSK_ABSTRACT_PATH_LEN)
 
-static struct unsk_buff * __nothrow __warn_result
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
+
+#include <stroll/assert.h>
+
+#define unsk_assert_intern(_expr) \
+	stroll_assert("utils:unsk", _expr)
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+#define unsk_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+/******************************************************************************
+ * low-level UNIX socket wrappers
+ ******************************************************************************/
+
+int
+unsk_is_named_path_ok(const char * __restrict path)
+{
+	ssize_t len;
+
+	if (!path)
+		return -EFAULT;
+
+	len = upath_validate_path(path, UNSK_NAMED_PATH_MAX);
+	if (len < 0)
+		return len;
+
+	return 0;
+}
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+ssize_t
+unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(msg);
+	unsk_assert_api(msg->msg_namelen > (sizeof(sa_family_t) + 1));
+	unsk_assert_api(msg->msg_name);
+	unsk_assert_api(msg->msg_iovlen || msg->msg_controllen);
+	unsk_assert_api(!msg->msg_iovlen || msg->msg_iov);
+	unsk_assert_api(!msg->msg_controllen || msg->msg_control);
+	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_MORE)));
+
+	const struct sockaddr_un * addr = (struct sockaddr_un *)msg->msg_name;
+	unsigned int               v;
+	int                        ret;
+
+	/*
+	 * Make destination address mandatory and reject the unamed socket
+	 * space.
+	 */
+	unsk_assert_api(addr->sun_family == AF_UNIX);
+	if (addr->sun_path[0])
+		unsk_assert_api(upath_validate_path(addr->sun_path,
+		                                    UNSK_NAMED_PATH_MAX) > 0);
+
+	/* Make sure I/O vectors are properly filled. */
+	for (v = 0; v < msg->msg_iovlen; v++) {
+		const struct iovec * vec = &msg->msg_iov[v];
+
+		unsk_assert_api(vec->iov_base);
+		unsk_assert_api(vec->iov_len);
+		unsk_assert_api(vec->iov_len <= UNSK_BUFF_SIZE_MAX);
+	}
+
+	ret = sendmsg(fd, msg, flags);
+	if (ret > 0)
+		return ret;
+	else if (!ret)
+		return -EAGAIN;
+
+	unsk_assert_api(errno != EALREADY);
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != ECONNRESET);
+	unsk_assert_api(errno != EDESTADDRREQ);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != EISCONN);
+	unsk_assert_api(errno != EMSGSIZE);
+	unsk_assert_api(errno != ENOBUFS);
+	unsk_assert_api(errno != ENOTCONN);
+	unsk_assert_api(errno != ENOTSOCK);
+	unsk_assert_api(errno != EOPNOTSUPP);
+	unsk_assert_api(errno != EPIPE);
+	unsk_assert_api(errno != ETOOMANYREFS);
+
+	return -errno;
+}
+
+ssize_t
+unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(msg);
+	unsk_assert_api(!msg->msg_namelen ||
+	                ((msg->msg_namelen == sizeof(struct sockaddr_un)) &&
+	                 msg->msg_name));
+	unsk_assert_api(msg->msg_iovlen || msg->msg_controllen);
+	unsk_assert_api(!msg->msg_iovlen || msg->msg_iov);
+	unsk_assert_api(!msg->msg_controllen || msg->msg_control);
+	unsk_assert_api(!(flags & ~(MSG_CMSG_CLOEXEC | MSG_DONTWAIT)));
+
+	unsigned int v;
+	ssize_t      ret;
+
+	/* Make sure I/O vectors are properly filled. */
+	for (v = 0; v < msg->msg_iovlen; v++) {
+		const struct iovec * vec = &msg->msg_iov[v];
+
+		unsk_assert_api(vec->iov_base);
+		unsk_assert_api(vec->iov_len);
+		unsk_assert_api(vec->iov_len <= UNSK_BUFF_SIZE_MAX);
+	}
+
+	ret = recvmsg(fd, msg, flags);
+	if (ret > 0)
+		return ret;
+	else if (!ret)
+		return -EAGAIN;
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != ECONNREFUSED);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != ENOTCONN);
+	unsk_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
+
+int
+unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(addr);
+	unsk_assert_api(addr->sun_family == AF_UNIX);
+	unsk_assert_api(size >= sizeof(sa_family_t));
+
+	if (!bind(fd, (struct sockaddr *)addr, size))
+		return 0;
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != ENOTSOCK);
+	unsk_assert_api(errno != EADDRNOTAVAIL);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+int
+unsk_open(int type, int flags)
+{
+	unsk_assert_api((type == SOCK_DGRAM) ||
+	                (type == SOCK_STREAM) ||
+	                (type == SOCK_SEQPACKET));
+	unsk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
+
+	int fd;
+
+	fd = socket(AF_UNIX, type | flags, 0);
+	if (fd < 0) {
+		unsk_assert_api(errno != EAFNOSUPPORT);
+		unsk_assert_api(errno != EINVAL);
+		unsk_assert_api(errno != EPROTONOSUPPORT);
+
+		return -errno;
+	}
+
+	return fd;
+}
+
+int
+unsk_close(int fd)
+{
+	unsk_assert_api(fd >= 0);
+
+	int err;
+
+	err = ufd_close(fd);
+
+	unsk_assert_api(err != -ENOSPC);
+	unsk_assert_api(err != -EDQUOT);
+
+	return err;
+}
+
+int
+unsk_unlink(const char * __restrict path)
+{
+	unsk_assert_api(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);
+
+	if (!upath_unlink(path) || (errno == ENOENT))
+		return 0;
+
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != ENAMETOOLONG);
+
+	return -errno;
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+int
+unsk_connect_dgram(int                             fd,
+                   const char * __restrict         peer_path,
+                   struct sockaddr_un * __restrict peer_addr,
+                   socklen_t * __restrict          addr_len)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(!unsk_is_named_path_ok(peer_path));
+
+	const struct sockaddr_un local = { .sun_family = AF_UNIX };
+	int                      err;
+	size_t                   sz;
+
+	/*
+	 * Explicitly bind to instantiate a local abstract UNIX socket.
+	 *
+	 * See description of "abstract" sockets in section "Address format" of
+	 * unix(7) man page.
+	 */
+	err = unsk_bind(fd, &local, sizeof(sa_family_t));
+	if (err) {
+		unsk_assert_api(err != -EADDRINUSE);
+		unsk_assert_api(err != -ELOOP);
+		unsk_assert_api(err != -ENOENT);
+		unsk_assert_api(err != -ENOTDIR);
+		unsk_assert_api(err != -EROFS);
+
+		return err;
+	}
+
+	/* Setup peer address to send messages to. */
+	sz = strnlen(peer_path, sizeof(peer_addr->sun_path)) + 1;
+	peer_addr->sun_family = AF_UNIX;
+	memcpy(&peer_addr->sun_path[0], peer_path, sz);
+	*addr_len = offsetof(typeof(*peer_addr), sun_path) + sz;
+
+	return 0;
+}
+
+/******************************************************************************
+ * UNIX socket buffer and queue handling
+ ******************************************************************************/
+
+static __utils_nothrow __warn_result
+struct unsk_buff *
 unsk_buff_alloc(size_t size)
 {
-	unsk_assert(size > sizeof(struct unsk_buff));
+	unsk_assert_intern(size > sizeof(struct unsk_buff));
 
 	return malloc(size);
 }
 
-static void __unsk_nonull(1) __nothrow
+static __utils_nonull(1) __utils_nothrow
+void
 unsk_buff_free(struct unsk_buff * buff)
 {
-	unsk_assert(buff);
+	unsk_assert_intern(buff);
 
 	free(buff);
 }
 
-static struct unsk_buff * __unsk_nonull(1) __nothrow __returns_nonull
-unsk_buffq_xtract(struct stroll_slist * list)
+static __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
+struct unsk_buff *
+unsk_buffq_peek(const struct stroll_slist * __restrict list)
 {
-	return stroll_slist_entry(stroll_slist_dqueue_front(list),
-	                          struct unsk_buff,
-	                          node);
+	return stroll_slist_first_entry(list, struct unsk_buff, node);
 }
 
-static
-struct unsk_buff * __unsk_nonull(1) __unsk_pure __nothrow __returns_nonull
-unsk_buffq_peek(const struct stroll_slist * list)
+struct unsk_buff *
+unsk_buffq_peek_busy(const struct unsk_buffq * __restrict buffq)
 {
-	return stroll_slist_first_entry(list,
-	                                struct unsk_buff,
-	                                node);
+	unsk_assert_api(buffq);
+
+	return unsk_buffq_peek(&buffq->busy);
 }
 
-static void __unsk_nonull(1, 2) __nothrow
+struct unsk_buff *
+unsk_buffq_peek_free(const struct unsk_buffq * __restrict buffq)
+{
+	unsk_assert_api(buffq);
+
+	return unsk_buffq_peek(&buffq->free);
+}
+
+static __utils_nonull(1, 2) __utils_nothrow
+void
 unsk_buffq_requeue(struct stroll_slist * __restrict list,
                    struct unsk_buff * __restrict    buff)
 {
-	unsk_assert(list);
-	unsk_assert(buff);
+	unsk_assert_intern(list);
+	unsk_assert_intern(buff);
 
 	stroll_slist_nqueue_front(list, &buff->node);
 }
@@ -54,8 +320,8 @@ void
 unsk_buffq_nqueue_busy(struct unsk_buffq * __restrict buffq,
                        struct unsk_buff * __restrict  buff)
 {
-	unsk_assert(buffq);
-	unsk_assert(buff);
+	unsk_assert_api(buffq);
+	unsk_assert_api(buff);
 
 	stroll_slist_nqueue_back(&buffq->busy, &buff->node);
 }
@@ -64,39 +330,32 @@ void
 unsk_buffq_requeue_busy(struct unsk_buffq * __restrict buffq,
                         struct unsk_buff * __restrict  buff)
 {
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	unsk_buffq_requeue(&buffq->busy, buff);
 }
 
+static __utils_nonull(1) __utils_nothrow __returns_nonull
 struct unsk_buff *
-unsk_buffq_peek_busy(const struct unsk_buffq * buffq)
+unsk_buffq_xtract(struct stroll_slist * __restrict list)
 {
-	unsk_assert(buffq);
-
-	return unsk_buffq_peek(&buffq->busy);
+	return stroll_slist_entry(stroll_slist_dqueue_front(list),
+	                          struct unsk_buff,
+	                          node);
 }
 
 struct unsk_buff *
-unsk_buffq_dqueue_busy(struct unsk_buffq * buffq)
+unsk_buffq_dqueue_busy(struct unsk_buffq * __restrict buffq)
 {
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	return unsk_buffq_xtract(&buffq->busy);
 }
 
 struct unsk_buff *
-unsk_buffq_peek_free(const struct unsk_buffq * buffq)
+unsk_buffq_dqueue_free(struct unsk_buffq * __restrict buffq)
 {
-	unsk_assert(buffq);
-
-	return unsk_buffq_peek(&buffq->free);
-}
-
-struct unsk_buff *
-unsk_buffq_dqueue_free(struct unsk_buffq * buffq)
-{
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	return unsk_buffq_xtract(&buffq->free);
 }
@@ -105,24 +364,24 @@ void
 unsk_buffq_release(struct unsk_buffq * __restrict buffq,
                    struct unsk_buff * __restrict  buff)
 {
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	unsk_buffq_requeue(&buffq->free, buff);
 }
 
 int
-unsk_buffq_init(struct unsk_buffq * buffq,
-                size_t              buff_desc_sz,
-                size_t              max_data_sz,
-                unsigned int        max_buff_nr)
+unsk_buffq_init(struct unsk_buffq * __restrict buffq,
+                size_t                         buff_desc_sz,
+                size_t                         max_data_sz,
+                unsigned int                   max_buff_nr)
 {
-	unsk_assert(buffq);
-	unsk_assert(buff_desc_sz >= sizeof(struct unsk_buff));
-	unsk_assert(max_data_sz <= UNSK_BUFF_SIZE_MAX);
-	unsk_assert(max_data_sz);
-	unsk_assert(max_data_sz <= UNSK_BUFF_SIZE_MAX);
-	unsk_assert(max_buff_nr);
-	unsk_assert(max_buff_nr <= UNSK_BUFF_COUNT_MAX);
+	unsk_assert_api(buffq);
+	unsk_assert_api(buff_desc_sz >= sizeof(struct unsk_buff));
+	unsk_assert_api(max_data_sz <= UNSK_BUFF_SIZE_MAX);
+	unsk_assert_api(max_data_sz);
+	unsk_assert_api(max_data_sz <= UNSK_BUFF_SIZE_MAX);
+	unsk_assert_api(max_buff_nr);
+	unsk_assert_api(max_buff_nr <= UNSK_BUFF_COUNT_MAX);
 
 	size_t sz = buff_desc_sz + max_data_sz;
 	int    err;
@@ -152,9 +411,9 @@ free:
 }
 
 void
-unsk_buffq_fini(struct unsk_buffq * buffq)
+unsk_buffq_fini(struct unsk_buffq * __restrict buffq)
 {
-	unsk_assert(buffq);
+	unsk_assert_api(buffq);
 
 	while (!stroll_slist_empty(&buffq->busy))
 		unsk_buff_free(unsk_buffq_xtract(&buffq->busy));
@@ -163,256 +422,26 @@ unsk_buffq_fini(struct unsk_buffq * buffq)
 		unsk_buff_free(unsk_buffq_xtract(&buffq->free));
 }
 
-int
-unsk_is_named_path_ok(const char * path)
-{
-	ssize_t len;
-
-	if (!path)
-		return -EFAULT;
-
-	len = upath_validate_path(path, UNSK_NAMED_PATH_MAX);
-	if (len < 0)
-		return len;
-
-	return 0;
-}
-
-#if defined(CONFIG_UTILS_ASSERT_INTERNAL)
-
-ssize_t
-unsk_send_dgram_msg(int fd, const struct msghdr * msg, int flags)
-{
-	unsk_assert(fd >= 0);
-	unsk_assert(msg);
-	unsk_assert(msg->msg_namelen > (sizeof(sa_family_t) + 1));
-	unsk_assert(msg->msg_name);
-	unsk_assert(msg->msg_iovlen || msg->msg_controllen);
-	unsk_assert(!msg->msg_iovlen || msg->msg_iov);
-	unsk_assert(!msg->msg_controllen || msg->msg_control);
-	unsk_assert(!(flags & ~(MSG_DONTWAIT | MSG_NOSIGNAL)));
-
-	const struct sockaddr_un * addr = (struct sockaddr_un *)msg->msg_name;
-	unsigned int               v;
-	int                        ret;
-
-	/*
-	 * Make destination address mandatory and reject the unamed socket
-	 * space.
-	 */
-	unsk_assert(addr->sun_family == AF_UNIX);
-	if (addr->sun_path[0])
-		unsk_assert(upath_validate_path(addr->sun_path,
-		                                UNSK_NAMED_PATH_MAX) > 0);
-
-	/* Make sure I/O vectors are properly filled. */
-	for (v = 0; v < msg->msg_iovlen; v++) {
-		const struct iovec * vec = &msg->msg_iov[v];
-
-		unsk_assert(vec->iov_base);
-		unsk_assert(vec->iov_len);
-		unsk_assert(vec->iov_len <= UNSK_BUFF_SIZE_MAX);
-	}
-
-	ret = sendmsg(fd, msg, flags);
-	if (ret > 0)
-		return ret;
-	else if (!ret)
-		return -EAGAIN;
-
-	unsk_assert(errno != EALREADY);
-	unsk_assert(errno != EBADF);
-	unsk_assert(errno != ECONNRESET);
-	unsk_assert(errno != EDESTADDRREQ);
-	unsk_assert(errno != EFAULT);
-	unsk_assert(errno != EINVAL);
-	unsk_assert(errno != EISCONN);
-	unsk_assert(errno != EMSGSIZE);
-	unsk_assert(errno != ENOBUFS);
-	unsk_assert(errno != ENOTCONN);
-	unsk_assert(errno != ENOTSOCK);
-	unsk_assert(errno != EOPNOTSUPP);
-	unsk_assert(errno != EPIPE);
-	unsk_assert(errno != ETOOMANYREFS);
-
-	return -errno;
-}
-
-ssize_t
-unsk_recv_dgram_msg(int fd, struct msghdr * msg, int flags)
-{
-	unsk_assert(fd >= 0);
-	unsk_assert(msg);
-	unsk_assert(!msg->msg_namelen ||
-	       ((msg->msg_namelen == sizeof(struct sockaddr_un)) &&
-	        msg->msg_name));
-	unsk_assert(msg->msg_iovlen || msg->msg_controllen);
-	unsk_assert(!msg->msg_iovlen || msg->msg_iov);
-	unsk_assert(!msg->msg_controllen || msg->msg_control);
-	unsk_assert(!(flags & ~(MSG_CMSG_CLOEXEC | MSG_DONTWAIT |
-	                   MSG_ERRQUEUE | MSG_TRUNC)));
-
-	unsigned int v;
-	ssize_t      ret;
-
-	/* Make sure I/O vectors are properly filled. */
-	for (v = 0; v < msg->msg_iovlen; v++) {
-		const struct iovec * vec = &msg->msg_iov[v];
-
-		unsk_assert(vec->iov_base);
-		unsk_assert(vec->iov_len);
-		unsk_assert(vec->iov_len <= UNSK_BUFF_SIZE_MAX);
-	}
-
-	ret = recvmsg(fd, msg, flags);
-	if (ret > 0)
-		return ret;
-	else if (!ret)
-		return -EAGAIN;
-
-	unsk_assert(errno != EBADF);
-	unsk_assert(errno != ECONNREFUSED);
-	unsk_assert(errno != EFAULT);
-	unsk_assert(errno != EINVAL);
-	unsk_assert(errno != ENOTCONN);
-	unsk_assert(errno != ENOTSOCK);
-
-	return -errno;
-}
-
-int
-unsk_bind(int fd, const struct sockaddr_un * addr, socklen_t size)
-{
-	unsk_assert(fd >= 0);
-	unsk_assert(addr);
-	unsk_assert(addr->sun_family == AF_UNIX);
-	unsk_assert(size >= sizeof(sa_family_t));
-
-	if (!bind(fd, (struct sockaddr *)addr, size))
-		return 0;
-
-	unsk_assert(errno != EBADF);
-	unsk_assert(errno != EINVAL);
-	unsk_assert(errno != ENOTSOCK);
-	unsk_assert(errno != EADDRNOTAVAIL);
-	unsk_assert(errno != EFAULT);
-	unsk_assert(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
-int
-unsk_open(int type, int flags)
-{
-	unsk_assert((type == SOCK_DGRAM) ||
-	            (type == SOCK_STREAM) ||
-	            (type == SOCK_SEQPACKET));
-	unsk_assert(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
-
-	int fd;
-
-	fd = socket(AF_UNIX, type | flags, 0);
-	if (fd < 0) {
-		unsk_assert(errno != EAFNOSUPPORT);
-		unsk_assert(errno != EINVAL);
-		unsk_assert(errno != EPROTONOSUPPORT);
-
-		return -errno;
-	}
-
-	return fd;
-}
-
-int
-unsk_close(int fd)
-{
-	unsk_assert(fd >= 0);
-
-	int err;
-
-	err = ufd_close(fd);
-
-	unsk_assert(err != -ENOSPC);
-	unsk_assert(err != -EDQUOT);
-
-	return err;
-}
-
-int
-unsk_unlink(const char * path)
-{
-	unsk_assert(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);
-
-	if (!upath_unlink(path) || (errno == ENOENT))
-		return 0;
-
-	unsk_assert(errno != EFAULT);
-	unsk_assert(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERNAL) */
-
-int
-unsk_connect_dgram(int                             fd,
-                   const char * __restrict         peer_path,
-                   struct sockaddr_un * __restrict peer_addr,
-                   socklen_t * __restrict          addr_len)
-{
-	unsk_assert(fd >= 0);
-	unsk_assert(!unsk_is_named_path_ok(peer_path));
-
-	const struct sockaddr_un local = { .sun_family = AF_UNIX };
-	int                      err;
-	size_t                   sz;
-
-	/*
-	 * Explicitly bind to instantiate a local abstract UNIX socket.
-	 *
-	 * See description of "abstract" sockets in section "Address format" of
-	 * unix(7) man page.
-	 */
-	err = unsk_bind(fd, &local, sizeof(sa_family_t));
-	if (err) {
-		unsk_assert(err != -EADDRINUSE);
-		unsk_assert(err != -ELOOP);
-		unsk_assert(err != -ENOENT);
-		unsk_assert(err != -ENOTDIR);
-		unsk_assert(err != -EROFS);
-
-		return err;
-	}
-
-	/* Setup peer address to send messages to. */
-	sz = strnlen(peer_path, sizeof(peer_addr->sun_path)) + 1;
-	peer_addr->sun_family = AF_UNIX;
-	memcpy(&peer_addr->sun_path[0], peer_path, sz);
-	*addr_len = offsetof(typeof(*peer_addr), sun_path) + sz;
-
-	return 0;
-}
-
 /******************************************************************************
  * Service / server side UNIX socket handling
  ******************************************************************************/
 
 int
 unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
-                    const void *                          data,
+                    const void * __restrict               data,
                     size_t                                size,
                     const struct sockaddr_un * __restrict peer,
                     int                                   flags)
 {
-	unsk_assert(sock);
-	unsk_assert(sock->fd >= 0);
-	unsk_assert(data);
-	unsk_assert(size);
-	unsk_assert(size <= UNSK_BUFF_SIZE_MAX);
-	unsk_assert(peer);
-	unsk_assert(peer->sun_family == AF_UNIX);
-	unsk_assert(!peer->sun_path[0]);
-	unsk_assert(!(flags & ~(MSG_DONTWAIT | MSG_NOSIGNAL)));
+	unsk_assert_api(sock);
+	unsk_assert_api(sock->fd >= 0);
+	unsk_assert_api(data);
+	unsk_assert_api(size);
+	unsk_assert_api(size <= UNSK_BUFF_SIZE_MAX);
+	unsk_assert_api(peer);
+	unsk_assert_api(peer->sun_family == AF_UNIX);
+	unsk_assert_api(!peer->sun_path[0]);
+	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_MORE)));
 
 	const struct iovec  vec = {
 		.iov_base = (void *)data,
@@ -430,35 +459,34 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 	ret = unsk_send_dgram_msg(sock->fd, &msg, flags);
 	if (ret > 0) {
 		/* Sending a single datagram is an atomic operation. */
-		unsk_assert((size_t)ret == size);
+		unsk_assert_intern((size_t)ret == size);
 		return 0;
 	}
 	else if ((ret == -EAGAIN) || (ret == -EINTR))
 		return ret;
 
-	unsk_assert(ret);
-	unsk_assert(ret != -EACCES); /* Cannot happen when sending to UNIX
-	                                abstract sockets. */
+	unsk_assert_intern(ret);
+	unsk_assert_intern(ret != -EACCES); /* Cannot happen when sending to
+	                                       UNIX abstract sockets. */
 	return ret;
 }
 
 ssize_t
 unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
-                    void *                             data,
+                    void * __restrict                  data,
                     size_t                             size,
                     struct sockaddr_un *               peer,
                     struct ucred * __restrict          creds,
                     int                                flags)
 {
-	unsk_assert(sock);
-	unsk_assert(sock->fd >= 0);
-	unsk_assert(data);
-	unsk_assert(size);
-	unsk_assert(size <= UNSK_BUFF_SIZE_MAX);
-	unsk_assert(peer);
-	unsk_assert(creds);
-	unsk_assert(!(flags & MSG_ERRQUEUE));
-	unsk_assert(!(flags & MSG_TRUNC));
+	unsk_assert_api(sock);
+	unsk_assert_api(sock->fd >= 0);
+	unsk_assert_api(data);
+	unsk_assert_api(size);
+	unsk_assert_api(size <= UNSK_BUFF_SIZE_MAX);
+	unsk_assert_api(peer);
+	unsk_assert_api(creds);
+	unsk_assert_api(!(flags & ~(MSG_CMSG_CLOEXEC | MSG_DONTWAIT)));
 
 	const struct iovec     vec = {
 		.iov_base = data,
@@ -484,9 +512,9 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 		    peer->sun_path[0])
 			return -EADDRNOTAVAIL;
 
-		unsk_assert(!(msg.msg_flags & MSG_EOR));
-		unsk_assert(!(msg.msg_flags & MSG_OOB));
-		unsk_assert(!(msg.msg_flags & MSG_ERRQUEUE));
+		unsk_assert_intern(!(msg.msg_flags & MSG_EOR));
+		unsk_assert_intern(!(msg.msg_flags & MSG_OOB));
+		unsk_assert_intern(!(msg.msg_flags & MSG_ERRQUEUE));
 		if (msg.msg_flags & (MSG_TRUNC | MSG_CTRUNC))
 			return -EMSGSIZE;
 
@@ -503,7 +531,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 	else if ((ret == -EAGAIN) || (ret == -EINTR))
 		return ret;
 
-	unsk_assert(ret);
+	unsk_assert_intern(ret);
 
 	return ret;
 }
@@ -511,9 +539,9 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 int
 unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
 {
-	unsk_assert(sock);
-	unsk_assert(sock->fd >= 0);
-	unsk_assert(!unsk_svc_is_path_ok(path));
+	unsk_assert_api(sock);
+	unsk_assert_api(sock->fd >= 0);
+	unsk_assert_api(!unsk_svc_is_path_ok(path));
 
 	int                  err;
 	size_t               sz;
@@ -554,9 +582,9 @@ unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
 }
 
 int
-unsk_dgram_svc_open(struct unsk_svc * sock, int flags)
+unsk_dgram_svc_open(struct unsk_svc * __restrict sock, int flags)
 {
-	unsk_assert(sock);
+	unsk_assert_api(sock);
 
 	int ret;
 
@@ -571,9 +599,9 @@ unsk_dgram_svc_open(struct unsk_svc * sock, int flags)
 }
 
 int
-unsk_svc_close(const struct unsk_svc * sock)
+unsk_svc_close(const struct unsk_svc * __restrict sock)
 {
-	unsk_assert(sock);
+	unsk_assert_api(sock);
 
 	const char * path = sock->local.sun_path;
 
@@ -583,8 +611,8 @@ unsk_svc_close(const struct unsk_svc * sock)
 		if (errno == ENOENT)
 			return 0;
 
-		unsk_assert(errno != EFAULT);
-		unsk_assert(errno != ENAMETOOLONG);
+		unsk_assert_intern(errno != EFAULT);
+		unsk_assert_intern(errno != ENAMETOOLONG);
 
 		return -errno;
 	}
@@ -597,19 +625,19 @@ unsk_svc_close(const struct unsk_svc * sock)
  ******************************************************************************/
 
 int
-unsk_dgram_clnt_send(const struct unsk_clnt * sock,
-                     const void *             data,
-                     size_t                   size,
-                     int                      flags)
+unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
+                     const void * __restrict             data,
+                     size_t                              size,
+                     int                                 flags)
 {
-	unsk_assert(sock);
-	unsk_assert(sock->fd >= 0);
-	unsk_assert(data);
-	unsk_assert(size);
-	unsk_assert(size <= UNSK_BUFF_SIZE_MAX);
-	unsk_assert(sock->peer.sun_family == AF_UNIX);
-	unsk_assert(sock->peer.sun_path[0]);
-	unsk_assert(!(flags & MSG_NOSIGNAL));
+	unsk_assert_api(sock);
+	unsk_assert_api(sock->fd >= 0);
+	unsk_assert_api(data);
+	unsk_assert_api(size);
+	unsk_assert_api(size <= UNSK_BUFF_SIZE_MAX);
+	unsk_assert_api(sock->peer.sun_family == AF_UNIX);
+	unsk_assert_api(sock->peer.sun_path[0]);
+	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_MORE)));
 
 	const struct iovec  vec = {
 		.iov_base = (void *)data,
@@ -629,13 +657,13 @@ unsk_dgram_clnt_send(const struct unsk_clnt * sock,
 	ret = unsk_send_dgram_msg(sock->fd, &msg, flags);
 	if (ret > 0) {
 		/* Sending a single datagram is an atomic operation. */
-		unsk_assert((size_t)ret == size);
+		unsk_assert_api((size_t)ret == size);
 		return 0;
 	}
 	else if ((ret == -EAGAIN) || (ret == -EINTR))
 		return ret;
 
-	unsk_assert(ret);
+	unsk_assert_api(ret);
 
 	return ret;
 }
@@ -646,13 +674,12 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
                      size_t                              size,
                      int                                 flags)
 {
-	unsk_assert(sock);
-	unsk_assert(sock->fd >= 0);
-	unsk_assert(data);
-	unsk_assert(size);
-	unsk_assert(size <= UNSK_BUFF_SIZE_MAX);
-	unsk_assert(!(flags & MSG_ERRQUEUE));
-	unsk_assert(!(flags & MSG_TRUNC));
+	unsk_assert_api(sock);
+	unsk_assert_api(sock->fd >= 0);
+	unsk_assert_api(data);
+	unsk_assert_api(size);
+	unsk_assert_api(size <= UNSK_BUFF_SIZE_MAX);
+	unsk_assert_api(!(flags & ~(MSG_CMSG_CLOEXEC | MSG_DONTWAIT)));
 
 	const struct iovec vec = {
 		.iov_base = data,
@@ -674,9 +701,9 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 		    memcmp(&peer, &sock->peer, sock->peer_sz))
 			return -EADDRNOTAVAIL;
 
-		unsk_assert(!(msg.msg_flags & MSG_EOR));
-		unsk_assert(!(msg.msg_flags & MSG_OOB));
-		unsk_assert(!(msg.msg_flags & MSG_ERRQUEUE));
+		unsk_assert_intern(!(msg.msg_flags & MSG_EOR));
+		unsk_assert_intern(!(msg.msg_flags & MSG_OOB));
+		unsk_assert_intern(!(msg.msg_flags & MSG_ERRQUEUE));
 		if (msg.msg_flags & (MSG_TRUNC | MSG_CTRUNC))
 			return -EMSGSIZE;
 
@@ -685,7 +712,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 	else if ((ret == -EAGAIN) || (ret == -EINTR))
 		return ret;
 
-	unsk_assert(ret);
+	unsk_assert_intern(ret);
 
 	return ret;
 }
@@ -694,8 +721,8 @@ int
 unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
                         const char * __restrict       path)
 {
-	unsk_assert(sock);
-	unsk_assert(sock->fd >= 0);
+	unsk_assert_api(sock);
+	unsk_assert_api(sock->fd >= 0);
 
 	int              err;
 	struct cmsghdr * cmsg = &sock->creds.head;
@@ -718,9 +745,9 @@ unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
 }
 
 int
-unsk_dgram_clnt_open(struct unsk_clnt * sock, int flags)
+unsk_dgram_clnt_open(struct unsk_clnt * __restrict sock, int flags)
 {
-	unsk_assert(sock);
+	unsk_assert_api(sock);
 
 	int ret;
 
@@ -734,9 +761,9 @@ unsk_dgram_clnt_open(struct unsk_clnt * sock, int flags)
 }
 
 void
-unsk_clnt_close(const struct unsk_clnt * sock)
+unsk_clnt_close(const struct unsk_clnt * __restrict sock)
 {
-	unsk_assert(sock);
+	unsk_assert_api(sock);
 
 	unsk_close(sock->fd);
 }
@@ -754,8 +781,8 @@ unsk_dgram_async_svc_recv(const struct unsk_async_svc * __restrict svc,
                           struct ucred * __restrict                creds,
                           int                                      flags)
 {
-	unsk_assert(svc);
-	unsk_assert(!flags || (flags == MSG_CMSG_CLOEXEC));
+	unsk_assert_api(svc);
+	unsk_assert_api(!flags || (flags == MSG_CMSG_CLOEXEC));
 
 	ssize_t ret;
 
@@ -765,7 +792,7 @@ unsk_dgram_async_svc_recv(const struct unsk_async_svc * __restrict svc,
 	                          &buff->peer,
 	                          creds,
 	                          flags);
-	unsk_assert(ret);
+	unsk_assert_intern(ret);
 	if (ret > 0) {
 		buff->unsk.bytes = (size_t)ret;
 		return 0;
@@ -775,15 +802,15 @@ unsk_dgram_async_svc_recv(const struct unsk_async_svc * __restrict svc,
 }
 
 int
-unsk_dgram_async_svc_open(struct unsk_async_svc *         svc,
-                          const char * __restrict         path,
-                          int                             sock_flags,
-                          const struct upoll * __restrict poller,
-                          uint32_t                        poll_flags,
-                          upoll_dispatch_fn *             dispatch)
+unsk_dgram_async_svc_open(struct unsk_async_svc * __restrict svc,
+                          const char * __restrict            path,
+                          int                                sock_flags,
+                          const struct upoll * __restrict    poller,
+                          uint32_t                           poll_flags,
+                          upoll_dispatch_fn *                dispatch)
 {
-	unsk_assert(svc);
-	unsk_assert(!sock_flags || (sock_flags == SOCK_CLOEXEC));
+	unsk_assert_api(svc);
+	unsk_assert_api(!sock_flags || (sock_flags == SOCK_CLOEXEC));
 
 	int err;
 
