@@ -120,7 +120,7 @@ utime_proc_now(struct timespec * now)
 #define utime_assert_tspec(_tspec) \
 	utime_assert_api(_tspec); \
 	utime_assert_api((_tspec)->tv_nsec >= 0); \
-	utime_assert_api((_tspec)->tv_nsec < 1000000000LL)
+	utime_assert_api((_tspec)->tv_nsec < 1000000000L)
 
 extern int
 utime_tspec_cmp(const struct timespec * __restrict fst,

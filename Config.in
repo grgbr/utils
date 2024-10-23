@@ -59,6 +59,36 @@ config UTILS_TIMER
 	help
 	  Build utils library with timer support.
 
+config UTILS_TIMER_SUBSEC_BITS
+	int "Timer tick sub second precision bits"
+	range 0 9
+	depends on UTILS_TIMER
+	default 6
+	help
+	  Setup timer tick period to 1000000000 >> UTIMER_TICK_SUBSEC_BITS
+	  nanoseconds.
+          The table below gives tick sub second precision according to allowed
+          values:
+              Bits     Tick period  Tick frequency
+                    (milliseconds)         (Hertz)
+                 0    1000.000000               1
+                 1     500.000000               2
+                 2     250.000000               4
+                 3     125.000000               8
+                 4      62.500000              16
+                 5      31.250000              32
+                 6      15.625000              64
+                 7       7.812500             128
+                 8       3.906250             256
+                 9       1.953125             512
+
+config UTILS_TIMER_HWHEEL
+	bool "Hierarchical timer wheel"
+	depends on UTILS_TIMER
+	default y
+	help
+	  Build utils library with hierarchical timer wheel support.
+
 config UTILS_PATH
 	bool "Filesystem paths"
 	default y
