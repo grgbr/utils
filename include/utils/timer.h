@@ -84,6 +84,13 @@
 #define UTIMER_TICKS_PER_SEC \
 	(1UL << UTIMER_TICK_SUBSEC_BITS)
 
+/*
+ * Maximum tick value expressed as milliseconds that can be encoded within an
+ * unsigned long
+ */
+#define UTIMER_TICK_MSEC_MAX \
+	(((uint64_t)(ULONG_MAX) << UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000))
+
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
 utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
@@ -129,11 +136,31 @@ utimer_tspec_from_tick(uint64_t tick, struct timespec * __restrict result)
 	result->tv_nsec = (tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC;
 }
 
+static inline __utils_const __utils_nothrow
+unsigned long
+utimer_msec_from_tick_lower(uint64_t tick)
+{
+	utimer_assert_api(tick <= UTIMER_TICK_MSEC_MAX);
+
+	return (unsigned long)((tick * UTIMER_TICK_NSEC) / UINT64_C(1000000));
+}
+
+static inline __utils_const __utils_nothrow
+unsigned long
+utimer_msec_from_tick_upper(uint64_t tick)
+{
+	utimer_assert_api(tick <= UTIMER_TICK_MSEC_MAX);
+
+	return (unsigned long)
+	       (((tick * UTIMER_TICK_NSEC) + UINT64_C(1000000) - 1) /
+	        UINT64_C(1000000));
+}
+
 extern uint64_t
 utimer_tick(void) __utils_nothrow __warn_result;
 
 /******************************************************************************
- * Timer handling
+ * Timer generic handling
  ******************************************************************************/
 
 struct utimer;
@@ -146,8 +173,11 @@ struct utimer {
 	utimer_expire_fn *       expire;
 };
 
-#define UTIMER_INIT(_timer) \
-	{ .node   = STROLL_DLIST_INIT((_timer).node) }
+#define UTIMER_INIT(_timer, _expire) \
+	{ \
+		.node   = STROLL_DLIST_INIT((_timer).node), \
+		.expire = _expire \
+	}
 
 static inline __utils_nonull(1) __utils_pure  __utils_nothrow __warn_result
 uint64_t
@@ -169,16 +199,6 @@ utimer_is_armed(const struct utimer * __restrict timer)
 	return !stroll_dlist_empty(&timer->node);
 }
 
-static inline __utils_nonull(1) __utils_nothrow
-void
-utimer_cancel(struct utimer * __restrict timer)
-{
-	utimer_assert_api(timer);
-	utimer_assert_api(timer->expire);
-
-	stroll_dlist_remove_init(&timer->node);
-}
-
 static inline __utils_nonull(1, 2) __utils_nothrow
 void
 utimer_setup(struct utimer * __restrict timer,
@@ -192,11 +212,35 @@ utimer_setup(struct utimer * __restrict timer,
 
 static inline __utils_nonull(1) __utils_nothrow
 void
-utimer_init(struct utimer * __restrict timer)
+utimer_init(struct utimer * __restrict timer, utimer_expire_fn * expire)
 {
 	utimer_assert_api(timer);
 
 	stroll_dlist_init(&timer->node);
+	timer->expire = expire;
+}
+
+extern struct timespec *
+utimer_issue_tspec(struct timespec * __restrict tspec)
+	__utils_nonull(1) __utils_nothrow __warn_result;
+
+extern long
+utimer_issue_msec(void) __utils_nothrow __warn_result;
+
+/******************************************************************************
+ * Timer list handling
+ ******************************************************************************/
+
+#if defined(CONFIG_UTILS_TIMER_LIST)
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+utimer_cancel(struct utimer * __restrict timer)
+{
+	utimer_assert_api(timer);
+	utimer_assert_api(timer->expire);
+
+	stroll_dlist_remove_init(&timer->node);
 }
 
 extern void
@@ -216,13 +260,8 @@ extern uint64_t
 utimer_issue_tick(void)
 	__utils_pure __utils_nothrow __leaf __warn_result;
 
-extern struct timespec *
-utimer_issue_tspec(struct timespec * __restrict tspec)
-	__utils_nonull(1) __utils_nothrow __warn_result;
-
-extern long
-utimer_issue_msec(void) __utils_nothrow __warn_result;
-
 extern void utimer_run(void) __utils_nothrow;
+
+#endif /* defined(CONFIG_UTILS_TIMER_LIST) */
 
 #endif /* _UTILS_TIMER_H */

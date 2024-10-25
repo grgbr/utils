@@ -82,12 +82,25 @@ config UTILS_TIMER_SUBSEC_BITS
                  8       3.906250             256
                  9       1.953125             512
 
+choice
+	prompt "Timer algorithm"
+	depends on UTILS_TIMER
+	default UTILS_TIMER_LIST
+	help
+	  Select the timer subsystem algorithm.
+
+config UTILS_TIMER_LIST
+	bool "Doubly linked timer list"
+	help
+	  Build utils library with a simple ordered timer list algorithm
+	  support.
+
 config UTILS_TIMER_HWHEEL
 	bool "Hierarchical timer wheel"
-	depends on UTILS_TIMER
-	default y
 	help
-	  Build utils library with hierarchical timer wheel support.
+	  Build utils library with hierarchical timer wheel algorithm support.
+
+endchoice
 
 config UTILS_PATH
 	bool "Filesystem paths"
