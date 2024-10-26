@@ -160,7 +160,7 @@ extern uint64_t
 utimer_tick(void) __utils_nothrow __warn_result;
 
 /******************************************************************************
- * Timer generic handling
+ * Timer handling
  ******************************************************************************/
 
 struct utimer;
@@ -199,6 +199,54 @@ utimer_is_armed(const struct utimer * __restrict timer)
 	return !stroll_dlist_empty(&timer->node);
 }
 
+#if defined(CONFIG_UTILS_TIMER_LIST)
+
+extern void
+utimer_arm_tspec(struct utimer * __restrict         timer,
+                 const struct timespec * __restrict tspec)
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
+
+extern void
+utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
+	__utils_nonull(1) __utils_nothrow;
+
+extern void
+utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
+	__utils_nonull(1) __utils_nothrow;
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+utimer_cancel(struct utimer * __restrict timer)
+{
+	utimer_assert_api(timer);
+	utimer_assert_api(timer->expire);
+
+	stroll_dlist_remove_init(&timer->node);
+}
+
+#endif /* defined(CONFIG_UTILS_TIMER_LIST) */
+
+#if defined(CONFIG_UTILS_TIMER_HWHEEL)
+
+extern void
+utimer_arm_tspec(struct utimer * __restrict         timer,
+                 const struct timespec * __restrict tspec)
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
+
+extern void
+utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
+	__utils_nonull(1) __utils_nothrow __leaf;
+
+extern void
+utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
+	__utils_nonull(1) __utils_nothrow __leaf;
+
+extern void
+utimer_cancel(struct utimer * __restrict timer)
+	__utils_nonull(1) __utils_nothrow __leaf;
+
+#endif /* defined(CONFIG_UTILS_TIMER_HWHEEL) */
+
 static inline __utils_nonull(1, 2) __utils_nothrow
 void
 utimer_setup(struct utimer * __restrict timer,
@@ -220,6 +268,9 @@ utimer_init(struct utimer * __restrict timer, utimer_expire_fn * expire)
 	timer->expire = expire;
 }
 
+extern uint64_t
+utimer_issue_tick(void) __utils_pure __utils_nothrow __leaf __warn_result;
+
 extern struct timespec *
 utimer_issue_tspec(struct timespec * __restrict tspec)
 	__utils_nonull(1) __utils_nothrow __warn_result;
@@ -227,41 +278,6 @@ utimer_issue_tspec(struct timespec * __restrict tspec)
 extern long
 utimer_issue_msec(void) __utils_nothrow __warn_result;
 
-/******************************************************************************
- * Timer list handling
- ******************************************************************************/
-
-#if defined(CONFIG_UTILS_TIMER_LIST)
-
-static inline __utils_nonull(1) __utils_nothrow
-void
-utimer_cancel(struct utimer * __restrict timer)
-{
-	utimer_assert_api(timer);
-	utimer_assert_api(timer->expire);
-
-	stroll_dlist_remove_init(&timer->node);
-}
-
-extern void
-utimer_arm_tspec(struct utimer * __restrict         timer,
-                 const struct timespec * __restrict tspec)
-	__utils_nonull(1, 2) __utils_nothrow __leaf;
-
-extern void
-utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
-	__utils_nonull(1) __utils_nothrow;
-
-extern void
-utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
-	__utils_nonull(1) __utils_nothrow;
-
-extern uint64_t
-utimer_issue_tick(void)
-	__utils_pure __utils_nothrow __leaf __warn_result;
-
 extern void utimer_run(void) __utils_nothrow;
-
-#endif /* defined(CONFIG_UTILS_TIMER_LIST) */
 
 #endif /* _UTILS_TIMER_H */
