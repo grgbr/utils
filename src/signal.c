@@ -85,15 +85,16 @@ usig_setup_actions(const struct usig_new_act nevv[__restrict_arr],
 		const struct usig_new_act * nact = &nevv[s];
 		struct usig_orig_act *      oact = orig ? &orig[s] : NULL;
 
-		usig_assert_api(!usig_ismember(&__usig_inval_msk, nact->no));
+		usig_assert_api(!usig_ismember(&__usig_inval_msk,
+		                               (int)nact->no));
 		usig_assert_api(nact->act);
 
 		if (oact) {
 			oact->no = nact->no;
-			usig_action(nact->no, nact->act, &oact->act);
+			usig_action((int)nact->no, nact->act, &oact->act);
 		}
 		else
-			usig_action(nact->no, nact->act, NULL);
+			usig_action((int)nact->no, nact->act, NULL);
 	}
 }
 
@@ -109,9 +110,10 @@ usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
 	for (s = 0; s < nr; s++) {
 		const struct usig_orig_act * oact = &orig[s];
 
-		usig_assert_api(!usig_ismember(&__usig_inval_msk, oact->no));
+		usig_assert_api(!usig_ismember(&__usig_inval_msk,
+		                               (int)oact->no));
 
-		usig_action(oact->no, &oact->act, NULL);
+		usig_action((int)oact->no, &oact->act, NULL);
 	}
 }
 
@@ -133,7 +135,7 @@ usig_read_fd(int fd, struct signalfd_siginfo * infos, unsigned int count)
 		return -errno;
 	}
 
-	return ret ? (int)(ret / sizeof(*infos)) : -EAGAIN;
+	return ret ? (int)((size_t)ret / sizeof(*infos)) : -EAGAIN;
 }
 
 #endif /* defined(CONFIG_UTILS_SIGNAL_FD) */

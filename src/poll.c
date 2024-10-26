@@ -15,15 +15,17 @@ upoll_apply(const struct upoll * __restrict poller,
             struct upoll_worker *           worker)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 	upoll_assert_api(fd >= 0);
 	upoll_assert_api(worker->user);
 	upoll_assert_api(!(worker->user &
-	                   ~(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
+	                   ~((uint32_t)
+	                     EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
 	upoll_assert_api(worker);
 	upoll_assert_api(worker->dispatch);
-	upoll_assert_api(worker->kernel);
+	upoll_assert_intern(worker->kernel);
 
 	if (worker->user != worker->kernel) {
 		int                err __unused;
@@ -50,12 +52,14 @@ upoll_register(const struct upoll * __restrict  poller,
                struct upoll_worker * __restrict worker)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 	upoll_assert_api(fd >= 0);
 	upoll_assert_api(events);
 	upoll_assert_api(!(events &
-	                   ~(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
+	                   ~((uint32_t)
+	                     EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
 	upoll_assert_api(worker);
 	upoll_assert_api(worker->dispatch);
 
@@ -65,11 +69,11 @@ upoll_register(const struct upoll * __restrict  poller,
 	};
 
 	if (epoll_ctl(poller->fd, EPOLL_CTL_ADD, fd, &evt)) {
-		upoll_assert_api(errno != EBADF);
+		upoll_assert_intern(errno != EBADF);
 		upoll_assert_api(errno != EEXIST);
-		upoll_assert_api(errno != EINVAL);
+		upoll_assert_intern(errno != EINVAL);
 		upoll_assert_api(errno != ELOOP);
-		upoll_assert_api(errno != ENOENT);
+		upoll_assert_intern(errno != ENOENT);
 		upoll_assert_api(errno != EPERM);
 
 		return -errno;
@@ -88,8 +92,9 @@ upoll_process_dispatch(const struct upoll *                  poller,
                        unsigned int                          nr)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 	upoll_assert_api(events);
 	upoll_assert_api(nr);
 	upoll_assert_api(nr <= poller->nr);
@@ -101,8 +106,8 @@ upoll_process_dispatch(const struct upoll *                  poller,
 		struct upoll_worker *      wk = evt->data.ptr;
 		int                        ret;
 
-		upoll_assert_api(wk);
-		upoll_assert_api(wk->dispatch);
+		upoll_assert_intern(wk);
+		upoll_assert_intern(wk->dispatch);
 
 		wk->user = wk->kernel;
 
@@ -118,17 +123,18 @@ int
 upoll_process(const struct upoll * poller, int tmout)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 
 	int                ret;
 	struct epoll_event evts[poller->nr];
 
-	ret = epoll_wait(poller->fd, evts, poller->nr, tmout);
+	ret = epoll_wait(poller->fd, evts, (int)poller->nr, tmout);
 	if (ret < 0) {
-		upoll_assert_api(errno != EBADF);
-		upoll_assert_api(errno != EFAULT);
-		upoll_assert_api(errno != EINVAL);
+		upoll_assert_intern(errno != EBADF);
+		upoll_assert_intern(errno != EFAULT);
+		upoll_assert_intern(errno != EINVAL);
 
 		return -errno;
 	}
@@ -147,8 +153,9 @@ int
 upoll_process_with_timers(const struct upoll * poller)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 
 	int                ret;
 	int                tmout;
@@ -156,10 +163,10 @@ upoll_process_with_timers(const struct upoll * poller)
 
 	tmout = (int)utimer_issue_msec();
 
-	ret = epoll_wait(poller->fd, evts, poller->nr, tmout);
+	ret = epoll_wait(poller->fd, evts, (int)poller->nr, tmout);
 	if (!ret) {
 		/* Timer(s) expired before any activity. */
-		upoll_assert_api(tmout >= 0);
+		upoll_assert_intern(tmout >= 0);
 		utimer_run();
 
 		return 0;
@@ -174,9 +181,9 @@ upoll_process_with_timers(const struct upoll * poller)
 		utimer_run();
 
 	if (ret < 0) {
-		upoll_assert_api(errno != EBADF);
-		upoll_assert_api(errno != EFAULT);
-		upoll_assert_api(errno != EINVAL);
+		upoll_assert_intern(errno != EBADF);
+		upoll_assert_intern(errno != EFAULT);
+		upoll_assert_intern(errno != EINVAL);
 
 		return -errno;
 	}
@@ -192,12 +199,13 @@ upoll_open(struct upoll * __restrict poller, unsigned int nr)
 {
 	upoll_assert_api(poller);
 	upoll_assert_api(nr);
+	upoll_assert_api(nr <= INT_MAX);
 
 	int fd;
 
 	fd = epoll_create1(EPOLL_CLOEXEC);
 	if (fd < 0) {
-		upoll_assert_api(errno != EINVAL);
+		upoll_assert_intern(errno != EINVAL);
 
 		return -errno;
 	}
@@ -212,15 +220,16 @@ void
 upoll_close(const struct upoll * __restrict poller)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 
 	int err __unused;
 
 	err = ufd_close(poller->fd);
 
-	upoll_assert_api(err != -ENOSPC);
-	upoll_assert_api(err != -EDQUOT);
+	upoll_assert_intern(err != -ENOSPC);
+	upoll_assert_intern(err != -EDQUOT);
 
 	return;
 }

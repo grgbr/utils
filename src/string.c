@@ -34,7 +34,7 @@ ustr_tolower(char * __restrict lower, const char * __restrict orig, size_t size)
 	unsigned int c;
 
 	for (c = 0; (c < (size - 1)) && orig[c]; c++)
-		lower[c] = tolower(orig[c]);
+		lower[c] = (char)tolower(orig[c]);
 
 	lower[c] = '\0';
 }
@@ -48,7 +48,7 @@ ustr_tolower_inp(char * __restrict string, size_t size)
 	unsigned int c;
 
 	for (c = 0; (c < (size - 1)) && string[c]; c++)
-		string[c] = tolower(string[c]);
+		string[c] = (char)tolower(string[c]);
 
 	string[c] = '\0';
 }
@@ -63,7 +63,7 @@ ustr_toupper(char * __restrict upper, const char * __restrict orig, size_t size)
 	unsigned int c;
 
 	for (c = 0; (c < (size - 1)) && orig[c]; c++)
-		upper[c] = toupper(orig[c]);
+		upper[c] = (char)toupper(orig[c]);
 
 	upper[c] = '\0';
 }
@@ -77,7 +77,7 @@ ustr_toupper_inp(char * __restrict string, size_t size)
 	unsigned int c;
 
 	for (c = 0; (c < (size - 1)) && string[c]; c++)
-		string[c] = toupper(string[c]);
+		string[c] = (char)toupper(string[c]);
 
 	string[c] = '\0';
 }
@@ -617,7 +617,7 @@ ustr_rskip_notchar(const char * __restrict string, int ch, size_t size)
 	ustr_assert_api(ch);
 	ustr_assert_api(size);
 
-	const char *str = string + size - 1;
+	const char * str = string + size - 1;
 
 	if (!*str)
 		return 0;
@@ -634,12 +634,12 @@ ustr_skip_space(const char * __restrict string, size_t size)
 	ustr_assert_api(string);
 	ustr_assert_api(size);
 
-	const char *str = string;
+	const char * str = string;
 
 	while ((str < (string + size)) && isspace(*str))
 		str++;
 
-	return str - string;
+	return (size_t)(str - string);
 }
 
 size_t
@@ -648,7 +648,7 @@ ustr_rskip_space(const char * __restrict string, size_t size)
 	ustr_assert_api(string);
 	ustr_assert_api(size);
 
-	const char *str = string + size - 1;
+	const char * str = string + size - 1;
 
 	while ((str >= string) && isspace(*str))
 		str--;
@@ -662,12 +662,12 @@ ustr_skip_notspace(const char * __restrict string, size_t size)
 	ustr_assert_api(string);
 	ustr_assert_api(size);
 
-	const char *str = string;
+	const char * str = string;
 
 	while ((str < (string + size)) && *str && !isspace(*str))
 		str++;
 
-	return str - string;
+	return (size_t)(str - string);
 }
 
 size_t
@@ -676,7 +676,7 @@ ustr_rskip_notspace(const char * __restrict string, size_t size)
 	ustr_assert_api(string);
 	ustr_assert_api(size);
 
-	const char *str = string + size - 1;
+	const char * str = string + size - 1;
 
 	if (!*str)
 		return 0;
@@ -692,7 +692,7 @@ ustr_clone(const char * __restrict orig, size_t len)
 {
 	ustr_assert_api(orig);
 
-	char *str;
+	char * str;
 
 	str = malloc(len + 1);
 	if (!str) {
@@ -716,11 +716,11 @@ ustr_sized_clone(const char * __restrict orig, size_t max_size)
 
 	len = ustr_parse(orig, max_size);
 	if (len < 0) {
-		errno = -len;
+		errno = -((int)len);
 		return NULL;
 	}
 
-	return ustr_clone(orig, len);
+	return ustr_clone(orig, (size_t)len);
 }
 
 size_t
@@ -765,6 +765,7 @@ ustr_parse_token_fields(char * __restrict           string,
 	ustr_assert_api(string);
 	ustr_assert_api(parsers);
 	ustr_assert_api(count);
+	ustr_assert_api(count <= INT_MAX);
 
 	unsigned int cnt = 0;
 	char *       str = string;
@@ -777,7 +778,7 @@ ustr_parse_token_fields(char * __restrict           string,
 		bool                  out;
 
 		sep = strchrnul(str, delim);
-		len = sep - str;
+		len = (size_t)(sep - str);
 		if (!len)
 			return -ENODATA;
 
@@ -793,7 +794,7 @@ ustr_parse_token_fields(char * __restrict           string,
 
 		if (out)
 			/* End of string: return the number of matches. */
-			return cnt;
+			return (int)cnt;
 
 		if (cnt == count)
 			/* Trailing characters in excess: tell the caller. */
@@ -822,7 +823,7 @@ ustr_parse_each_token(char * __restrict     string,
 		bool   out;
 
 		sep = strchrnul(str, delim);
-		len = sep - str;
+		len = (size_t)(sep - str);
 		if (!len)
 			return -ENODATA;
 
@@ -833,11 +834,12 @@ ustr_parse_each_token(char * __restrict     string,
 		if (ret)
 			return ret;
 
-		cnt++;
+		if (++cnt > INT_MAX)
+			return -EMSGSIZE;
 
 		if (out)
 			/* End of string: return the number of matches. */
-			return cnt;
+			return (int)cnt;
 
 		str = sep + 1;
 	}

@@ -1,26 +1,13 @@
+################################################################################
+# SPDX-License-Identifier: LGPL-3.0-only
+#
+# This file is part of Stroll.
+# Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+################################################################################
+
 config-in           := Config.in
 config-h            := utils/config.h
-
-solibs              := libutils.so
-libutils.so-objs    += $(call kconf_enabled,UTILS_SIGNAL,signal.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_THREAD,thread.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_TIME,time.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_TIMER,timer.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_PATH,path.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_FD,fd.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_FILE,file.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_DIR,dir.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_STR,string.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_POLL,poll.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_UNSK,unsk.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_MQUEUE,mqueue.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_NET,net.o)
-libutils.so-objs    += $(call kconf_enabled,UTILS_PWD,pwd.o)
-libutils.so-cflags   = $(EXTRA_CFLAGS) -Wall -Wextra -D_GNU_SOURCE -DPIC -fpic
-libutils.so-cflags  += $(call kconf_enabled,UTILS_THREAD,-pthread)
-libutils.so-ldflags  = $(EXTRA_LDFLAGS) -shared -Bsymbolic -fpic -Wl,-soname,libutils.so
-libutils.so-ldflags += $(call kconf_enabled,UTILS_THREAD,-pthread)
-libutils.so-pkgconf := libstroll
+config-obj          := config.o
 
 HEADERDIR           := $(CURDIR)/include
 headers              = utils/cdefs.h
@@ -37,9 +24,21 @@ headers             += $(call kconf_enabled,UTILS_DIR,utils/dir.h)
 headers             += $(call kconf_enabled,UTILS_STR,utils/string.h)
 headers             += $(call kconf_enabled,UTILS_POLL,utils/poll.h)
 headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
-headers             += $(call kconf_enabled,UTILS_UNSK,utils/mqueue.h)
+headers             += $(call kconf_enabled,UTILS_MQUEUE,utils/mqueue.h)
 headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
+
+subdirs   := src
+
+ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
+override libutils_pkgconf_libs := \
+	Libs: -L$${libdir} \
+	-Wl,--push-state,--as-needed \
+	-lutils \
+	$(call kconf_enabled,UTILS_THREAD,-pthread) \
+	$(call kconf_enabled,UTILS_MQUEUE,-lrt) \
+	-Wl,--pop-state
+endif # ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 
 define libutils_pkgconf_tmpl
 prefix=$(PREFIX)
@@ -52,12 +51,7 @@ Description: Utils library
 Version: $(VERSION)
 Requires: libstroll
 Cflags: -I$${includedir} $(call kconf_enabled,UTILS_THREAD,-pthread)
-Libs: -L$${libdir} \
-      -Wl,--push-state,--as-needed \
-      -lutils \
-      $(call kconf_enabled,UTILS_THREAD,-pthread) \
-      $(call kconf_enabled,UTILS_MQUEUE,-lrt) \
-      -Wl,--pop-state
+$(libutils_pkgconf_libs)
 endef
 
 pkgconfigs          := libutils.pc
@@ -67,4 +61,6 @@ libutils.pc-tmpl    := libutils_pkgconf_tmpl
 # Source code tags generation
 ################################################################################
 
-tagfiles := $(shell find $(CURDIR) -type f)
+tagfiles := $(shell find $(addprefix $(CURDIR)/,$(subdirs)) \
+                         $(HEADERDIR) \
+                         -type f)

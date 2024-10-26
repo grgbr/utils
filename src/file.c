@@ -13,7 +13,7 @@ ufile_nointr_full_read(int fd, char * __restrict data, size_t size)
 	ufile_assert_api(fd >= 0);
 	ufile_assert_api(!(!!data ^ !!size));
 
-	unsigned int off = 0;
+	ssize_t off = 0;
 
 	while (size) {
 		ssize_t ret;
@@ -21,10 +21,10 @@ ufile_nointr_full_read(int fd, char * __restrict data, size_t size)
 		ret = ufile_nointr_read(fd, &data[off], size);
 		if (ret > 0) {
 			off += ret;
-			size -= ret;
+			size -= (size_t)ret;
 		}
 		else if (ret != -EAGAIN)
-			return !ret ? -ENODATA : ret;
+			return !ret ? -ENODATA : (int)ret;
 	}
 
 	return 0;
@@ -36,7 +36,7 @@ ufile_nointr_full_write(int fd, const char * __restrict data, size_t size)
 	ufile_assert_api(fd >= 0);
 	ufile_assert_api(!(!!data ^ !!size));
 
-	unsigned int off = 0;
+	ssize_t off = 0;
 
 	while (size) {
 		ssize_t ret;
@@ -44,10 +44,10 @@ ufile_nointr_full_write(int fd, const char * __restrict data, size_t size)
 		ret = ufile_nointr_write(fd, &data[off], size);
 		if (ret > 0) {
 			off += ret;
-			size -= ret;
+			size -= (size_t)ret;
 		}
 		else if (ret != -EAGAIN)
-			return ret;
+			return (int)ret;
 	}
 
 	return 0;

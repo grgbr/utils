@@ -370,9 +370,9 @@ upath_rename_at(int                     old_dir,
 	upath_assert_api(upath_validate_path_name(old_path) > 0);
 	upath_assert_api((new_dir >= 0) || (new_dir == AT_FDCWD));
 	upath_assert_api(upath_validate_path_name(new_path) > 0);
-	upath_assert_api(!(flags & ~(RENAME_EXCHANGE |
-	                             RENAME_NOREPLACE |
-	                             RENAME_WHITEOUT)));
+	upath_assert_api(!(flags & ~((unsigned int)(RENAME_EXCHANGE |
+	                                            RENAME_NOREPLACE |
+	                                            RENAME_WHITEOUT))));
 
 	if (!renameat2(old_dir, old_path, new_dir, new_path, flags))
 		return 0;

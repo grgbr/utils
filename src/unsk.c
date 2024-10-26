@@ -41,7 +41,7 @@ unsk_is_named_path_ok(const char * __restrict path)
 
 	len = upath_validate_path(path, UNSK_NAMED_PATH_MAX);
 	if (len < 0)
-		return len;
+		return (int)len;
 
 	return 0;
 }
@@ -62,7 +62,7 @@ unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
 
 	const struct sockaddr_un * addr = (struct sockaddr_un *)msg->msg_name;
 	unsigned int               v;
-	int                        ret;
+	ssize_t                    ret;
 
 	/*
 	 * Make destination address mandatory and reject the unamed socket
@@ -155,7 +155,7 @@ unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
 	unsk_assert_api(addr->sun_family == AF_UNIX);
 	unsk_assert_api(size >= sizeof(sa_family_t));
 
-	if (!bind(fd, (struct sockaddr *)addr, size))
+	if (!bind(fd, (const struct sockaddr *)addr, size))
 		return 0;
 
 	unsk_assert_api(errno != EBADF);
@@ -255,7 +255,7 @@ unsk_connect_dgram(int                             fd,
 	sz = strnlen(peer_path, sizeof(peer_addr->sun_path)) + 1;
 	peer_addr->sun_family = AF_UNIX;
 	memcpy(&peer_addr->sun_path[0], peer_path, sz);
-	*addr_len = offsetof(typeof(*peer_addr), sun_path) + sz;
+	*addr_len = (socklen_t)(offsetof(typeof(*peer_addr), sun_path) + sz);
 
 	return 0;
 }
@@ -443,6 +443,7 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 	unsk_assert_api(!peer->sun_path[0]);
 	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_MORE)));
 
+STROLL_IGNORE_WARN("-Wcast-qual")
 	const struct iovec  vec = {
 		.iov_base = (void *)data,
 		.iov_len  = size
@@ -454,6 +455,7 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 		.msg_iovlen     = 1,
 		0,
 	};
+STROLL_RESTORE_WARN
 	ssize_t             ret;
 
 	ret = unsk_send_dgram_msg(sock->fd, &msg, flags);
@@ -463,12 +465,12 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 		return 0;
 	}
 	else if ((ret == -EAGAIN) || (ret == -EINTR))
-		return ret;
+		return (int)ret;
 
 	unsk_assert_intern(ret);
 	unsk_assert_intern(ret != -EACCES); /* Cannot happen when sending to
 	                                       UNIX abstract sockets. */
-	return ret;
+	return (int)ret;
 }
 
 ssize_t
@@ -493,6 +495,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 		.iov_len  = size
 	};
 	union unsk_creds       anc;
+STROLL_IGNORE_WARN("-Wcast-qual")
 	struct msghdr          msg = {
 		.msg_name       = peer,
 		.msg_namelen    = sizeof(*peer),
@@ -502,6 +505,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 		.msg_controllen = sizeof(anc.buff),
 		0,
 	};
+STROLL_RESTORE_WARN
 	ssize_t                ret;
 
 	ret = unsk_recv_dgram_msg(sock->fd, &msg, flags);
@@ -524,7 +528,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 		    (cmsg->cmsg_len != CMSG_LEN(sizeof(*creds))))
 			return -EPROTO;
 
-		*creds = *(struct ucred *)CMSG_DATA(cmsg);
+		*creds = *(const struct ucred *)CMSG_DATA(cmsg);
 
 		return ret;
 	}
@@ -571,7 +575,9 @@ unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
 	 * See "Pathname socket ownership and permissions" section of unix(7)
 	 * man page.
 	 */
-	err = unsk_bind(sock->fd, addr, offsetof(typeof(*addr), sun_path) + sz);
+	err = unsk_bind(sock->fd,
+	                addr,
+	                (socklen_t)(offsetof(typeof(*addr), sun_path) + sz));
 	if (err)
 		return err;
 
@@ -639,6 +645,7 @@ unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
 	unsk_assert_api(sock->peer.sun_path[0]);
 	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_MORE)));
 
+STROLL_IGNORE_WARN("-Wcast-qual")
 	const struct iovec  vec = {
 		.iov_base = (void *)data,
 		.iov_len  = size
@@ -652,6 +659,7 @@ unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
 		.msg_controllen = sizeof(sock->creds.buff),
 		0,
 	};
+STROLL_RESTORE_WARN
 	ssize_t             ret;
 
 	ret = unsk_send_dgram_msg(sock->fd, &msg, flags);
@@ -661,11 +669,11 @@ unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
 		return 0;
 	}
 	else if ((ret == -EAGAIN) || (ret == -EINTR))
-		return ret;
+		return (int)ret;
 
 	unsk_assert_api(ret);
 
-	return ret;
+	return (int)ret;
 }
 
 ssize_t
@@ -686,6 +694,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 		.iov_len  = size
 	};
 	struct sockaddr_un peer;
+STROLL_IGNORE_WARN("-Wcast-qual")
 	struct msghdr      msg = {
 		.msg_name    = &peer,
 		.msg_namelen = sizeof(peer),
@@ -693,6 +702,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 		.msg_iovlen  = 1,
 		0,
 	};
+STROLL_RESTORE_WARN
 	ssize_t            ret;
 
 	ret = unsk_recv_dgram_msg(sock->fd, &msg, flags);
@@ -798,7 +808,7 @@ unsk_dgram_async_svc_recv(const struct unsk_async_svc * __restrict svc,
 		return 0;
 	}
 
-	return ret;
+	return (int)ret;
 }
 
 int

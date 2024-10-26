@@ -21,7 +21,7 @@ upath_parse_mode(const char * __restrict string, mode_t * mode)
 	if (ret)
 		return ret;
 
-	if (val & ~ALLPERMS)
+	if (val & ~((unsigned long)ALLPERMS))
 		return -ERANGE;
 
 	*mode = (mode_t)val;
@@ -34,6 +34,7 @@ upath_validate_path(const char * __restrict path, size_t max_size)
 {
 	upath_assert_api(path);
 	upath_assert_api(max_size);
+	upath_assert_api(max_size <= SSIZE_MAX);
 
 	size_t len;
 
@@ -42,7 +43,7 @@ upath_validate_path(const char * __restrict path, size_t max_size)
 		return -ENODATA;
 
 	if (len < max_size)
-		return len;
+		return (ssize_t)len;
 
 	return -ENAMETOOLONG;
 }
@@ -119,16 +120,16 @@ upath_comp_iter_next(struct upath_comp_iter * __restrict iter)
 	upath_assert_api(iter->stop);
 	upath_assert_api((iter->curr.start + iter->curr.len) <= iter->stop);
 
-	int         err;
-	const char *next = iter->curr.start + iter->curr.len;
-	size_t      sz = iter->stop - next;
+	int          err;
+	const char * next = iter->curr.start + iter->curr.len;
+	size_t       sz = (size_t)(iter->stop - next);
 
 	if (!sz) {
 		errno = ENOENT;
 		return NULL;
 	}
 
-	err = upath_next_comp(&iter->curr, next, iter->stop - next);
+	err = upath_next_comp(&iter->curr, next, (size_t)(iter->stop - next));
 	if (err) {
 		errno = -err;
 		return NULL;
@@ -160,7 +161,7 @@ upath_comp_iter_prev(struct upath_comp_iter * __restrict iter)
 	upath_assert_api(iter->curr.start >= iter->stop);
 
 	int    err;
-	size_t sz = iter->curr.start - iter->stop;
+	size_t sz = (size_t)(iter->curr.start - iter->stop);
 
 	if (!sz) {
 		errno = ENOENT;
@@ -221,7 +222,9 @@ upath_normalize(const char * __restrict path,
 		int               err;
 
 		/* Probe next path component. */
-		err = upath_next_comp(&comp, path_ptr, path_end - path_ptr);
+		err = upath_next_comp(&comp,
+		                      path_ptr,
+		                      (size_t)(path_end - path_ptr));
 		if (err) {
 			if (err == -ENOENT)
 				break;
@@ -239,7 +242,9 @@ upath_normalize(const char * __restrict path,
 			/* Get back up along the computed path. */
 			struct upath_comp prev;
 
-			err = upath_prev_comp(&prev, norm, norm_ptr - norm);
+			err = upath_prev_comp(&prev,
+			                      norm,
+			                      (size_t)(norm_ptr - norm));
 			upath_assert_intern(!err || (err == -ENOENT));
 			if (!err) {
 				/* An upper path component exists... */
@@ -250,7 +255,9 @@ upath_normalize(const char * __restrict path,
 					 * it and go processing next path
 					 * component.
 					 */
+STROLL_IGNORE_WARN("-Wcast-qual")
 					norm_ptr = (char *)prev.start;
+STROLL_RESTORE_WARN
 					continue;
 				}
 			}

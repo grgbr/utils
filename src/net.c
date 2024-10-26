@@ -26,6 +26,7 @@ ssize_t
 unet_iface_syspath_prefix_len(const char * __restrict path, size_t size)
 {
 	unet_assert_intern(path);
+	unet_assert_intern(size <= PATH_MAX);
 
 	size_t len;
 
@@ -42,7 +43,7 @@ unet_iface_syspath_prefix_len(const char * __restrict path, size_t size)
 		if (len == size)
 			return -ENOENT;
 
-		return len;
+		return (ssize_t)len;
 	}
 
 	if (path[0] == '/')
@@ -59,6 +60,7 @@ unet_match_iface_syspath_suffix(struct upath_comp * __restrict comp,
 {
 	unet_assert_intern(comp);
 	unet_assert_intern(path);
+	unet_assert_intern(size <= PATH_MAX);
 
 	int ret;
 
@@ -84,6 +86,7 @@ ssize_t
 unet_iface_syspath_suffix_len(const char * __restrict path, size_t size)
 {
 	unet_assert_intern(path);
+	unet_assert_intern(size <= PATH_MAX);
 
 	int               ret;
 	struct upath_comp comp;
@@ -94,32 +97,32 @@ unet_iface_syspath_suffix_len(const char * __restrict path, size_t size)
 		return ret;
 
 	if (ret) {
-		len = 1U + path + size - comp.start;
+		len = 1U + (size_t)(&path[size] - comp.start);
 		if ((size <= len) || (path[size - len] != '/'))
 			return -ENOENT;
 
-		return len;
+		return (ssize_t)len;
 	}
 
 	ret = unet_match_iface_syspath_suffix(&comp,
 	                                      path,
-	                                      comp.start - path);
+	                                      (size_t)(comp.start - path));
 	if (ret <= 0)
 		return 0;
 
-	len = 1U + path + size - comp.start;
+	len = 1U + (size_t)(&path[size] - comp.start);
 	if ((size <= len) || (path[size - len] != '/'))
 		return -ENOENT;
 
-	return len;
+	return (ssize_t)len;
 }
-
 
 static __utils_nonull(1) __utils_nothrow
 ssize_t
 unet_strip_iface_syspath(char * __restrict path, size_t size)
 {
 	unet_assert_intern(path);
+	unet_assert_intern(size <= PATH_MAX);
 
 	ssize_t   len;
 	char    * start;
@@ -134,9 +137,9 @@ unet_strip_iface_syspath(char * __restrict path, size_t size)
 		return len;
 
 	/* Strip optional trailing sysfs net/... suffix. */
-	start = path + len;
-	len = size - len;
-	suff_len = unet_iface_syspath_suffix_len(start, len);
+	start = &path[len];
+	len = (ssize_t)(size - (size_t)len);
+	suff_len = unet_iface_syspath_suffix_len(start, (size_t)len);
 	if (suff_len < 0)
 		return suff_len;
 
@@ -146,7 +149,7 @@ unet_strip_iface_syspath(char * __restrict path, size_t size)
 		return -ENAMETOOLONG;
 
 	if (start != path)
-		memmove(path, start, len);
+		memmove(path, start, (size_t)len);
 
 	path[len] = '\0';
 
@@ -172,7 +175,7 @@ unet_normalize_iface_syspath(const char * __restrict orig,
 		goto free;
 
 	/* Strip optional leading sysfs prefix and trailing suffix. */
-	ret = unet_strip_iface_syspath(*norm, ret);
+	ret = unet_strip_iface_syspath(*norm, (size_t)ret);
 	if (ret < 0)
 		goto free;
 

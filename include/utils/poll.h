@@ -36,6 +36,19 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
+#if defined(CONFIG_UTILS_ASSERT_INTERN)
+
+#include <stroll/assert.h>
+
+#define upoll_assert_intern(_expr) \
+	stroll_assert("utils:upoll", _expr)
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
+
+#define upoll_assert_intern(_expr)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
+
 struct upoll;
 struct upoll_worker;
 
@@ -57,7 +70,8 @@ upoll_enable_watch(struct upoll_worker * __restrict worker, uint32_t events)
 	upoll_assert_api(worker->dispatch);
 	upoll_assert_api(events);
 	upoll_assert_api(!(events &
-	                   ~(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
+	                   ~((uint32_t)
+	                     (EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI))));
 
 	worker->user |= events;
 }
@@ -70,7 +84,8 @@ upoll_disable_watch(struct upoll_worker * __restrict worker, uint32_t events)
 	upoll_assert_api(worker->dispatch);
 	upoll_assert_api(events);
 	upoll_assert_api(!(events &
-	                   ~(EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
+	                   ~((uint32_t)
+	                     (EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI))));
 
 	worker->user &= ~events;
 }
@@ -85,8 +100,9 @@ int
 upoll_get_fd(const struct upoll * __restrict poller)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 
 	return poller->fd;
 }
@@ -111,8 +127,9 @@ void
 upoll_unregister(const struct upoll * __restrict poller, int fd)
 {
 	upoll_assert_api(poller);
-	upoll_assert_api(poller->fd >= 0);
-	upoll_assert_api(poller->nr > 0);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
 	upoll_assert_api(fd >= 0);
 
 	/*

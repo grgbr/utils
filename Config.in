@@ -1,3 +1,7 @@
+config UTILS_PROVIDES_LIBS
+       bool
+       default n
+
 config UTILS_ASSERT_API
 	bool "API assertion"
 	default n
@@ -27,6 +31,7 @@ config UTILS_ATOMIC
 
 config UTILS_SIGNAL
 	bool "Signals"
+	select UTILS_PROVIDES_LIBS
 	default y
 	help
 	  Build utils library POSIX signal wrappers.
@@ -48,6 +53,7 @@ config UTILS_THREAD
 
 config UTILS_TIME
 	bool "Time"
+	select UTILS_PROVIDES_LIBS
 	default y
 	help
 	  Build utils library POSIX clock and time wrappers.
@@ -105,6 +111,7 @@ endchoice
 config UTILS_PATH
 	bool "Filesystem paths"
 	default y
+	select UTILS_PROVIDES_LIBS
 	select UTILS_STR
 	help
 	  Build utils library POSIX filesystem paths manipulation utilities.
@@ -139,6 +146,7 @@ config UTILS_DIR
 
 config UTILS_STR
 	bool "String utilities"
+	select UTILS_PROVIDES_LIBS
 	default y
 	help
 	  Build utils library with string utilities support.

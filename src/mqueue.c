@@ -20,7 +20,7 @@ umq_validate_name(const char * __restrict name)
 		if (len < 0)
 			return len;
 
-		if (memchr(&name[1], '/', len))
+		if (memchr(&name[1], '/', (size_t)len))
 			return -EISDIR;
 
 		return len + 1;

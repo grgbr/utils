@@ -85,11 +85,23 @@
 	(1UL << UTIMER_TICK_SUBSEC_BITS)
 
 /*
+ * Maximum tick value that can be encoded.
+ *
+ * Allows to prevent overflow while converting a tick second part to the tv_sec
+ * field of a struct timespec.
+ * Since tv_sec is a time_t (i.e., a signed 64 bits), we must make sure that a
+ * tick is no larger than INT64_MAX when UTIMER_TICK_SUBSEC_BITS subsecond
+ * precision bits is zero, i.e., when all bits of a tick encode only seconds...
+ */
+#define UTIMER_TICK_MAX \
+	(UINT64_MAX >> (int)!(UTIMER_TICK_SUBSEC_BITS))
+
+/*
  * Maximum tick value expressed as milliseconds that can be encoded within an
- * unsigned long
+ * signed long (required since utimer_issue_msec() returns a long int).
  */
 #define UTIMER_TICK_MSEC_MAX \
-	(((uint64_t)(ULONG_MAX) << UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000))
+	(((uint64_t)(LONG_MAX) << UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000))
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
@@ -128,10 +140,11 @@ static inline __utils_nonull(2) __utils_nothrow
 void
 utimer_tspec_from_tick(uint64_t tick, struct timespec * __restrict result)
 {
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
 	utimer_assert_api(result);
 
 	/* seconds = number of ticks / number of ticks per second */
-	result->tv_sec = tick >> UTIMER_TICK_SUBSEC_BITS;
+	result->tv_sec = (time_t)(tick >> UTIMER_TICK_SUBSEC_BITS);
 	/* nanoseconds = number of sub second ticks * tick period */
 	result->tv_nsec = (tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC;
 }

@@ -122,7 +122,7 @@ utimer_issue_msec(void)
 		tick = stroll_max(issue, tick) - tick;
 		tick = stroll_min(tick, UTIMER_TICK_MSEC_MAX);
 
-		return utimer_msec_from_tick_lower(tick);
+		return (long)utimer_msec_from_tick_lower(tick);
 	}
 	else
 		return -1;
@@ -667,9 +667,9 @@ utimer_run(void)
 }
 
 /* TODO: expose timer lib init API ?? */
-static __utils_nothrow __ctor()
+static __ctor() __utils_nothrow
 void
-utimer_hwheel_init(void)
+utimer_ctor(void)
 {
 	unsigned int lvl;
 
