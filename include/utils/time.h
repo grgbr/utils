@@ -188,20 +188,14 @@ utime_tspec_from_msec(unsigned long msec)
 	return tspec;
 }
 
-static inline __utils_nonull(1) __utils_pure __utils_nothrow
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 long
 utime_msec_from_tspec(const struct timespec * __restrict tspec)
 {
+	utime_assert_tspec(tspec);
+	utime_assert_api(tspec->tv_sec <= (LONG_MAX / 1000L));
+
 	return (tspec->tv_sec * 1000L) + (tspec->tv_nsec / 1000000L);
-}
-
-static inline __utils_nonull(1) __utils_nothrow
-void
-utime_tspec_add_sec(struct timespec * __restrict result, unsigned long sec)
-{
-	utime_assert_api(result);
-
-	result->tv_sec += (time_t)sec;
 }
 
 extern void
@@ -212,6 +206,18 @@ utime_tspec_add(struct timespec * __restrict       result,
 extern void
 utime_tspec_add_msec(struct timespec * __restrict result, unsigned long msec)
 	__utils_nonull(1) __utils_nothrow;
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+utime_tspec_add_sec(struct timespec * __restrict result, unsigned long sec)
+{
+	utime_assert_tspec(result);
+	utime_assert_api(sec <= LONG_MAX);
+	utime_assert_api(((unsigned long)result->tv_sec + (unsigned long)sec)
+	                 <= (unsigned long)LONG_MAX);
+
+	result->tv_sec += (time_t)sec;
+}
 
 extern void
 utime_tspec_sub(struct timespec * __restrict       result,

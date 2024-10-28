@@ -34,17 +34,22 @@ utime_tspec_add(struct timespec * __restrict       result,
 {
 	utime_assert_tspec(result);
 	utime_assert_tspec(amount);
-	utime_assert_api(amount->tv_sec >= 0);
+	utime_assert_api(result != amount);
 
-	long nsec = result->tv_nsec + amount->tv_nsec;
+	unsigned long nsec = (unsigned long)result->tv_nsec +
+	                     (unsigned long)amount->tv_nsec;
 
-	if (nsec >= 1000000000L) {
+	utime_assert_api(((unsigned long)result->tv_sec +
+	                  (unsigned long)amount->tv_sec +
+	                  (nsec / 1000000000UL)) <= (unsigned long)LONG_MAX);
+
+	if (nsec >= 1000000000UL) {
 		result->tv_sec += amount->tv_sec + 1;
-		result->tv_nsec = nsec - 1000000000L;
+		result->tv_nsec = (long)(nsec - 1000000000UL);
 	}
 	else {
 		result->tv_sec += amount->tv_sec;
-		result->tv_nsec = nsec;
+		result->tv_nsec = (long)nsec;
 	}
 }
 
