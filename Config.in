@@ -17,6 +17,12 @@ config UTILS_ASSERT_INTERN
 	help
 	  Build utils library with internal assertions enabled.
 
+config UTILS_UTEST
+	bool "Unit tests"
+	default n
+	help
+	  Build Utils library unit test suite.
+
 config UTILS_VALGRIND
 	bool "Valgrind support"
 	default n

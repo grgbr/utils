@@ -13,19 +13,19 @@ utime_tspec_cmp(const struct timespec * __restrict fst,
 {
 	utime_assert_tspec(fst);
 	utime_assert_tspec(snd);
+	utime_assert_api(fst != snd);
 
 	if (fst->tv_sec > snd->tv_sec)
 		return 1;
 	else if (fst->tv_sec < snd->tv_sec)
 		return -1;
-	else {
-		if (fst->tv_nsec > snd->tv_nsec)
-			return 1;
-		if (fst->tv_nsec < snd->tv_nsec)
-			return -1;
-		else
-			return 0;
-	}
+
+	if (fst->tv_nsec > snd->tv_nsec)
+		return 1;
+	else if (fst->tv_nsec < snd->tv_nsec)
+		return -1;
+	else
+		return 0;
 }
 
 void

@@ -1,7 +1,7 @@
 ################################################################################
 # SPDX-License-Identifier: LGPL-3.0-only
 #
-# This file is part of Stroll.
+# This file is part of Utils.
 # Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
 ################################################################################
 
@@ -29,6 +29,11 @@ headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
 
 subdirs   := src
+
+ifeq ($(CONFIG_UTILS_UTEST),y)
+subdirs   += test
+test-deps := src
+endif # ($(CONFIG_UTILS_UTEST),y)
 
 ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 override libutils_pkgconf_libs := \
