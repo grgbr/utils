@@ -131,50 +131,50 @@ utime_proc_now(struct timespec * now)
  * See https://www.gnu.org/software/libc/manual/html_node/Time-Types.html for
  * more informations.
  */
-#define utime_assert_tspec(_tspec) \
+#define utime_assert_tspec_api(_tspec) \
 	utime_assert_api(_tspec); \
 	utime_assert_api((_tspec)->tv_sec >= 0); \
 	utime_assert_api((_tspec)->tv_nsec >= 0); \
 	utime_assert_api((_tspec)->tv_nsec < 1000000000L)
 
 extern int
-utime_tspec_cmp(const struct timespec * __restrict fst,
-                const struct timespec * __restrict snd)
+utime_tspec_cmp(const struct timespec * __restrict first,
+                const struct timespec * __restrict second)
 	__utils_nonull(1, 2) __utils_pure __utils_nothrow __leaf __warn_result;
 
 static inline __utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result
 bool
-utime_tspec_after(const struct timespec * __restrict fst,
-                  const struct timespec * __restrict snd)
+utime_tspec_after(const struct timespec * __restrict first,
+                  const struct timespec * __restrict second)
 {
-	return (utime_tspec_cmp(fst, snd) > 0);
+	return (utime_tspec_cmp(first, second) > 0);
 }
 
 static inline __utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result
 bool
-utime_tspec_after_eq(const struct timespec * __restrict fst,
-                     const struct timespec * __restrict snd)
+utime_tspec_after_eq(const struct timespec * __restrict first,
+                     const struct timespec * __restrict second)
 {
-	return (utime_tspec_cmp(fst, snd) >= 0);
+	return (utime_tspec_cmp(first, second) >= 0);
 }
 
 static inline __utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result
 bool
-utime_tspec_before(const struct timespec * __restrict fst,
-                   const struct timespec * __restrict snd)
+utime_tspec_before(const struct timespec * __restrict first,
+                   const struct timespec * __restrict second)
 {
-	return (utime_tspec_cmp(fst, snd) < 0);
+	return (utime_tspec_cmp(first, second) < 0);
 }
 
 static inline __utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result
 bool
-utime_tspec_before_eq(const struct timespec * __restrict fst,
-                      const struct timespec * __restrict snd)
+utime_tspec_before_eq(const struct timespec * __restrict first,
+                      const struct timespec * __restrict second)
 {
-	return (utime_tspec_cmp(fst, snd) <= 0);
+	return (utime_tspec_cmp(first, second) <= 0);
 }
 
-static inline __stroll_const __utils_nothrow __warn_result
+static inline __utils_const __utils_nothrow __warn_result
 struct timespec
 utime_tspec_from_msec(unsigned long msec)
 {
@@ -182,7 +182,7 @@ utime_tspec_from_msec(unsigned long msec)
 
 	const struct timespec tspec = {
 		.tv_sec  = (time_t)(msec / 1000UL),
-		.tv_nsec = (long)((msec % 1000UL) * 1000000L)
+		.tv_nsec = (long)((msec % 1000UL) * 1000000UL)
 	};
 
 	return tspec;
@@ -192,7 +192,7 @@ static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 long
 utime_msec_from_tspec(const struct timespec * __restrict tspec)
 {
-	utime_assert_tspec(tspec);
+	utime_assert_tspec_api(tspec);
 	utime_assert_api(tspec->tv_sec <= (LONG_MAX / 1000L));
 
 	return (tspec->tv_sec * 1000L) + (tspec->tv_nsec / 1000000L);
@@ -211,7 +211,7 @@ static inline __utils_nonull(1) __utils_nothrow
 void
 utime_tspec_add_sec(struct timespec * __restrict result, unsigned long sec)
 {
-	utime_assert_tspec(result);
+	utime_assert_tspec_api(result);
 	utime_assert_api(sec <= LONG_MAX);
 	utime_assert_api(((unsigned long)result->tv_sec + (unsigned long)sec)
 	                 <= (unsigned long)LONG_MAX);
@@ -219,29 +219,28 @@ utime_tspec_add_sec(struct timespec * __restrict result, unsigned long sec)
 	result->tv_sec += (time_t)sec;
 }
 
-extern void
+extern int
 utime_tspec_sub(struct timespec * __restrict       result,
                 const struct timespec * __restrict amount)
-	__utils_nonull(1, 2) __utils_nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
-extern void
+extern int
 utime_tspec_sub_msec(struct timespec * __restrict result, unsigned long msec)
-	__utils_nonull(1) __utils_nothrow;
+	__utils_nonull(1) __utils_nothrow __warn_result;
 
-static inline __utils_nonull(1) __utils_nothrow
-void
+extern int
 utime_tspec_sub_sec(struct timespec * __restrict result, unsigned long sec)
-{
-	utime_assert_api(result);
-	utime_assert_api(sec);
-
-	result->tv_sec -= (time_t)sec;
-}
+	__utils_nonull(1) __utils_nothrow __warn_result;
 
 extern long
-utime_tspec_diff_msec(const struct timespec * __restrict fst,
-                      const struct timespec * __restrict snd)
-	__utils_nonull(1, 2) __utils_pure __utils_nothrow;
+utime_tspec_diff_msec(const struct timespec * __restrict first,
+                      const struct timespec * __restrict second)
+	__utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result;
+
+extern long
+utime_tspec_diff_sec(const struct timespec * __restrict first,
+                     const struct timespec * __restrict second)
+	__utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
@@ -251,7 +250,7 @@ utime_gmtime_from_tspec(struct tm * __restrict             time,
                         const struct timespec * __restrict tspec)
 {
 	utime_assert_api(time);
-	utime_assert_api(tspec);
+	utime_assert_tspec_api(tspec);
 
 	utime_assert_api(gmtime_r(&tspec->tv_sec, time));
 }

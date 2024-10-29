@@ -107,7 +107,7 @@ static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
 utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 {
-	utime_assert_tspec(tspec);
+	utime_assert_tspec_api(tspec);
 	utimer_assert_api(tspec->tv_sec >= 0);
 
 	/*
@@ -123,7 +123,7 @@ static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
 utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 {
-	utime_assert_tspec(tspec);
+	utime_assert_tspec_api(tspec);
 	utimer_assert_api(tspec->tv_sec >= 0);
 
 	/*
