@@ -202,7 +202,7 @@ positive:
 	return 1;
 
 negative:
-	*result = utime_tspec_absdiff(first, second);
+	*result = utime_tspec_absdiff(second, first);
 
 	return -1;
 }
