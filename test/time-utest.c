@@ -6,12 +6,7 @@
  ******************************************************************************/
 
 #include "utils/time.h"
-#include <cute/cute.h>
-#include <cute/check.h>
-#include <cute/expect.h>
-
-#define UTILSUT_NOASSERT_TEST(_test) \
-	CUTE_TEST(_test) { }
+#include "utest.h"
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 

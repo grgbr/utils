@@ -44,6 +44,7 @@ builtin_utest.a-cflags := $(test-cflags)
 
 checkbins           := utils-utest
 utils-utest-objs    += $(call kconf_enabled,UTILS_TIME,time-utest.o)
+utils-utest-objs    += $(call kconf_enabled,UTILS_TIMER,timer-utest.o)
 utils-utest-cflags  := $(test-cflags)
 utils-utest-ldflags := $(utest-ldflags)
 utils-utest-pkgconf := libstroll libcute

@@ -5,10 +5,8 @@
  * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
  ******************************************************************************/
 
-#include "utils/config.h"
+#include "utest.h"
 #include <stroll/assert.h>
-#include <cute/cute.h>
-#include <cute/expect.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -68,10 +66,17 @@ stroll_assert_fail(const char * __restrict prefix,
 #if defined(CONFIG_UTILS_TIME)
 extern CUTE_SUITE_DECL(utilsut_time_suite);
 #endif
+#if defined(CONFIG_UTILS_TIMER)
+extern CUTE_SUITE_DECL(utilsut_timer_suite);
+#endif
+
 
 CUTE_GROUP(utilsut_group) = {
 #if defined(CONFIG_UTILS_TIME)
 	CUTE_REF(utilsut_time_suite),
+#endif
+#if defined(CONFIG_UTILS_TIMER)
+	CUTE_REF(utilsut_timer_suite),
 #endif
 };
 

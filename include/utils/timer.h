@@ -63,7 +63,7 @@
  *
  * Watch out!
  * The tick period MUST be a divisor of 1000000000 nanoseconds so that we can
- * perform power of 2 arithmetic (see utimer_tick_from_tspec_lower(),
+ * perform power of 2 arithmetics (see utimer_tick_from_tspec_lower(),
  * utimer_tick_from_tspec_upper() and utimer_tspec_from_tick()).
  * This is the reason why UTIMER_TICK_SUBSEC_BITS MUST be < 10.
  */
@@ -90,32 +90,61 @@
  * Allows to prevent overflow while converting a tick second part to the tv_sec
  * field of a struct timespec.
  * Since tv_sec is a time_t (i.e., a signed 64 bits), we must make sure that a
- * tick is no larger than INT64_MAX when UTIMER_TICK_SUBSEC_BITS subsecond
- * precision bits is zero, i.e., when all bits of a tick encode only seconds...
+ * tick is no larger than INT64_MAX.
  */
 #define UTIMER_TICK_MAX \
-	(UINT64_MAX >> (int)!(UTIMER_TICK_SUBSEC_BITS))
+	((uint64_t)INT64_MAX)
 
 /*
- * Maximum tick value expressed as milliseconds that can be encoded within an
- * signed long (required since utimer_issue_msec() returns a long int).
+ * Maximum tick value that can be encoded as milliseconds within a signed long
+ * (required since utimer_issue_msec() returns a long int).
  */
 #define UTIMER_TICK_MSEC_MAX \
-	(((uint64_t)(LONG_MAX) << UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000))
+	((((uint64_t)(LONG_MAX) / UINT64_C(1000)) << \
+	  UTIMER_TICK_SUBSEC_BITS) + \
+	  ((((uint64_t)(LONG_MAX) % UINT64_C(1000)) << \
+	    UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000)))
+
+#if !defined(_TIME_BITS)
+#define UTIMER_TIMET_BITS __TIMESIZE
+#else  /* defined(_TIME_BITS) */
+#define UTIMER_TIMET_BITS _TIME_BITS
+#endif /* !defined(_TIME_BITS) */
+
+#if UTIMER_TIMET_BITS == 32
+
+/*
+ * Maximum tick value that can be encoded as seconds within a time_t used by the
+ * tv_sec field of struct timespec when compiled with signed 32-bits time_t.
+ */
+#define UTIMER_TICK_SEC_MAX \
+	((uint64_t)(INT32_MAX) << UTIMER_TICK_SUBSEC_BITS)
+
+#elif UTIMER_TIMET_BITS == 64
+
+/*
+ * Maximum tick value that can be encoded as seconds within a time_t used by the
+ * tv_sec field of struct timespec when compiled with signed 64-bits time_t.
+ */
+#define UTIMER_TICK_SEC_MAX \
+	((uint64_t)(INT64_MAX))
+
+#else
+#error Unexpected time_t bit width value (can only be 32 or 64-bit) !
+#endif
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
 utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 {
 	utime_assert_tspec_api(tspec);
-	utimer_assert_api(tspec->tv_sec >= 0);
 
 	/*
 	 * ticks = (number of seconds * number of ticks per second) +
 	 *         (number of nanoseconds / tick period)
 	 * rounded to lower multiple of tick period.
 	 */
-	return ((uint64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) |
+	return ((uint64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) +
 	       ((uint64_t)tspec->tv_nsec / UTIMER_TICK_NSEC);
 }
 
@@ -124,14 +153,13 @@ uint64_t
 utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 {
 	utime_assert_tspec_api(tspec);
-	utimer_assert_api(tspec->tv_sec >= 0);
 
 	/*
 	 * ticks = (number of seconds * number of ticks per second) +
 	 *         (number of nanoseconds / tick period)
 	 * rounded to upper multiple of tick period.
 	 */
-	return ((uint64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) |
+	return ((uint64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) +
 	       (((uint64_t)tspec->tv_nsec + UTIMER_TICK_NSEC - 1) /
 	        UTIMER_TICK_NSEC);
 }
@@ -155,7 +183,11 @@ utimer_msec_from_tick_lower(uint64_t tick)
 {
 	utimer_assert_api(tick <= UTIMER_TICK_MSEC_MAX);
 
-	return (unsigned long)((tick * UTIMER_TICK_NSEC) / UINT64_C(1000000));
+	uint64_t secs = tick >> UTIMER_TICK_SUBSEC_BITS;
+	uint64_t nsecs = (tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC;
+
+	return (unsigned long)
+	       ((secs * UINT64_C(1000)) + (nsecs / UINT64_C(1000000)));
 }
 
 static inline __utils_const __utils_nothrow
@@ -164,9 +196,31 @@ utimer_msec_from_tick_upper(uint64_t tick)
 {
 	utimer_assert_api(tick <= UTIMER_TICK_MSEC_MAX);
 
+	uint64_t secs = tick >> UTIMER_TICK_SUBSEC_BITS;
+	uint64_t nsecs = (tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC;
+
 	return (unsigned long)
-	       (((tick * UTIMER_TICK_NSEC) + UINT64_C(1000000) - 1) /
-	        UINT64_C(1000000));
+	       ((secs * UINT64_C(1000)) +
+	        ((nsecs + UINT64_C(1000000) - 1) / UINT64_C(1000000)));
+}
+
+static inline __utils_const __utils_nothrow
+unsigned long
+utimer_sec_from_tick_lower(uint64_t tick)
+{
+	utimer_assert_api(tick <= UTIMER_TICK_SEC_MAX);
+
+	return (unsigned long)(tick >> UTIMER_TICK_SUBSEC_BITS);
+}
+
+static inline __utils_const __utils_nothrow
+unsigned long
+utimer_sec_from_tick_upper(uint64_t tick)
+{
+	utimer_assert_api(tick <= UTIMER_TICK_SEC_MAX);
+
+	return (unsigned long)
+	       ((tick + UTIMER_TICK_SUBSEC_MASK) >> UTIMER_TICK_SUBSEC_BITS);
 }
 
 extern uint64_t
