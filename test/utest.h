@@ -12,8 +12,12 @@
 #include <cute/cute.h>
 #include <cute/check.h>
 #include <cute/expect.h>
+#include <time.h>
 
 #define UTILSUT_NOASSERT_TEST(_test) \
 	CUTE_TEST(_test) { }
+
+extern void
+utilsut_expect_monotonic_now(time_t secs, long nsecs);
 
 #endif /* _UTILS_UTEST_H */

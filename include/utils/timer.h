@@ -105,6 +105,17 @@
 	  ((((uint64_t)(LONG_MAX) % UINT64_C(1000)) << \
 	    UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000)))
 
+/*
+ * Detect size of time_t type used to encode tv_sec field of struct timespec.
+ *
+ * As stated into the glibc manual section "Feature Test Macros", the _TIME_BITS
+ * macro controls the bit size of time_t, and therefore the bit size of all
+ * time_t-derived types and the prototypes of all related functions.
+ * 
+ * See
+ * https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
+ * for more infos.
+ */
 #if !defined(_TIME_BITS)
 #define UTIMER_TIMET_BITS __TIMESIZE
 #else  /* defined(_TIME_BITS) */
@@ -251,7 +262,7 @@ uint64_t
 utimer_expiry_tick(const struct utimer * __restrict timer)
 {
 	utimer_assert_api(timer);
-	utimer_assert_api(timer->expire);
+	utimer_assert_api(stroll_dlist_empty(&timer->node) || timer->expire);
 
 	return timer->tick;
 }
@@ -261,7 +272,7 @@ bool
 utimer_is_armed(const struct utimer * __restrict timer)
 {
 	utimer_assert_api(timer);
-	utimer_assert_api(timer->expire);
+	utimer_assert_api(stroll_dlist_empty(&timer->node) || timer->expire);
 
 	return !stroll_dlist_empty(&timer->node);
 }
@@ -271,7 +282,7 @@ utimer_is_armed(const struct utimer * __restrict timer)
 extern void
 utimer_arm_tspec(struct utimer * __restrict         timer,
                  const struct timespec * __restrict tspec)
-	__utils_nonull(1, 2) __utils_nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow;
 
 extern void
 utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
@@ -314,6 +325,10 @@ utimer_cancel(struct utimer * __restrict timer)
 
 #endif /* defined(CONFIG_UTILS_TIMER_HWHEEL) */
 
+extern void
+utimer_arm_tick(struct utimer * __restrict timer, uint64_t tick)
+	__utils_nonull(1) __utils_nothrow __leaf;
+
 static inline __utils_nonull(1, 2) __utils_nothrow
 void
 utimer_setup(struct utimer * __restrict timer,
@@ -335,8 +350,9 @@ utimer_init(struct utimer * __restrict timer, utimer_expire_fn * expire)
 	timer->expire = expire;
 }
 
-extern uint64_t
-utimer_issue_tick(void) __utils_pure __utils_nothrow __leaf __warn_result;
+extern int
+utimer_issue_tick(uint64_t * __restrict tick)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern struct timespec *
 utimer_issue_tspec(struct timespec * __restrict tspec)
