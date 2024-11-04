@@ -85,27 +85,6 @@
 	(1UL << UTIMER_TICK_SUBSEC_BITS)
 
 /*
- * Maximum tick value that can be encoded.
- *
- * Allows to prevent overflow while converting a tick second part to the tv_sec
- * field of a struct timespec.
- * Since tv_sec is a time_t (i.e., a signed 64 bits), we must make sure that a
- * tick is no larger than INT64_MAX.
- */
-#define UTIMER_TICK_MAX \
-	((uint64_t)INT64_MAX)
-
-/*
- * Maximum tick value that can be encoded as milliseconds within a signed long
- * (required since utimer_issue_msec() returns a long int).
- */
-#define UTIMER_TICK_MSEC_MAX \
-	((((uint64_t)(LONG_MAX) / UINT64_C(1000)) << \
-	  UTIMER_TICK_SUBSEC_BITS) + \
-	  ((((uint64_t)(LONG_MAX) % UINT64_C(1000)) << \
-	    UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000)))
-
-/*
  * Detect size of time_t type used to encode tv_sec field of struct timespec.
  *
  * As stated into the glibc manual section "Feature Test Macros", the _TIME_BITS
@@ -122,33 +101,61 @@
 #define UTIMER_TIMET_BITS _TIME_BITS
 #endif /* !defined(_TIME_BITS) */
 
-#if UTIMER_TIMET_BITS == 32
-
 /*
- * Maximum tick value that can be encoded as seconds within a time_t used by the
- * tv_sec field of struct timespec when compiled with signed 32-bits time_t.
+ * Maximum tick value that can be encoded.
+ *
+ * Allows to prevent overflow while converting a tick's second part to the
+ * tv_sec field of a struct timespec (tv_sec is a time_t, i.e., either a signed
+ * 64 or 32 bits word).
  */
-#define UTIMER_TICK_SEC_MAX \
-	((uint64_t)(INT32_MAX) << UTIMER_TICK_SUBSEC_BITS)
+#if UTIMER_TIMET_BITS == 32
+#define UTIMER_TICK_MAX \
+	(UINT64_MAX >> (64 - (31 + UTIMER_TICK_SUBSEC_BITS)))
 
 #elif UTIMER_TIMET_BITS == 64
+#define UTIMER_TICK_MAX \
+	(UINT64_MAX >> 1)
+#else
+#error Unexpected time_t bit width value (can only be 32 or 64-bit) !
+#endif
 
 /*
  * Maximum tick value that can be encoded as seconds within a time_t used by the
  * tv_sec field of struct timespec when compiled with signed 64-bits time_t.
  */
-#define UTIMER_TICK_SEC_MAX \
-	((uint64_t)(INT64_MAX))
+/*
+ * Maximum tick value that can be encoded as seconds within a time_t used by the
+ * tv_sec field of struct timespec when compiled with signed 32-bits time_t.
+ */
 
-#else
-#error Unexpected time_t bit width value (can only be 32 or 64-bit) !
-#endif
+#define UTIMER_SEC_MAX \
+	((unsigned long)(UTIMER_TICK_MAX >> UTIMER_TICK_SUBSEC_BITS))
+
+#define UTIMER_TVSEC_MAX \
+	((time_t)(UTIMER_TICK_MAX >> UTIMER_TICK_SUBSEC_BITS))
+
+/*
+ * Maximum tick value that can be encoded as milliseconds within a signed long
+ * (required since utimer_issue_msec() returns a long int).
+ */
+#define UTIMER_TICK_MSEC_MAX \
+	((((uint64_t)(LONG_MAX) / UINT64_C(1000)) << \
+	  UTIMER_TICK_SUBSEC_BITS) + \
+	  ((((uint64_t)(LONG_MAX) % UINT64_C(1000)) << \
+	    UTIMER_TICK_SUBSEC_BITS) / UINT64_C(1000)))
+
+#define utimer_assert_tspec_api(tspec) \
+	utimer_assert_api(_tspec); \
+	utimer_assert_api((_tspec)->tv_sec >= 0); \
+	utimer_assert_api((_tspec)->tv_sec <= UTIMER_TVSEC_MAX); \
+	utimer_assert_api((_tspec)->tv_nsec >= 0); \
+	utimer_assert_api((_tspec)->tv_nsec < 1000000000L)
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
 utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 {
-	utime_assert_tspec_api(tspec);
+	utimer_assert_tspec_api(tspec);
 
 	/*
 	 * ticks = (number of seconds * number of ticks per second) +
@@ -163,7 +170,7 @@ static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 uint64_t
 utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 {
-	utime_assert_tspec_api(tspec);
+	utimer_assert_tspec_api(tspec);
 
 	/*
 	 * ticks = (number of seconds * number of ticks per second) +
@@ -219,7 +226,7 @@ static inline __utils_const __utils_nothrow
 unsigned long
 utimer_sec_from_tick_lower(uint64_t tick)
 {
-	utimer_assert_api(tick <= UTIMER_TICK_SEC_MAX);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
 
 	return (unsigned long)(tick >> UTIMER_TICK_SUBSEC_BITS);
 }
@@ -228,7 +235,7 @@ static inline __utils_const __utils_nothrow
 unsigned long
 utimer_sec_from_tick_upper(uint64_t tick)
 {
-	utimer_assert_api(tick <= UTIMER_TICK_SEC_MAX);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
 
 	return (unsigned long)
 	       ((tick + UTIMER_TICK_SUBSEC_MASK) >> UTIMER_TICK_SUBSEC_BITS);

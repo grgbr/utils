@@ -158,7 +158,7 @@ utimer_arm_tspec(struct utimer * __restrict         timer,
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utime_assert_tspec_api(tspec);
+	utimer_assert_tspec_api(tspec);
 
 	utimer_arm_tick(timer, utimer_tick_from_tspec_upper(tspec));
 }
