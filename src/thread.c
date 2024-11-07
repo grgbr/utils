@@ -24,16 +24,16 @@
 int
 uthr_timed_wait_cond_msec(struct uthr_cond * __restrict  cond,
                           struct uthr_mutex * __restrict mutex,
-                          unsigned long                  tmout_msec)
+                          unsigned int                   msec)
 {
 	uthr_assert_api(cond);
 	uthr_assert_api(mutex);
 
-	if (tmout_msec) {
+	if (msec) {
 		struct timespec tmout;
 
 		uthr_cond_now(cond, &tmout);
-		utime_tspec_add_msec(&tmout, tmout_msec);
+		utime_tspec_add_msec_clamp(&tmout, msec);
 
 		return uthr_timed_wait_cond(cond, mutex, &tmout);
 	}

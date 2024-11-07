@@ -132,22 +132,22 @@ UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_cmp_assert)
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 static const struct timespec utilsut_utime_values[] = {
-	{ .tv_sec = 0,            .tv_nsec = 0 },
-	{ .tv_sec = 0,            .tv_nsec = 1 },
-	{ .tv_sec = 0,            .tv_nsec = 500000000 },
-	{ .tv_sec = 0,            .tv_nsec = 999999999 },
-	{ .tv_sec = 1000,         .tv_nsec = 0 },
-	{ .tv_sec = 1000,         .tv_nsec = 1 },
-	{ .tv_sec = 1000,         .tv_nsec = 500000000 },
-	{ .tv_sec = 1000,         .tv_nsec = 999999999 },
-	{ .tv_sec = LONG_MAX / 2, .tv_nsec = 0 },
-	{ .tv_sec = LONG_MAX / 2, .tv_nsec = 1 },
-	{ .tv_sec = LONG_MAX / 2, .tv_nsec = 500000000 },
-	{ .tv_sec = LONG_MAX / 2, .tv_nsec = 999999999 },
-	{ .tv_sec = LONG_MAX,     .tv_nsec = 0 },
-	{ .tv_sec = LONG_MAX,     .tv_nsec = 1 },
-	{ .tv_sec = LONG_MAX,     .tv_nsec = 500000000 },
-	{ .tv_sec = LONG_MAX,     .tv_nsec = 999999999 }
+	{ .tv_sec = 0,                   .tv_nsec = 0 },
+	{ .tv_sec = 0,                   .tv_nsec = 1 },
+	{ .tv_sec = 0,                   .tv_nsec = 500000000 },
+	{ .tv_sec = 0,                   .tv_nsec = 999999999 },
+	{ .tv_sec = 1000,                .tv_nsec = 0 },
+	{ .tv_sec = 1000,                .tv_nsec = 1 },
+	{ .tv_sec = 1000,                .tv_nsec = 500000000 },
+	{ .tv_sec = 1000,                .tv_nsec = 999999999 },
+	{ .tv_sec = UTIME_TIMET_MAX / 2, .tv_nsec = 0 },
+	{ .tv_sec = UTIME_TIMET_MAX / 2, .tv_nsec = 1 },
+	{ .tv_sec = UTIME_TIMET_MAX / 2, .tv_nsec = 500000000 },
+	{ .tv_sec = UTIME_TIMET_MAX / 2, .tv_nsec = 999999999 },
+	{ .tv_sec = UTIME_TIMET_MAX,     .tv_nsec = 0 },
+	{ .tv_sec = UTIME_TIMET_MAX,     .tv_nsec = 1 },
+	{ .tv_sec = UTIME_TIMET_MAX,     .tv_nsec = 500000000 },
+	{ .tv_sec = UTIME_TIMET_MAX,     .tv_nsec = 999999999 }
 };
 
 CUTE_TEST(utilsut_utime_tspec_cmp)
@@ -346,8 +346,8 @@ CUTE_TEST(utilsut_utime_tspec_from_msec_assert)
 {
 	struct timespec tspec __unused;
 
-	cute_expect_assertion(tspec = utime_tspec_from_msec((unsigned long)
-	                                                    LONG_MAX + 1));
+	cute_expect_assertion(tspec = utime_tspec_from_msec((unsigned int)
+	                                                    INT_MAX + 1));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
@@ -358,7 +358,7 @@ UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_from_msec_assert)
 
 static const struct {
 		struct timespec tspec;
-		unsigned long   msecs;
+		unsigned int    msecs;
 } utilsut_utime_msecs_tspec_values[] = {
 	{
 		.tspec.tv_sec  = 0,
@@ -401,9 +401,9 @@ static const struct {
 		.msecs         = 2999
 	},
 	{
-		.tspec.tv_sec  = LONG_MAX / 1000L,
-		.tspec.tv_nsec = (LONG_MAX % 1000L) * 1000000L,
-		.msecs         = LONG_MAX
+		.tspec.tv_sec  = INT_MAX / 1000,
+		.tspec.tv_nsec = ((long)INT_MAX % 1000L) * 1000000L,
+		.msecs         = INT_MAX
 	}
 };
 
@@ -468,14 +468,14 @@ CUTE_TEST(utilsut_utime_msec_from_tspec)
 	for (v = 0;
 	     v < stroll_array_nr(utilsut_utime_msecs_tspec_values);
 	     v++) {
-		long check;
+		int check;
 
 		check = utime_msec_from_tspec(
 			&utilsut_utime_msecs_tspec_values[v].tspec);
 
 		cute_check_sint(check, greater_equal, 0);
 		cute_check_uint(
-			(unsigned long)check,
+			(unsigned int)check,
 			equal,
 			utilsut_utime_msecs_tspec_values[v].msecs);
 	}
@@ -498,16 +498,17 @@ CUTE_TEST(utilsut_utime_tspec_add_assert)
 		.tv_sec  = 0,
 		.tv_nsec = -1
 	};
+	int             err __unused;
 
-	cute_expect_assertion(utime_tspec_add(&tspec, NULL));
-	cute_expect_assertion(utime_tspec_add(NULL, &tspec));
-	cute_expect_assertion(utime_tspec_add(NULL, NULL));
-	cute_expect_assertion(utime_tspec_add(&tspec, &sec_neg));
-	cute_expect_assertion(utime_tspec_add(&sec_neg, &tspec));
-	cute_expect_assertion(utime_tspec_add(&tspec, &nsec_over));
-	cute_expect_assertion(utime_tspec_add(&nsec_over, &tspec));
-	cute_expect_assertion(utime_tspec_add(&tspec, &nsec_neg));
-	cute_expect_assertion(utime_tspec_add(&nsec_neg, &tspec));
+	cute_expect_assertion(err = utime_tspec_add(&tspec, NULL));
+	cute_expect_assertion(err = utime_tspec_add(NULL, &tspec));
+	cute_expect_assertion(err = utime_tspec_add(NULL, NULL));
+	cute_expect_assertion(err = utime_tspec_add(&tspec, &sec_neg));
+	cute_expect_assertion(err = utime_tspec_add(&sec_neg, &tspec));
+	cute_expect_assertion(err = utime_tspec_add(&tspec, &nsec_over));
+	cute_expect_assertion(err = utime_tspec_add(&nsec_over, &tspec));
+	cute_expect_assertion(err = utime_tspec_add(&tspec, &nsec_neg));
+	cute_expect_assertion(err = utime_tspec_add(&nsec_neg, &tspec));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
@@ -565,19 +566,19 @@ CUTE_TEST(utilsut_utime_tspec_add)
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 0,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 0,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 0
 		},
 
@@ -622,19 +623,19 @@ CUTE_TEST(utilsut_utime_tspec_add)
 			.result.tv_nsec = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 1,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 1,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 1
 		},
 
@@ -679,19 +680,19 @@ CUTE_TEST(utilsut_utime_tspec_add)
 			.result.tv_nsec = 500000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 500000000,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 500000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 500000000,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 500000000
 		},
 
@@ -736,19 +737,19 @@ CUTE_TEST(utilsut_utime_tspec_add)
 			.result.tv_nsec = 999999999
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 999999999,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 999999999
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 999999999,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 999999999
 		},
 	};
@@ -756,7 +757,7 @@ CUTE_TEST(utilsut_utime_tspec_add)
 	for (r = 0; r < stroll_array_nr(ref); r++) {
 		struct timespec check = ref[r].first;
 
-		utime_tspec_add(&check, &ref[r].second);
+		utime_tspec_add_clamp(&check, &ref[r].second);
 
 		cute_check_sint(check.tv_sec,
 				equal,
@@ -772,8 +773,6 @@ CUTE_TEST(utilsut_utime_tspec_add)
 CUTE_TEST(utilsut_utime_tspec_add_msec_assert)
 {
 	struct timespec zero = { 0, 0 };
-	struct timespec maxs = { LONG_MAX - (LONG_MAX / 1000L) + 1, 0 };
-	struct timespec lmax = { LONG_MAX, 0 };
 	struct timespec sec_neg = {
 		.tv_sec  = -1,
 		.tv_nsec = 0
@@ -786,17 +785,15 @@ CUTE_TEST(utilsut_utime_tspec_add_msec_assert)
 		.tv_sec  = 0,
 		.tv_nsec = -1
 	};
+	int             err __unused;
 
-	cute_expect_assertion(utime_tspec_add_msec(NULL, 0));
-	cute_expect_assertion(utime_tspec_add_msec(&zero,
-	                                           (unsigned long)
-	                                           LONG_MAX + 1));
-	cute_expect_assertion(utime_tspec_add_msec(&maxs,
-	                                           (unsigned long)LONG_MAX));
-	cute_expect_assertion(utime_tspec_add_msec(&lmax, 1000U));
-	cute_expect_assertion(utime_tspec_add_msec(&sec_neg, 0));
-	cute_expect_assertion(utime_tspec_add_msec(&nsec_over, 0));
-	cute_expect_assertion(utime_tspec_add_msec(&nsec_neg, 0));
+	cute_expect_assertion(err = utime_tspec_add_msec(NULL, 0));
+	cute_expect_assertion(err = utime_tspec_add_msec(&zero,
+	                                                 (unsigned int)
+	                                                 INT_MAX + 1));
+	cute_expect_assertion(err = utime_tspec_add_msec(&sec_neg, 0));
+	cute_expect_assertion(err = utime_tspec_add_msec(&nsec_over, 0));
+	cute_expect_assertion(err = utime_tspec_add_msec(&nsec_neg, 0));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
@@ -810,7 +807,7 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned long   msecs;
+		unsigned int    msecs;
 		struct timespec result;
 	}            ref[] = {
 		{
@@ -849,17 +846,17 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 0,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.msecs          = 0,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 0
 		},
 
@@ -899,17 +896,17 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 			.result.tv_nsec = 1000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 1,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 1000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.msecs          = 1,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 1000000
 		},
 
@@ -949,17 +946,17 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 			.result.tv_nsec = 999000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 2999,
-			.result.tv_sec  = (LONG_MAX / 2) + 2,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) + 2,
 			.result.tv_nsec = 999000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX - 2,
+			.first.tv_sec   = UTIME_TIMET_MAX - 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 2999,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 999000000
 		}
 	};
@@ -967,7 +964,7 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 	for (r = 0; r < stroll_array_nr(ref); r++) {
 		struct timespec check = ref[r].first;
 
-		utime_tspec_add_msec(&check, ref[r].msecs);
+		utime_tspec_add_msec_clamp(&check, ref[r].msecs);
 
 		cute_check_sint(check.tv_sec,
 				equal,
@@ -983,8 +980,6 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 CUTE_TEST(utilsut_utime_tspec_add_sec_assert)
 {
 	struct timespec zero = { 0, 0 };
-	struct timespec maxs = { 1, 0 };
-	struct timespec lmax = { LONG_MAX, 0 };
 	struct timespec sec_neg = {
 		.tv_sec  = -1,
 		.tv_nsec = 0
@@ -997,19 +992,15 @@ CUTE_TEST(utilsut_utime_tspec_add_sec_assert)
 		.tv_sec  = 0,
 		.tv_nsec = -1
 	};
+	int             err __unused;
 
-	cute_expect_assertion(utime_tspec_add_sec(NULL, 0));
-	cute_expect_assertion(utime_tspec_add_sec(&zero,
-	                                          (unsigned long)
-	                                          LONG_MAX + 1));
-	cute_expect_assertion(utime_tspec_add_sec(&maxs,
-	                                          (unsigned long)LONG_MAX));
-	cute_expect_assertion(utime_tspec_add_sec(&lmax, 1U));
-	cute_expect_assertion(utime_tspec_add_sec(&lmax,
-	                                           (unsigned long)LONG_MAX));
-	cute_expect_assertion(utime_tspec_add_sec(&sec_neg, 0));
-	cute_expect_assertion(utime_tspec_add_sec(&nsec_over, 0));
-	cute_expect_assertion(utime_tspec_add_sec(&nsec_neg, 0));
+	cute_expect_assertion(err = utime_tspec_add_sec(NULL, 0));
+	cute_expect_assertion(err = utime_tspec_add_sec(&zero,
+	                                                (unsigned int)
+	                                                INT_MAX + 1));
+	cute_expect_assertion(err = utime_tspec_add_sec(&sec_neg, 0));
+	cute_expect_assertion(err = utime_tspec_add_sec(&nsec_over, 0));
+	cute_expect_assertion(err = utime_tspec_add_sec(&nsec_neg, 0));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
@@ -1023,7 +1014,7 @@ CUTE_TEST(utilsut_utime_tspec_add_sec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned long   secs;
+		unsigned int    secs;
 		struct timespec result;
 	}            ref[] = {
 		{
@@ -1062,17 +1053,17 @@ CUTE_TEST(utilsut_utime_tspec_add_sec)
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.secs           = 0,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.secs           = 0,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 0
 		},
 
@@ -1112,17 +1103,17 @@ CUTE_TEST(utilsut_utime_tspec_add_sec)
 			.result.tv_nsec = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 500000000,
 			.secs           = 1,
-			.result.tv_sec  = (LONG_MAX / 2) + 1,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) + 1,
 			.result.tv_nsec = 500000000
 		},
 		{
-			.first.tv_sec   = LONG_MAX - 1,
+			.first.tv_sec   = UTIME_TIMET_MAX - 1,
 			.first.tv_nsec  = 500000000,
 			.secs           = 1,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 500000000
 		},
 	};
@@ -1130,7 +1121,7 @@ CUTE_TEST(utilsut_utime_tspec_add_sec)
 	for (r = 0; r < stroll_array_nr(ref); r++) {
 		struct timespec check = ref[r].first;
 
-		utime_tspec_add_sec(&check, ref[r].secs);
+		utime_tspec_add_sec_clamp(&check, ref[r].secs);
 
 		cute_check_sint(check.tv_sec,
 				equal,
@@ -1232,20 +1223,20 @@ CUTE_TEST(utilsut_utime_tspec_sub)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 0,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 0,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 0,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 0,
 			.sign           = 1
 		},
@@ -1296,20 +1287,20 @@ CUTE_TEST(utilsut_utime_tspec_sub)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 1,
-			.result.tv_sec  = (LONG_MAX / 2) - 1,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.result.tv_nsec = 999999999,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 1,
-			.result.tv_sec  = LONG_MAX - 1,
+			.result.tv_sec  = UTIME_TIMET_MAX - 1,
 			.result.tv_nsec = 999999999,
 			.sign           = 1
 		},
@@ -1360,20 +1351,20 @@ CUTE_TEST(utilsut_utime_tspec_sub)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 500000000,
-			.result.tv_sec  = (LONG_MAX / 2) - 1,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.result.tv_nsec = 500000000,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 500000000,
-			.result.tv_sec  = LONG_MAX - 1,
+			.result.tv_sec  = UTIME_TIMET_MAX - 1,
 			.result.tv_nsec = 500000000,
 			.sign           = 1
 		},
@@ -1424,20 +1415,20 @@ CUTE_TEST(utilsut_utime_tspec_sub)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 999999999,
-			.result.tv_sec  = (LONG_MAX / 2) - 1,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.result.tv_nsec = 1,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.second.tv_sec  = 0,
 			.second.tv_nsec = 999999999,
-			.result.tv_sec  = LONG_MAX - 1,
+			.result.tv_sec  = UTIME_TIMET_MAX - 1,
 			.result.tv_nsec = 1,
 			.sign           = 1
 		},
@@ -1480,8 +1471,8 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec_assert)
 
 	cute_expect_assertion(sign = utime_tspec_sub_msec(NULL, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&zero,
-	                                                  (unsigned long)
-	                                                  LONG_MAX + 1));
+	                                                  (unsigned int)
+	                                                  INT_MAX + 1));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&sec_neg, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&nsec_over, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&nsec_neg, 0));
@@ -1498,7 +1489,7 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned long   msecs;
+		unsigned int    msecs;
 		struct timespec result;
 		int             sign;
 	}            ref[] = {
@@ -1543,18 +1534,18 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 0,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 0,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.msecs          = 0,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 0,
 			.sign           = 1
 		},
@@ -1600,18 +1591,18 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 1,
-			.result.tv_sec  = (LONG_MAX / 2) - 1,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.result.tv_nsec = 999000000,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.msecs          = 1,
-			.result.tv_sec  = LONG_MAX - 1,
+			.result.tv_sec  = UTIME_TIMET_MAX - 1,
 			.result.tv_nsec = 999000000,
 			.sign           = 1
 		},
@@ -1657,18 +1648,18 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec)
 			.sign           = -1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.msecs          = 2999,
-			.result.tv_sec  = (LONG_MAX / 2) - 3,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) - 3,
 			.result.tv_nsec = 1000000,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.msecs          = 2999,
-			.result.tv_sec  = LONG_MAX - 3,
+			.result.tv_sec  = UTIME_TIMET_MAX - 3,
 			.result.tv_nsec = 1000000,
 			.sign           = 1
 		}
@@ -1711,8 +1702,8 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec_assert)
 
 	cute_expect_assertion(sign = utime_tspec_sub_sec(NULL, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&zero,
-	                                                 (unsigned long)
-	                                                 LONG_MAX + 1));
+	                                                 (unsigned int)
+	                                                 INT_MAX + 1));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&sec_neg, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&nsec_over, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&nsec_neg, 0));
@@ -1729,7 +1720,7 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned long   secs;
+		unsigned int    secs;
 		struct timespec result;
 		int             sign;
 	}            ref[] = {
@@ -1774,18 +1765,18 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec)
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
 			.secs           = 0,
-			.result.tv_sec  = LONG_MAX / 2,
+			.result.tv_sec  = UTIME_TIMET_MAX / 2,
 			.result.tv_nsec = 0,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
 			.secs           = 0,
-			.result.tv_sec  = LONG_MAX,
+			.result.tv_sec  = UTIME_TIMET_MAX,
 			.result.tv_nsec = 0,
 			.sign           = 1
 		},
@@ -1831,18 +1822,18 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec)
 			.sign           = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 500000000,
 			.secs           = 1,
-			.result.tv_sec  = (LONG_MAX / 2) - 1,
+			.result.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.result.tv_nsec = 500000000,
 			.sign           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 500000000,
 			.secs           = 1,
-			.result.tv_sec  = LONG_MAX - 1,
+			.result.tv_sec  = UTIME_TIMET_MAX - 1,
 			.result.tv_nsec = 500000000,
 			.sign           = 1
 		},
@@ -1935,16 +1926,16 @@ CUTE_TEST(utilsut_utime_tspec_diff_msec)
 			.msecs          = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX / 2,
+			.second.tv_sec  = UTIME_TIMET_MAX / 2,
 			.second.tv_nsec = 0,
 			.msecs          = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX,
+			.second.tv_sec  = UTIME_TIMET_MAX,
 			.second.tv_nsec = 0,
 			.msecs          = 0
 		},
@@ -1985,16 +1976,16 @@ CUTE_TEST(utilsut_utime_tspec_diff_msec)
 			.msecs          = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = (LONG_MAX / 2) - 1,
+			.second.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.second.tv_nsec = 999000000,
 			.msecs          = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX - 1,
+			.second.tv_sec  = UTIME_TIMET_MAX - 1,
 			.second.tv_nsec = 999000000,
 			.msecs          = 1
 		},
@@ -2035,16 +2026,16 @@ CUTE_TEST(utilsut_utime_tspec_diff_msec)
 			.msecs          = -999
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX / 2,
+			.second.tv_sec  = UTIME_TIMET_MAX / 2,
 			.second.tv_nsec = 1000000,
 			.msecs          = -1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX,
+			.second.tv_sec  = UTIME_TIMET_MAX,
 			.second.tv_nsec = 1000000,
 			.msecs          = -1
 		}
@@ -2130,16 +2121,16 @@ CUTE_TEST(utilsut_utime_tspec_diff_sec)
 			.secs           = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX / 2,
+			.second.tv_sec  = UTIME_TIMET_MAX / 2,
 			.second.tv_nsec = 0,
 			.secs           = 0
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX,
+			.second.tv_sec  = UTIME_TIMET_MAX,
 			.second.tv_nsec = 0,
 			.secs           = 0
 		},
@@ -2180,23 +2171,23 @@ CUTE_TEST(utilsut_utime_tspec_diff_sec)
 			.secs           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX / 2,
+			.first.tv_sec   = UTIME_TIMET_MAX / 2,
 			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = (LONG_MAX / 2) - 1,
+			.second.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
 			.second.tv_nsec = 500000000,
 			.secs           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX,
+			.first.tv_sec   = UTIME_TIMET_MAX,
 			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = LONG_MAX - 1,
+			.second.tv_sec  = UTIME_TIMET_MAX - 1,
 			.second.tv_nsec = 500000000,
 			.secs           = 1
 		},
 		{
-			.first.tv_sec   = LONG_MAX - 3,
+			.first.tv_sec   = UTIME_TIMET_MAX - 3,
 			.first.tv_nsec  = 0,
-			.second.tv_sec  = LONG_MAX,
+			.second.tv_sec  = UTIME_TIMET_MAX,
 			.second.tv_nsec = 500000000,
 			.secs           = -3
 		}

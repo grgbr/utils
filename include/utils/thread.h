@@ -481,7 +481,7 @@ uthr_fini_cond(struct uthr_cond * __restrict cond)
 extern int
 uthr_timed_wait_cond_msec(struct uthr_cond  * __restrict cond,
                           struct uthr_mutex * __restrict mutex,
-                          unsigned long                  tmout_msec)
+                          unsigned int                   msec)
 	__utils_nonull(1, 2);
 
 extern int

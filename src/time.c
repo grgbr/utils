@@ -6,6 +6,7 @@
  ******************************************************************************/
 
 #include "utils/time.h"
+#include <errno.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERN)
 
@@ -45,7 +46,60 @@ utime_tspec_cmp(const struct timespec * __restrict first,
 		return 0;
 }
 
-void
+int
+utime_msec_from_tspec(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	int msec;
+
+	if (!__builtin_mul_overflow(tspec->tv_sec, 1000, &msec) &&
+	    !__builtin_sadd_overflow(msec,
+	                             (int)tspec->tv_nsec / 1000000,
+	                             &msec))
+		return msec;
+
+	return -ERANGE;
+}
+
+#if UTIME_TIMET_BITS == 64
+#	if __WORDSIZE == 64
+
+static inline __nonull(3) __nothrow __warn_result
+bool
+utime_timet_add_overflow(time_t a, time_t b, time_t * __restrict res)
+{
+	return __builtin_saddl_overflow((long)a, (long)b, (long *)res);
+}
+
+#	elif __WORDSIZE == 32
+
+static inline __nonull(3) __nothrow __warn_result
+bool
+utime_timet_add_overflow(time_t a, time_t b, time_t * __restrict res)
+{
+	return __builtin_saddll_overflow((long long)a,
+	                                 (long long)b,
+	                                 (long long *)res);
+}
+
+#	else
+#		error "Unsupported machine word size !"
+#	endif
+#elif UTIME_TIMET_BITS == 32
+
+static inline __nonull(3) __nothrow __warn_result
+bool
+utime_timet_add_overflow(time_t a, time_t b, time_t * __restrict res)
+{
+	return __builtin_sadd_overflow((int)a, (int)b, (int *)res);
+}
+
+#else
+#error Unexpected time_t bit width value (can only be 32 or 64-bit) !
+#endif
+
+int
 utime_tspec_add(struct timespec * __restrict       result,
                 const struct timespec * __restrict amount)
 {
@@ -53,35 +107,49 @@ utime_tspec_add(struct timespec * __restrict       result,
 	utime_assert_tspec_api(amount);
 	utime_assert_api(result != amount);
 
-	unsigned long nsec = (unsigned long)result->tv_nsec +
-	                     (unsigned long)amount->tv_nsec;
+	long   nsec = result->tv_nsec + amount->tv_nsec;
+	time_t sec = amount->tv_sec;
 
-	utime_assert_api(((unsigned long)result->tv_sec +
-	                  (unsigned long)amount->tv_sec +
-	                  (nsec / 1000000000UL)) <= (unsigned long)LONG_MAX);
+	if (nsec >= 1000000000L) {
+		utime_assert_intern(nsec <= 1999999998L);
 
-	if (nsec >= 1000000000UL) {
-		result->tv_sec += amount->tv_sec + 1;
-		result->tv_nsec = (long)(nsec - 1000000000UL);
+		if (sec == UTIME_TIMET_MAX)
+			return -ERANGE;
+
+		sec++;
+		nsec -= 1000000000L;
 	}
-	else {
-		result->tv_sec += amount->tv_sec;
-		result->tv_nsec = (long)nsec;
-	}
+
+	if (utime_timet_add_overflow(result->tv_sec, sec, &sec))
+		return -ERANGE;
+
+	result->tv_sec = sec;
+	result->tv_nsec = nsec;
+
+	return 0;
 }
 
-void
-utime_tspec_add_msec(struct timespec * __restrict result, unsigned long msec)
+int
+utime_tspec_add_msec(struct timespec * __restrict result, unsigned int msec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(msec <= LONG_MAX);
+	utime_assert_api(msec <= INT_MAX);
 
-	const struct timespec amount = {
-		.tv_sec  = (time_t)(msec / 1000UL),
-		.tv_nsec = (long)((msec % 1000UL) * 1000000UL)
-	};
+	const struct timespec amount = utime_tspec_from_msec(msec);
 
-	utime_tspec_add(result, &amount);
+	return utime_tspec_add(result, &amount);
+}
+
+int
+utime_tspec_add_sec(struct timespec * __restrict result, unsigned int sec)
+{
+	utime_assert_tspec_api(result);
+	utime_assert_api(sec <= INT_MAX);
+
+	if (!utime_timet_add_overflow(result->tv_sec, sec, &result->tv_sec))
+		return 0;
+
+	return -ERANGE;
 }
 
 static inline __utils_nonull(1, 2) __utils_const __utils_nothrow __warn_result
@@ -144,24 +212,21 @@ negative:
 }
 
 int
-utime_tspec_sub_msec(struct timespec * __restrict result, unsigned long msec)
+utime_tspec_sub_msec(struct timespec * __restrict result, unsigned int msec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(msec <= LONG_MAX);
+	utime_assert_api(msec <= INT_MAX);
 
-	const struct timespec amount = {
-		.tv_sec  = (time_t)(msec / 1000UL),
-		.tv_nsec = (long)((msec % 1000UL) * 1000000UL)
-	};
+	const struct timespec amount = utime_tspec_from_msec(msec);
 
 	return utime_tspec_sub(result, &amount);
 }
 
 int
-utime_tspec_sub_sec(struct timespec * __restrict result, unsigned long sec)
+utime_tspec_sub_sec(struct timespec * __restrict result, unsigned int sec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(sec <= LONG_MAX);
+	utime_assert_api(sec <= INT_MAX);
 
 	const struct timespec amount = {
 		.tv_sec  = (long)sec,
