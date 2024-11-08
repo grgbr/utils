@@ -47,7 +47,7 @@ utime_tspec_cmp(const struct timespec * __restrict first,
 }
 
 int
-utime_msec_from_tspec(const struct timespec * __restrict tspec)
+utime_msec_from_tspec_lower(const struct timespec * __restrict tspec)
 {
 	utime_assert_tspec_api(tspec);
 
@@ -56,6 +56,22 @@ utime_msec_from_tspec(const struct timespec * __restrict tspec)
 	if (!__builtin_mul_overflow(tspec->tv_sec, 1000, &msec) &&
 	    !__builtin_sadd_overflow(msec,
 	                             (int)tspec->tv_nsec / 1000000,
+	                             &msec))
+		return msec;
+
+	return -ERANGE;
+}
+
+int
+utime_msec_from_tspec_upper(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	int msec;
+
+	if (!__builtin_mul_overflow(tspec->tv_sec, 1000, &msec) &&
+	    !__builtin_sadd_overflow(msec,
+	                             ((int)tspec->tv_nsec + 999999) / 1000000,
 	                             &msec))
 		return msec;
 
@@ -234,88 +250,4 @@ utime_tspec_sub_sec(struct timespec * __restrict result, unsigned int sec)
 	};
 
 	return utime_tspec_sub(result, &amount);
-}
-
-static inline __utils_nonull(1, 2, 3) __utils_nothrow __warn_result
-int
-utime_tspec_diff(struct timespec * __restrict       result,
-                 const struct timespec * __restrict first,
-                 const struct timespec * __restrict second)
-{
-	utime_assert_intern(result);
-	utime_assert_tspec_intern(first);
-	utime_assert_tspec_intern(second);
-	utime_assert_intern(result != first);
-	utime_assert_intern(result != second);
-	utime_assert_intern(first != second);
-
-	if (first->tv_sec > second->tv_sec)
-		goto positive;
-	else if (first->tv_sec < second->tv_sec)
-		goto negative;
-
-	if (first->tv_nsec > second->tv_nsec)
-		goto positive;
-	else if (first->tv_nsec < second->tv_nsec)
-		goto negative;
-
-	return 0;
-
-positive:
-	*result = utime_tspec_absdiff(first, second);
-
-	return 1;
-
-negative:
-	*result = utime_tspec_absdiff(second, first);
-
-	return -1;
-}
-
-long
-utime_tspec_diff_msec(const struct timespec * __restrict first,
-                      const struct timespec * __restrict second)
-{
-	utime_assert_tspec_api(first);
-	utime_assert_tspec_api(second);
-	utime_assert_api(first != second);
-
-	struct timespec diff;
-
-	switch (utime_tspec_diff(&diff, first, second)) {
-	case 1:
-		return utime_msec_from_tspec(&diff);
-	case -1:
-		return 0 - utime_msec_from_tspec(&diff);
-	case 0:
-		return 0;
-	default:
-		utime_assert_intern(0);
-	}
-
-	unreachable();
-}
-
-long
-utime_tspec_diff_sec(const struct timespec * __restrict first,
-                     const struct timespec * __restrict second)
-{
-	utime_assert_tspec_api(first);
-	utime_assert_tspec_api(second);
-	utime_assert_api(first != second);
-
-	struct timespec diff;
-
-	switch (utime_tspec_diff(&diff, first, second)) {
-	case 1:
-		return diff.tv_sec;
-	case -1:
-		return 0 - diff.tv_sec;
-	case 0:
-		return 0;
-	default:
-		utime_assert_intern(0);
-	}
-
-	unreachable();
 }

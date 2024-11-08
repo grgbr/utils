@@ -219,16 +219,31 @@ utime_tspec_from_msec(unsigned int msec)
 }
 
 extern int
-utime_msec_from_tspec(const struct timespec * __restrict tspec)
+utime_msec_from_tspec_lower(const struct timespec * __restrict tspec)
 	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int
-utime_msec_from_tspec_clamp(const struct timespec * __restrict tspec)
+utime_msec_from_tspec_lower_clamp(const struct timespec * __restrict tspec)
 {
 	utime_assert_tspec_api(tspec);
 
-	int msec = utime_msec_from_tspec(tspec);
+	int msec = utime_msec_from_tspec_lower(tspec);
+
+	return (msec >= 0) ? msec : INT_MAX;
+}
+
+extern int
+utime_msec_from_tspec_upper(const struct timespec * __restrict tspec)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+int
+utime_msec_from_tspec_upper_clamp(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	int msec = utime_msec_from_tspec_upper(tspec);
 
 	return (msec >= 0) ? msec : INT_MAX;
 }
@@ -295,16 +310,6 @@ utime_tspec_sub_msec(struct timespec * __restrict result, unsigned int msec)
 extern int
 utime_tspec_sub_sec(struct timespec * __restrict result, unsigned int sec)
 	__utils_nonull(1) __utils_nothrow __warn_result;
-
-extern long
-utime_tspec_diff_msec(const struct timespec * __restrict first,
-                      const struct timespec * __restrict second)
-	__utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result;
-
-extern long
-utime_tspec_diff_sec(const struct timespec * __restrict first,
-                     const struct timespec * __restrict second)
-	__utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 

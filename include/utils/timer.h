@@ -180,21 +180,6 @@ utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
-utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
-{
-	utime_assert_tspec_api(tspec);
-
-	/*
-	 * ticks = (number of seconds * number of ticks per second) +
-	 *         (number of nanoseconds / tick period)
-	 * rounded to upper multiple of tick period.
-	 */
-	return ((int64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) |
-	       ((int64_t)tspec->tv_nsec / UTIMER_TICK_NSEC);
-}
-
-static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
-int64_t
 utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 {
 	utime_assert_tspec_api(tspec);
@@ -214,17 +199,6 @@ utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 #else
 #error Unexpected time_t bit width value (can only be 32 or 64-bit) !
 #endif
-
-static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
-int64_t
-utimer_tick_from_tspec_lower_clamp(const struct timespec * __restrict tspec)
-{
-	utime_assert_tspec_api(tspec);
-
-	int64_t tick = utimer_tick_from_tspec_lower(tspec);
-
-	return (tick >= 0) ? tick : UTIMER_TICK_MAX;
-}
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
@@ -330,9 +304,6 @@ utimer_msec_from_tick_upper_clamp(uint64_t tick)
 	return (msec >= 0) ? msec : INT_MAX;
 }
 
-extern uint64_t
-utimer_tick(void) __utils_nothrow __warn_result;
-
 /******************************************************************************
  * Timer handling
  ******************************************************************************/
@@ -343,6 +314,7 @@ typedef void (utimer_expire_fn)(struct utimer * __restrict);
 
 struct utimer {
 	struct stroll_dlist_node node;
+	struct timespec *        tspec;
 	uint64_t                 tick;
 	utimer_expire_fn *       expire;
 };
@@ -446,15 +418,11 @@ utimer_init(struct utimer * __restrict timer, utimer_expire_fn * expire)
 	timer->expire = expire;
 }
 
-extern int
-utimer_issue_tick(uint64_t * __restrict tick)
-	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
-
 extern struct timespec *
 utimer_issue_tspec(struct timespec * __restrict tspec)
 	__utils_nonull(1) __utils_nothrow __warn_result;
 
-extern long
+extern int
 utimer_issue_msec(void) __utils_nothrow __warn_result;
 
 extern void utimer_run(void) __utils_nothrow;
