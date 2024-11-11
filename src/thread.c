@@ -24,7 +24,7 @@
 int
 uthr_timed_wait_cond_msec(struct uthr_cond * __restrict  cond,
                           struct uthr_mutex * __restrict mutex,
-                          unsigned int                   msec)
+                          int                            msec)
 {
 	uthr_assert_api(cond);
 	uthr_assert_api(mutex);

@@ -18,6 +18,6 @@
 	CUTE_TEST(_test) { }
 
 extern void
-utilsut_expect_monotonic_now(time_t secs, long nsecs);
+utilsut_expect_monotonic_now(const struct timespec * expected);
 
 #endif /* _UTILS_UTEST_H */

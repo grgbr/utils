@@ -214,7 +214,7 @@ CUTE_TEST(utilsut_utime_tspec_after_assert)
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_cmp_assert)
+UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_after_assert)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
@@ -298,7 +298,7 @@ CUTE_TEST(utilsut_utime_tspec_before_assert)
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_cmp_assert)
+UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_before_assert)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
@@ -346,8 +346,7 @@ CUTE_TEST(utilsut_utime_tspec_from_msec_assert)
 {
 	struct timespec tspec __unused;
 
-	cute_expect_assertion(tspec = utime_tspec_from_msec((unsigned int)
-	                                                    INT_MAX + 1));
+	cute_expect_assertion(tspec = utime_tspec_from_msec(-1));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
@@ -358,7 +357,7 @@ UTILSUT_NOASSERT_TEST(utilsut_utime_tspec_from_msec_assert)
 
 static const struct {
 		struct timespec tspec;
-		unsigned int    msecs;
+		int             msecs;
 } utilsut_utime_msecs_tspec_values[] = {
 	{
 		.tspec.tv_sec  = 0,
@@ -432,7 +431,7 @@ CUTE_TEST(utilsut_utime_tspec_from_msec)
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
-CUTE_TEST(utilsut_utime_msec_from_tspec_assert)
+CUTE_TEST(utilsut_utime_msec_from_tspec_lower_assert)
 {
 	const struct timespec sec_neg = {
 		.tv_sec  = -1,
@@ -449,19 +448,19 @@ CUTE_TEST(utilsut_utime_msec_from_tspec_assert)
 	};
 	long                  msecs __unused;
 
-	cute_expect_assertion(msecs = utime_msec_from_tspec(NULL));
-	cute_expect_assertion(msecs = utime_msec_from_tspec(&sec_neg));
-	cute_expect_assertion(msecs = utime_msec_from_tspec(&nsec_over));
-	cute_expect_assertion(msecs = utime_msec_from_tspec(&nsec_neg));
+	cute_expect_assertion(msecs = utime_msec_from_tspec_lower(NULL));
+	cute_expect_assertion(msecs = utime_msec_from_tspec_lower(&sec_neg));
+	cute_expect_assertion(msecs = utime_msec_from_tspec_lower(&nsec_over));
+	cute_expect_assertion(msecs = utime_msec_from_tspec_lower(&nsec_neg));
 }
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-UTILSUT_NOASSERT_TEST(utilsut_utime_msec_from_tspec_assert)
+UTILSUT_NOASSERT_TEST(utilsut_utime_msec_from_tspec_lower_assert)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-CUTE_TEST(utilsut_utime_msec_from_tspec)
+CUTE_TEST(utilsut_utime_msec_from_tspec_lower)
 {
 	unsigned int v;
 
@@ -470,14 +469,13 @@ CUTE_TEST(utilsut_utime_msec_from_tspec)
 	     v++) {
 		int check;
 
-		check = utime_msec_from_tspec(
+		check = utime_msec_from_tspec_lower(
 			&utilsut_utime_msecs_tspec_values[v].tspec);
 
 		cute_check_sint(check, greater_equal, 0);
-		cute_check_uint(
-			(unsigned int)check,
-			equal,
-			utilsut_utime_msecs_tspec_values[v].msecs);
+		cute_check_sint(check,
+		                equal,
+		                utilsut_utime_msecs_tspec_values[v].msecs);
 	}
 }
 
@@ -788,9 +786,7 @@ CUTE_TEST(utilsut_utime_tspec_add_msec_assert)
 	int             err __unused;
 
 	cute_expect_assertion(err = utime_tspec_add_msec(NULL, 0));
-	cute_expect_assertion(err = utime_tspec_add_msec(&zero,
-	                                                 (unsigned int)
-	                                                 INT_MAX + 1));
+	cute_expect_assertion(err = utime_tspec_add_msec(&zero, -1));
 	cute_expect_assertion(err = utime_tspec_add_msec(&sec_neg, 0));
 	cute_expect_assertion(err = utime_tspec_add_msec(&nsec_over, 0));
 	cute_expect_assertion(err = utime_tspec_add_msec(&nsec_neg, 0));
@@ -807,7 +803,7 @@ CUTE_TEST(utilsut_utime_tspec_add_msec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned int    msecs;
+		int             msecs;
 		struct timespec result;
 	}            ref[] = {
 		{
@@ -995,9 +991,7 @@ CUTE_TEST(utilsut_utime_tspec_add_sec_assert)
 	int             err __unused;
 
 	cute_expect_assertion(err = utime_tspec_add_sec(NULL, 0));
-	cute_expect_assertion(err = utime_tspec_add_sec(&zero,
-	                                                (unsigned int)
-	                                                INT_MAX + 1));
+	cute_expect_assertion(err = utime_tspec_add_sec(&zero, - 1));
 	cute_expect_assertion(err = utime_tspec_add_sec(&sec_neg, 0));
 	cute_expect_assertion(err = utime_tspec_add_sec(&nsec_over, 0));
 	cute_expect_assertion(err = utime_tspec_add_sec(&nsec_neg, 0));
@@ -1014,7 +1008,7 @@ CUTE_TEST(utilsut_utime_tspec_add_sec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned int    secs;
+		int             secs;
 		struct timespec result;
 	}            ref[] = {
 		{
@@ -1470,9 +1464,7 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec_assert)
 	int                  sign __unused;
 
 	cute_expect_assertion(sign = utime_tspec_sub_msec(NULL, 0));
-	cute_expect_assertion(sign = utime_tspec_sub_msec(&zero,
-	                                                  (unsigned int)
-	                                                  INT_MAX + 1));
+	cute_expect_assertion(sign = utime_tspec_sub_msec(&zero, - 1));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&sec_neg, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&nsec_over, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_msec(&nsec_neg, 0));
@@ -1489,7 +1481,7 @@ CUTE_TEST(utilsut_utime_tspec_sub_msec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned int    msecs;
+		int             msecs;
 		struct timespec result;
 		int             sign;
 	}            ref[] = {
@@ -1701,9 +1693,7 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec_assert)
 	int             sign __unused;
 
 	cute_expect_assertion(sign = utime_tspec_sub_sec(NULL, 0));
-	cute_expect_assertion(sign = utime_tspec_sub_sec(&zero,
-	                                                 (unsigned int)
-	                                                 INT_MAX + 1));
+	cute_expect_assertion(sign = utime_tspec_sub_sec(&zero, - 1));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&sec_neg, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&nsec_over, 0));
 	cute_expect_assertion(sign = utime_tspec_sub_sec(&nsec_neg, 0));
@@ -1720,7 +1710,7 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec)
 	unsigned int r;
 	const struct {
 		struct timespec first;
-		unsigned int    secs;
+		int             secs;
 		struct timespec result;
 		int             sign;
 	}            ref[] = {
@@ -1855,353 +1845,6 @@ CUTE_TEST(utilsut_utime_tspec_sub_sec)
 	}
 }
 
-CUTE_TEST(utilsut_utime_tspec_diff_msec_assert)
-{
-	struct timespec zero = { 0, 0 };
-	struct timespec sec_neg = {
-		.tv_sec  = -1,
-		.tv_nsec = 0
-	};
-	struct timespec nsec_over = {
-		.tv_sec  = 0,
-		.tv_nsec = 1000000000L
-	};
-	struct timespec nsec_neg = {
-		.tv_sec  = 0,
-		.tv_nsec = -1
-	};
-	long            msecs __unused;
-
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(NULL, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&zero, NULL));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&sec_neg, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&zero, &sec_neg));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&zero, &nsec_over));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&nsec_over, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&nsec_neg, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_msec(&zero, &nsec_neg));
-}
-
-CUTE_TEST(utilsut_utime_tspec_diff_msec)
-{
-	unsigned int r;
-	const struct {
-		struct timespec first;
-		struct timespec second;
-		long            msecs;
-	}            ref[] = {
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 0,
-			.msecs          = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 1,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 1,
-			.msecs          = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 500000000,
-			.msecs          = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 999999999,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 999999999,
-			.msecs          = 0
-		},
-		{
-			.first.tv_sec   = 1,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 1,
-			.second.tv_nsec = 0,
-			.msecs          = 0
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX / 2,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX / 2,
-			.second.tv_nsec = 0,
-			.msecs          = 0
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX,
-			.second.tv_nsec = 0,
-			.msecs          = 0
-		},
-
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 1000000,
-			.msecs          = -1
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 1,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 1000001,
-			.msecs          = -1
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 499000000,
-			.msecs          = 1
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 999999999,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 998999999,
-			.msecs          = 1
-		},
-		{
-			.first.tv_sec   = 1,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 999000000,
-			.msecs          = 1
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX / 2,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
-			.second.tv_nsec = 999000000,
-			.msecs          = 1
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX - 1,
-			.second.tv_nsec = 999000000,
-			.msecs          = 1
-		},
-
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 2,
-			.second.tv_nsec = 999000000,
-			.msecs          = -2999
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 1,
-			.second.tv_sec  = 2,
-			.second.tv_nsec = 998999999,
-			.msecs          = -2998
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = 2,
-			.second.tv_nsec = 499000000,
-			.msecs          = -1999
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 999999999,
-			.second.tv_sec  = 1,
-			.second.tv_nsec = 999000001,
-			.msecs          = -999
-		},
-		{
-			.first.tv_sec   = 1,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 1,
-			.second.tv_nsec = 999000000,
-			.msecs          = -999
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX / 2,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX / 2,
-			.second.tv_nsec = 1000000,
-			.msecs          = -1
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX,
-			.second.tv_nsec = 1000000,
-			.msecs          = -1
-		}
-	};
-
-	for (r = 0; r < stroll_array_nr(ref); r++) {
-		long msecs;
-
-		msecs = utime_tspec_diff_msec(&ref[r].first, &ref[r].second);
-
-		cute_check_sint(msecs, equal, ref[r].msecs);
-	}
-}
-
-CUTE_TEST(utilsut_utime_tspec_diff_sec_assert)
-{
-	struct timespec zero = { 0, 0 };
-	struct timespec sec_neg = {
-		.tv_sec  = -1,
-		.tv_nsec = 0
-	};
-	struct timespec nsec_over = {
-		.tv_sec  = 0,
-		.tv_nsec = 1000000000L
-	};
-	struct timespec nsec_neg = {
-		.tv_sec  = 0,
-		.tv_nsec = -1
-	};
-	long            msecs __unused;
-
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(NULL, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&zero, NULL));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&sec_neg, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&zero, &sec_neg));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&zero, &nsec_over));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&nsec_over, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&nsec_neg, &zero));
-	cute_expect_assertion(msecs = utime_tspec_diff_sec(&zero, &nsec_neg));
-}
-
-CUTE_TEST(utilsut_utime_tspec_diff_sec)
-{
-	unsigned int r;
-	const struct {
-		struct timespec first;
-		struct timespec second;
-		long            secs;
-	}            ref[] = {
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 0,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 1,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 1,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 500000000,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 999999999,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 999999999,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 1,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 1,
-			.second.tv_nsec = 0,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX / 2,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX / 2,
-			.second.tv_nsec = 0,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX,
-			.second.tv_nsec = 0,
-			.secs           = 0
-		},
-
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 1,
-			.second.tv_nsec = 0,
-			.secs           = -1
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 1,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 999999999,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 500000000,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 0,
-			.first.tv_nsec  = 999999999,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 1,
-			.secs           = 0
-		},
-		{
-			.first.tv_sec   = 1,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = 0,
-			.second.tv_nsec = 0,
-			.secs           = 1
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX / 2,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = (UTIME_TIMET_MAX / 2) - 1,
-			.second.tv_nsec = 500000000,
-			.secs           = 1
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX,
-			.first.tv_nsec  = 500000000,
-			.second.tv_sec  = UTIME_TIMET_MAX - 1,
-			.second.tv_nsec = 500000000,
-			.secs           = 1
-		},
-		{
-			.first.tv_sec   = UTIME_TIMET_MAX - 3,
-			.first.tv_nsec  = 0,
-			.second.tv_sec  = UTIME_TIMET_MAX,
-			.second.tv_nsec = 500000000,
-			.secs           = -3
-		}
-	};
-
-	for (r = 0; r < stroll_array_nr(ref); r++) {
-		long secs;
-
-		secs = utime_tspec_diff_sec(&ref[r].first, &ref[r].second);
-
-		cute_check_sint(secs, equal, ref[r].secs);
-	}
-}
-
 CUTE_GROUP(utilsut_time_group) = {
 	CUTE_REF(utilsut_utime_realtime_now_assert),
 	CUTE_REF(utilsut_utime_realtime_now),
@@ -2223,8 +1866,8 @@ CUTE_GROUP(utilsut_time_group) = {
 
 	CUTE_REF(utilsut_utime_tspec_from_msec_assert),
 	CUTE_REF(utilsut_utime_tspec_from_msec),
-	CUTE_REF(utilsut_utime_msec_from_tspec_assert),
-	CUTE_REF(utilsut_utime_msec_from_tspec),
+	CUTE_REF(utilsut_utime_msec_from_tspec_lower_assert),
+	CUTE_REF(utilsut_utime_msec_from_tspec_lower),
 
 	CUTE_REF(utilsut_utime_tspec_add_assert),
 	CUTE_REF(utilsut_utime_tspec_add),
@@ -2239,11 +1882,6 @@ CUTE_GROUP(utilsut_time_group) = {
 	CUTE_REF(utilsut_utime_tspec_sub_msec),
 	CUTE_REF(utilsut_utime_tspec_sub_sec_assert),
 	CUTE_REF(utilsut_utime_tspec_sub_sec),
-
-	CUTE_REF(utilsut_utime_tspec_diff_msec_assert),
-	CUTE_REF(utilsut_utime_tspec_diff_msec),
-	CUTE_REF(utilsut_utime_tspec_diff_sec_assert),
-	CUTE_REF(utilsut_utime_tspec_diff_sec)
 };
 
 CUTE_SUITE_EXTERN(utilsut_time_suite,

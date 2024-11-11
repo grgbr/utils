@@ -5,7 +5,7 @@
  * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
  ******************************************************************************/
 
-#include "utils/timer.h"
+#include "timer.h"
 #include <errno.h>
 
 #if defined(CONFIG_UTILS_ASSERT_INTERN)
@@ -44,6 +44,73 @@ utimer_lead_timer(const struct stroll_dlist_node * __restrict head)
  * Tick handling
  ******************************************************************************/
 
+#if __WORDSIZE == 64
+
+static inline __nonull(3) __nothrow __warn_result
+bool
+utimer_int64_add_overflow(int64_t a, int64_t b, int64_t * __restrict res)
+{
+	return __builtin_saddl_overflow((long)a, (long)b, (long *)res);
+}
+
+#elif __WORDSIZE == 32
+
+static inline __nonull(3) __nothrow __warn_result
+bool
+utimer_int64_add_overflow(int64_t a, int64_t b, int64_t * __restrict res)
+{
+	return __builtin_saddll_overflow((long long)a,
+	                                 (long long)b,
+	                                 (long long *)res);
+}
+
+#else
+#error "Unsupported machine word size !"
+#endif
+
+#if UTIME_TIMET_BITS == 64
+
+static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+int64_t
+utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	if (tspec->tv_sec > UTIMER_TVSEC_MAX)
+		return (int64_t)-ERANGE;
+
+	/*
+	 * ticks = (number of seconds * number of ticks per second) +
+	 *         (number of nanoseconds / tick period)
+	 * rounded to upper multiple of tick period.
+	 */
+	return ((int64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) |
+	       ((int64_t)tspec->tv_nsec / (int64_t)UTIMER_TICK_NSEC);
+}
+
+static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+int64_t
+utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	if (tspec->tv_sec <= UTIMER_TVSEC_MAX) {
+		int64_t tick;
+
+		if (!utimer_int64_add_overflow(
+			(int64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS,
+			((int64_t)tspec->tv_nsec +
+			 (int64_t)UTIMER_TICK_NSEC - 1) /
+			(int64_t)UTIMER_TICK_NSEC,
+			&tick))
+		return tick;
+	}
+
+	return (int64_t)-ERANGE;
+}
+
+#elif UTIME_TIMET_BITS == 32
+
 static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
 utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
@@ -56,8 +123,31 @@ utimer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 	 * rounded to upper multiple of tick period.
 	 */
 	return ((int64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) |
-	       ((int64_t)tspec->tv_nsec / UTIMER_TICK_NSEC);
+	       ((int64_t)tspec->tv_nsec / (int64_t)UTIMER_TICK_NSEC);
 }
+
+static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+int64_t
+utimer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	/*
+	 * ticks = (number of seconds * number of ticks per second) +
+	 *         (number of nanoseconds / tick period)
+	 * rounded to upper multiple of tick period.
+	 */
+	int64_t tick = ((int64_t)tspec->tv_sec << UTIMER_TICK_SUBSEC_BITS) +
+	               (((int64_t)tspec->tv_nsec +
+	                 (int64_t)UTIMER_TICK_NSEC - 1) /
+	                (int64_t)UTIMER_TICK_NSEC);
+
+	return (tick <= UTIMER_TICK_MAX) ? tick : (int64_t)-ERANGE;
+}
+
+#else
+#error Unexpected time_t bit width value (can only be 32 or 64-bit) !
+#endif
 
 static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
@@ -69,6 +159,123 @@ utimer_tick_from_tspec_lower_clamp(const struct timespec * __restrict tspec)
 
 	return (tick >= 0) ? tick : UTIMER_TICK_MAX;
 }
+
+static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+int64_t
+utimer_tick_from_tspec_upper_clamp(const struct timespec * __restrict tspec)
+{
+	utime_assert_tspec_api(tspec);
+
+	int64_t tick = utimer_tick_from_tspec_upper(tspec);
+
+	return (tick >= 0) ? tick : UTIMER_TICK_MAX;
+}
+
+#warning REMOVE ME if not needed...
+#if 0
+static __utils_const __utils_nothrow __warn_result
+int
+utimer_msec_from_tick_lower(int64_t tick)
+{
+	utimer_assert_api(tick >= 0);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
+
+	int msec;
+	int nsec = (int)((tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC);
+
+	if (!__builtin_mul_overflow((int64_t)tick >> UTIMER_TICK_SUBSEC_BITS,
+	                            1000,
+	                            &msec) &&
+	    !__builtin_sadd_overflow(msec, nsec / 1000000, &msec))
+		return msec;
+
+	return -ERANGE;
+}
+
+static __utils_const __utils_nothrow __warn_result
+int
+utimer_msec_from_tick_lower_clamp(int64_t tick)
+{
+	utimer_assert_api(tick >= 0);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
+
+	int msec = utimer_msec_from_tick_lower(tick);
+
+	return (msec >= 0) ? msec : INT_MAX;
+}
+
+static __utils_const __utils_nothrow __warn_result
+int
+utimer_msec_from_tick_upper(int64_t tick)
+{
+	utimer_assert_api(tick >= 0);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
+
+	int msec;
+	int nsec = (int)((tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC);
+
+	if (!__builtin_mul_overflow((int64_t)tick >> UTIMER_TICK_SUBSEC_BITS,
+	                            1000,
+	                            &msec) &&
+	    !__builtin_sadd_overflow(msec, (nsec + 999999) / 1000000, &msec))
+		return msec;
+
+	return -ERANGE;
+}
+
+static __utils_const __utils_nothrow __warn_result
+int
+utimer_msec_from_tick_upper_clamp(int64_t tick)
+{
+	utimer_assert_api(tick >= 0);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
+
+	int msec = utimer_msec_from_tick_upper(tick);
+
+	return (msec >= 0) ? msec : INT_MAX;
+}
+#endif
+
+static __utils_const __utils_nothrow __warn_result
+struct timespec
+utimer_tspec_from_tick(int64_t tick)
+{
+	utimer_assert_api(tick >= 0);
+	utimer_assert_api(tick <= UTIMER_TICK_MAX);
+
+	const struct timespec tspec = {
+		/* seconds = number of ticks / number of ticks per second */
+		.tv_sec = (time_t)(tick >> UTIMER_TICK_SUBSEC_BITS),
+		/* nanoseconds = number of sub second ticks * tick period */
+		.tv_nsec = (tick & UTIMER_TICK_SUBSEC_MASK) * UTIMER_TICK_NSEC
+	};
+
+	return tspec;
+}
+
+#warning REMOVE ME if not needed...
+#if 0
+
+static inline __utils_const __utils_nothrow __warn_result
+int64_t
+utimer_tick_from_msec_lower(int msec)
+{
+	utimer_assert_api(msec >= 0);
+
+	return ((int64_t)msec << UTIMER_TICK_SUBSEC_BITS) / INT64_C(1000);
+}
+
+static inline __utils_const __utils_nothrow __warn_result
+int64_t
+utimer_tick_from_msec_upper(int msec)
+{
+	utimer_assert_api(msec >= 0);
+
+	return (((int64_t)msec << UTIMER_TICK_SUBSEC_BITS) + INT64_C(999)) /
+	       INT64_C(1000);
+}
+
+#endif
 
 static int
 utimer_tick_cmp(const struct stroll_dlist_node * __restrict first,
@@ -99,53 +306,6 @@ utimer_tick(void)
 }
 
 /******************************************************************************
- * Timer generic handling
- ******************************************************************************/
-
-struct timespec *
-utimer_issue_tspec(struct timespec * __restrict tspec)
-{
-	int64_t issue;
-
-	issue = utimer_issue_tick(void);
-	if (issue >= 0) {
-		*tspec = utimer_tspec_from_tick(issue);
-
-		return tspec;
-	}
-	else
-		return NULL;
-}
-
-int
-utimer_issue_msec(void)
-{
-	struct timespec issue;
-
-	if (utimer_issue_tspec(&issue)) {
-		struct timespec now;
-
-		utime_monotonic_now(&now);
-
-		switch (utime_tspec_sub(&issue, &now)) {
-		case 1:
-			return utime_msec_from_tspec_upper_clamp(&issue);
-
-		case 0:
-		case -1:
-			return 0;
-
-		default:
-			utimer_assert_intern(0);
-		}
-
-		unreachable();
-	}
-	else
-		return -1;
-}
-
-/******************************************************************************
  * Timer list handling
  ******************************************************************************/
 
@@ -154,14 +314,13 @@ utimer_issue_msec(void)
 static struct stroll_dlist_node utimer_the_list =
 	STROLL_DLIST_INIT(utimer_the_list);
 
+static __utils_nonull(1) __utils_nothrow
 void
-utimer_arm_tick(struct utimer * __restrict timer, uint64_t tick)
+utimer_arm(struct utimer * __restrict         timer,
+           const struct timespec * __restrict tspec)
 {
-	utimer_assert_intern(timer);
-	utimer_assert_intern(timer->expire);
-	utimer_assert_intern(tick <= UTIMER_TICK_MAX);
-
-	timer->tick = tick;
+	timer->tick = utimer_tick_from_tspec_upper_clamp(tspec);
+	timer->tspec = *tspec;
 
 	stroll_dlist_remove_init(&timer->node);
 	stroll_dlist_insert_inorder_back(&utimer_the_list,
@@ -176,39 +335,39 @@ utimer_arm_tspec(struct utimer * __restrict         timer,
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utimer_assert_tspec_api(tspec);
+	utime_assert_tspec_api(tspec);
 
-	utimer_arm_tick(timer, utimer_tick_from_tspec_upper(tspec));
+	utimer_arm(timer, tspec);
 }
 
 void
-utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
+utimer_arm_msec(struct utimer * __restrict timer, int msec)
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utimer_assert_api(msec);
+	utimer_assert_api(msec >= 0);
 
-	struct timespec date;
+	struct timespec tspec;
 
-	utime_monotonic_now(&date);
-	utime_tspec_add_msec(&date, msec);
+	utime_monotonic_now(&tspec);
+	utime_tspec_add_msec_clamp(&tspec, msec);
 
-	utimer_arm_tspec(timer, &date);
+	utimer_arm(timer, &tspec);
 }
 
 void
-utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
+utimer_arm_sec(struct utimer * __restrict timer, int sec)
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utimer_assert_api(sec);
+	utimer_assert_api(sec >= 0);
 
-	struct timespec date;
+	struct timespec tspec;
 
-	utime_monotonic_now(&date);
-	utime_tspec_add_sec(&date, sec);
+	utime_monotonic_now(&tspec);
+	utime_tspec_add_sec_clamp(&tspec, sec);
 
-	utimer_arm_tspec(timer, &date);
+	utimer_arm(timer, &tspec);
 }
 
 static __utils_pure __utils_nothrow __warn_result
@@ -223,8 +382,6 @@ utimer_issue_tick(void)
 		utimer_assert_intern(timer->expire);
 
 		return timer->tick;
-
-		return 0;
 	}
 	else
 		return (int64_t)-ENOENT;
@@ -233,7 +390,7 @@ utimer_issue_tick(void)
 void
 utimer_run(void)
 {
-	uint64_t tick = 0;
+	int64_t tick = -1;
 
 	while (!stroll_dlist_empty(&utimer_the_list)) {
 		struct utimer * timer = utimer_lead_timer(&utimer_the_list);
@@ -319,7 +476,6 @@ static struct utimer_hwheel utimer_the_hwheel;
  * Warning: Keep these definitions just in case we need them in the futur...
  */
 
-
 #define UTIMER_HWHEEL_TICKS_PER_MIN \
 	(60UL * UTIMER_TICKS_PER_SEC)
 
@@ -403,10 +559,11 @@ utimer_hwheel_account(struct utimer * __restrict   timer,
 }
 
 void
-utimer_arm_tick(struct utimer * __restrict timer, uint64_t tick)
+utimer_arm_tick(struct utimer * __restrict timer, int64_t tick)
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
+	utimer_assert_api(tick >= 0);
 	utimer_assert_intern(tick <= UTIMER_TICK_MAX);
 
 	struct timespec date;
@@ -721,3 +878,42 @@ utimer_ctor(void)
 }
 
 #endif /* defined(CONFIG_UTILS_TIMER_HWHEEL) */
+
+/******************************************************************************
+ * Timer generic handling
+ ******************************************************************************/
+
+struct timespec *
+utimer_issue_tspec(struct timespec * __restrict tspec)
+{
+	utimer_assert_api(tspec);
+
+	int64_t issue;
+
+	issue = utimer_issue_tick();
+	if (issue >= 0) {
+		*tspec = utimer_tspec_from_tick(issue);
+
+		return tspec;
+	}
+	else
+		return NULL;
+}
+
+int
+utimer_issue_msec(void)
+{
+	struct timespec diff;
+
+	if (utimer_issue_tspec(&diff)) {
+		struct timespec now;
+
+		utime_monotonic_now(&now);
+		if (utime_tspec_sub(&diff, &now) > 0)
+			return utime_msec_from_tspec_upper_clamp(&diff);
+		else
+			return 0;
+	}
+	else
+		return -1;
+}

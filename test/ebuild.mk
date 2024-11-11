@@ -29,7 +29,6 @@ utest-ldflags := \
 	$(test-cflags) \
 	-L$(BUILDDIR)/../src \
 	$(EXTRA_LDFLAGS) \
-	-Wl,--wrap=clock_gettime \
 	-Wl,-z,start-stop-visibility=hidden \
 	-Wl,-whole-archive $(BUILDDIR)/builtin_utest.a -Wl,-no-whole-archive \
 	-lutils

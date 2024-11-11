@@ -68,32 +68,18 @@ static bool            utilsut_clock_gettime_wrapped;
 static struct timespec utilsut_now;
 
 /*
- * Forward declaration to make gcc happy when given the -Wmissing-declarations
- * optional argument...
- */
-int __wrap_clock_gettime(clockid_t, struct timespec *);
-
-/*
  * Thanks to the linker --wrap option given at compile time (see
  * test/ebuild.mk), calls to clock_gettime() resolve to our own
- * __wrap_clock_gettime() mock function.
+ * clock_gettime() mock function.
  *
  * This allows us to overwrite clock_gettime() with our own implementation while
  * still keeping the ability to call the original clock_gettime() syscall when
  * needed.
  */
 int
-__wrap_clock_gettime(clockid_t id, struct timespec * tspec)
+clock_gettime(clockid_t id, struct timespec * tspec)
 {
 	if (utilsut_clock_gettime_wrapped) {
-		/*
-		 * Mocking is on: check that parameters match expected values
-		 * given by utilsut_expect_monotonic_now() using CUTe's mock
-		 * expectations...
-		 */
-		cute_mock_sint_parm(id);
-		cute_mock_ptr_parm(tspec);
-
 		/*
 		 * Set struct timespec content using values given by
 		 * utilsut_expect_monotonic_now().
@@ -104,34 +90,26 @@ __wrap_clock_gettime(clockid_t id, struct timespec * tspec)
 	}
 
 	/* Mocking is off: use normal clock_gettime() syscall... */
-	extern int __real_clock_gettime(clockid_t, struct timespec *);
-	return __real_clock_gettime(id, tspec);
+	extern int __clock_gettime(clockid_t, struct timespec *);
+	return __clock_gettime(id, tspec);
 }
 
 void
-utilsut_expect_monotonic_now(time_t secs, long nsecs)
+utilsut_expect_monotonic_now(const struct timespec * expected)
 {
-	/*
-	 * Request checking of clockid_t parameter value given to
-	 * __wrap_clock_gettime.
-	 */
-	cute_expect_sint_parm(__wrap_clock_gettime, id, equal, CLOCK_MONOTONIC);
+	if (expected) {
+		/*
+		 * Setup timespec value to return into timespec structure at
+		 * clock_gettime() calling time.
+		 */
+		utilsut_now.tv_sec = expected->tv_sec;
+		utilsut_now.tv_nsec = expected->tv_nsec;
 
-	/*
-	 * Request checking of non NULL struct timespec pointer parameter given
-	 * to __wrap_clock_gettime.
-	 */
-	cute_expect_ptr_parm(__wrap_clock_gettime, tspec, unequal, NULL);
-
-	/*
-	 * Setup timespec value to return into timespec structure at
-	 * __wrap_clock_gettime() calling time.
-	 */
-	utilsut_now.tv_sec = secs;
-	utilsut_now.tv_nsec = nsecs;
-
-	/* Tell __wrap_clock_gettime() that mocking is on... */
-	utilsut_clock_gettime_wrapped = true;
+		/* Tell clock_gettime() that mocking is on... */
+		utilsut_clock_gettime_wrapped = true;
+	}
+	else
+		utilsut_clock_gettime_wrapped = false;
 }
 
 #if defined(CONFIG_UTILS_TIME)

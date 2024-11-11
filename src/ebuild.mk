@@ -19,6 +19,17 @@ common-cflags        := -Wall \
                         $(EXTRA_CFLAGS) \
                         $(call kconf_enabled,UTILS_THREAD,-pthread)
 
+ifeq ($(CONFIG_UTILS_UTEST)$(CONFIG_UTILS_ASSERT_API),yy)
+# When unit testsuite is required to be built, make sure to enable ELF semantic
+# interposition.
+# This allows unit test programs to override the stroll_assert_fail() using
+# their own definitions based on CUTe's expectations to validate assertions.
+#
+# See http://maskray.me/blog/2021-05-09-fno-semantic-interposition for more
+# informations about semantic interposition.
+common-cflags        := $(common-cflags) -fsemantic-interposition
+endif # ($(CONFIG_UTILS_UTEST)$(CONFIG_UTILS_ASSERT_API),yy)
+
 common-ldflags       := $(common-cflags) $(EXTRA_LDFLAGS) \
                         -Wl,-z,start-stop-visibility=hidden
 

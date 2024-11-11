@@ -146,10 +146,10 @@ utime_tspec_add(struct timespec * __restrict       result,
 }
 
 int
-utime_tspec_add_msec(struct timespec * __restrict result, unsigned int msec)
+utime_tspec_add_msec(struct timespec * __restrict result, int msec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(msec <= INT_MAX);
+	utime_assert_api(msec >= 0);
 
 	const struct timespec amount = utime_tspec_from_msec(msec);
 
@@ -157,12 +157,14 @@ utime_tspec_add_msec(struct timespec * __restrict result, unsigned int msec)
 }
 
 int
-utime_tspec_add_sec(struct timespec * __restrict result, unsigned int sec)
+utime_tspec_add_sec(struct timespec * __restrict result, int sec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(sec <= INT_MAX);
+	utime_assert_api(sec >= 0);
 
-	if (!utime_timet_add_overflow(result->tv_sec, sec, &result->tv_sec))
+	if (!utime_timet_add_overflow(result->tv_sec,
+	                              (time_t)sec,
+	                              &result->tv_sec))
 		return 0;
 
 	return -ERANGE;
@@ -228,10 +230,10 @@ negative:
 }
 
 int
-utime_tspec_sub_msec(struct timespec * __restrict result, unsigned int msec)
+utime_tspec_sub_msec(struct timespec * __restrict result, int msec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(msec <= INT_MAX);
+	utime_assert_api(msec >= 0);
 
 	const struct timespec amount = utime_tspec_from_msec(msec);
 
@@ -239,13 +241,13 @@ utime_tspec_sub_msec(struct timespec * __restrict result, unsigned int msec)
 }
 
 int
-utime_tspec_sub_sec(struct timespec * __restrict result, unsigned int sec)
+utime_tspec_sub_sec(struct timespec * __restrict result, int sec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(sec <= INT_MAX);
+	utime_assert_api(sec >= 0);
 
 	const struct timespec amount = {
-		.tv_sec  = (long)sec,
+		.tv_sec  = (time_t)sec,
 		.tv_nsec = 0
 	};
 

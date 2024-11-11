@@ -206,13 +206,13 @@ utime_tspec_before_eq(const struct timespec * __restrict first,
 
 static inline __utils_const __utils_nothrow __warn_result
 struct timespec
-utime_tspec_from_msec(unsigned int msec)
+utime_tspec_from_msec(int msec)
 {
-	utime_assert_api(msec <= INT_MAX);
+	utime_assert_api(msec >= 0);
 
 	const struct timespec tspec = {
-		.tv_sec  = (time_t)(msec / 1000U),
-		.tv_nsec = (long)((msec % 1000U) * 1000000U)
+		.tv_sec  = (time_t)(msec / 1000),
+		.tv_nsec = ((long)msec % 1000L) * 1000000L
 	};
 
 	return tspec;
@@ -267,32 +267,32 @@ utime_tspec_add_clamp(struct timespec * __restrict       result,
 }
 
 extern int
-utime_tspec_add_msec(struct timespec * __restrict result, unsigned int msec)
+utime_tspec_add_msec(struct timespec * __restrict result, int msec)
 	__utils_nonull(1) __utils_nothrow __warn_result;
 
 static inline __utils_nonull(1) __utils_nothrow
 void
 utime_tspec_add_msec_clamp(struct timespec * __restrict result,
-                           unsigned int                 msec)
+                           int                          msec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(msec <= INT_MAX);
+	utime_assert_api(msec >= 0);
 
 	if (utime_tspec_add_msec(result, msec) < 0)
 		*result = UTIME_TSPEC_MAX;
 }
 
 extern int
-utime_tspec_add_sec(struct timespec * __restrict result, unsigned int sec)
+utime_tspec_add_sec(struct timespec * __restrict result, int sec)
 	__utils_nonull(1) __utils_nothrow __leaf __warn_result;
 
 static inline __utils_nonull(1) __utils_nothrow
 void
 utime_tspec_add_sec_clamp(struct timespec * __restrict result,
-                          unsigned int                 sec)
+                          int                          sec)
 {
 	utime_assert_tspec_api(result);
-	utime_assert_api(sec <= INT_MAX);
+	utime_assert_api(sec >= 0);
 
 	if (utime_tspec_add_sec(result, sec) < 0)
 		*result = UTIME_TSPEC_MAX;
@@ -304,11 +304,11 @@ utime_tspec_sub(struct timespec * __restrict       result,
 	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
 extern int
-utime_tspec_sub_msec(struct timespec * __restrict result, unsigned int msec)
+utime_tspec_sub_msec(struct timespec * __restrict result, int msec)
 	__utils_nonull(1) __utils_nothrow __warn_result;
 
 extern int
-utime_tspec_sub_sec(struct timespec * __restrict result, unsigned int sec)
+utime_tspec_sub_sec(struct timespec * __restrict result, int sec)
 	__utils_nonull(1) __utils_nothrow __warn_result;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
