@@ -517,6 +517,111 @@ CUTE_TEST_STATIC(utilsut_utimer_arm_tspec,
 	}
 }
 
+#define UTILSUT_UTIMER_REARM_SEC (90)
+
+static struct utilsut_timer utilsut_utimer_rearm;
+
+static void
+utilsut_utimer_expire_rearm(struct utimer * __restrict timer)
+{
+	struct utilsut_timer * tmr = (struct utilsut_timer *)timer;
+
+	tmr->count++;
+
+	cute_check_sint(utilsut_curr_clock->tv_sec,
+	                equal,
+	                tmr->expected.tv_sec);
+	cute_check_sint(utilsut_curr_clock->tv_nsec,
+	                equal,
+	                tmr->expected.tv_nsec);
+
+	tmr->expected = *utimer_expiry_tspec(timer);
+	utime_tspec_add_sec_clamp(&tmr->expected, UTILSUT_UTIMER_REARM_SEC);
+
+	utimer_arm_tspec(timer, &tmr->expected);
+	cute_check_bool(utimer_is_armed(timer), is, true);
+}
+
+static void
+utilsut_utimer_setup_rearm(void)
+{
+	utimer_init(&utilsut_utimer_rearm.base, utilsut_utimer_expire_rearm);
+}
+
+static void
+utilsut_utimer_teardown_rearm(void)
+{
+	utimer_cancel(&utilsut_utimer_rearm.base);
+	utilsut_expect_monotonic_now(NULL);
+}
+
+CUTE_TEST_STATIC(utilsut_utimer_rearm_tspec,
+                 utilsut_utimer_setup_rearm,
+                 utilsut_utimer_teardown_rearm,
+                 CUTE_DFLT_TMOUT)
+{
+	unsigned int       m;
+	const unsigned int msecs[] = {
+		/* Must be divisors of 1000 millisecond. */
+		1, 2, 5, 8, 20, 25, 40, 50, 100, 200, 500, 1000
+	};
+
+	for (m = 0; m < stroll_array_nr(msecs); m++) {
+		struct timespec       clk = { .tv_sec = 0, clk.tv_nsec = 0 };
+		const struct timespec last_clk = {
+			.tv_sec  = 60 * 60,
+			.tv_nsec = 0
+		};
+
+		utilsut_utimer_rearm.count = 0;
+		utilsut_utimer_rearm.expected.tv_sec = 0;
+		utilsut_utimer_rearm.expected.tv_nsec = 0;
+		utimer_arm_tspec(&utilsut_utimer_rearm.base,
+		                 &utilsut_utimer_rearm.expected);
+		cute_check_bool(utimer_is_armed(&utilsut_utimer_rearm.base),
+		                is,
+		                true);
+
+		while (utime_tspec_before(&clk, &last_clk)) {
+			utilsut_curr_clock = &clk;
+			utilsut_expect_monotonic_now(&clk);
+			utimer_run();
+			utilsut_expect_monotonic_now(NULL);
+
+			utime_tspec_add_msec_clamp(&clk, (int)msecs[m]);
+		}
+
+		cute_check_bool(utimer_is_armed(&utilsut_utimer_rearm.base),
+		                is,
+		                true);
+		cute_check_sint(utilsut_utimer_rearm.count,
+		                equal,
+		                last_clk.tv_sec / UTILSUT_UTIMER_REARM_SEC);
+		utimer_cancel(&utilsut_utimer_rearm.base);
+	}
+}
+
+static void
+utilsut_utimer_expire_cancel(struct utimer * __restrict timer)
+{
+	struct utilsut_timer * tmr = (struct utilsut_timer *)timer;
+
+	tmr->count--;
+	cute_check_sint(tmr->count, equal, 0);
+}
+
+static void
+utilsut_utimer_setup_cancel(void)
+{
+	unsigned int t;
+
+	for (t = 0; t < stroll_array_nr(utilsut_timers); t++) {
+		struct utilsut_timer * tmr = &utilsut_timers[t];
+
+		utimer_init(&tmr->base, utilsut_utimer_expire_cancel);
+	}
+}
+
 #if defined(CONFIG_UTILS_ASSERT_API)
 
 CUTE_TEST(utilsut_utimer_cancel_assert)
@@ -536,12 +641,68 @@ UTILSUT_NOASSERT_TEST(utilsut_utimer_cancel_assert)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
-CUTE_TEST_STATIC(utilsut_utimer_cancel_tspec,
-                 utilsut_utimer_setup_arm,
+CUTE_TEST_STATIC(utilsut_utimer_cancel,
+                 utilsut_utimer_setup_cancel,
                  utilsut_utimer_teardown_arm,
                  CUTE_DFLT_TMOUT)
 {
-#warning IMPLEMENT ME
+	unsigned int       m;
+	const unsigned int msecs[] = {
+		/* Must be divisors of 1000 millisecond. */
+		1, 2, 5, 8, 20, 25, 40, 50, 100, 200, 500, 1000
+	};
+
+	for (m = 0; m < stroll_array_nr(msecs); m++) {
+		unsigned int          t;
+		unsigned int          nr = stroll_array_nr(utilsut_timers);
+		struct timespec       clk = { .tv_sec = 0, clk.tv_nsec = 0 };
+		const struct timespec last_clk = {
+			.tv_sec  = 60 * 60,
+			.tv_nsec = 0
+		};
+
+		for (t = 0; t < nr; t++) {
+			struct utilsut_timer * tmr = &utilsut_timers[t];
+
+			utimer_arm_tspec(&tmr->base, &tmr->expire);
+			cute_check_bool(utimer_is_armed(&tmr->base), is, true);
+
+			tmr->count = 1;
+		}
+
+		utimer_cancel(&utilsut_timers[0].base);
+		cute_check_bool(utimer_is_armed(&utilsut_timers[0].base),
+		                is,
+		                false);
+		utilsut_timers[0].count = 0;
+		utimer_cancel(&utilsut_timers[nr / 2].base);
+		cute_check_bool(utimer_is_armed(&utilsut_timers[nr / 2].base),
+		                is,
+		                false);
+		utilsut_timers[nr / 2].count = 0;
+		utimer_cancel(&utilsut_timers[nr - 1].base);
+		cute_check_bool(utimer_is_armed(&utilsut_timers[nr - 1].base),
+		                is,
+		                false);
+		utilsut_timers[nr - 1].count = 0;
+
+		while (utime_tspec_before_eq(&clk, &last_clk)) {
+			utilsut_curr_clock = &clk;
+			utilsut_expect_monotonic_now(&clk);
+			utimer_run();
+			utilsut_expect_monotonic_now(NULL);
+
+			utime_tspec_add_msec_clamp(&clk, (int)msecs[m]);
+		}
+
+		for (t = 0; t < nr; t++) {
+			cute_check_bool(
+				utimer_is_armed(&utilsut_timers[t].base),
+				is,
+				false);
+			cute_check_sint(utilsut_timers[t].count, equal, 0);
+		}
+	}
 }
 
 CUTE_GROUP(utilsut_timer_group) = {
@@ -554,8 +715,10 @@ CUTE_GROUP(utilsut_timer_group) = {
 
 	CUTE_REF(utilsut_utimer_arm_tspec_assert),
 	CUTE_REF(utilsut_utimer_arm_tspec),
+	CUTE_REF(utilsut_utimer_rearm_tspec),
 
 	CUTE_REF(utilsut_utimer_cancel_assert),
+	CUTE_REF(utilsut_utimer_cancel),
 };
 
 CUTE_SUITE_EXTERN(utilsut_timer_suite,

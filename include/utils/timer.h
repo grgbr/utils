@@ -66,6 +66,16 @@ utimer_is_armed(const struct utimer * __restrict timer)
 	return !stroll_dlist_empty(&timer->node);
 }
 
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+const struct timespec *
+utimer_expiry_tspec(const struct utimer * __restrict timer)
+{
+	utimer_assert_api(timer);
+	utimer_assert_api(stroll_dlist_empty(&timer->node) || timer->expire);
+
+	return &timer->tspec;
+}
+
 #if defined(CONFIG_UTILS_TIMER_LIST)
 
 extern void
