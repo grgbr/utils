@@ -465,6 +465,7 @@ CUTE_TEST_STATIC(utilsut_utimer_arm_tspec,
 {
 	unsigned int       m;
 	const unsigned int msecs[] = {
+		/* Must be divisors of 1000 millisecond. */
 		1, 2, 5, 8, 20, 25, 40, 50, 100, 200, 500, 1000
 	};
 
@@ -516,6 +517,33 @@ CUTE_TEST_STATIC(utilsut_utimer_arm_tspec,
 	}
 }
 
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+CUTE_TEST(utilsut_utimer_cancel_assert)
+{
+	struct utimer inval_tmr = {
+		.node = { NULL, NULL },
+		.expire = NULL
+	};
+
+	cute_expect_assertion(utimer_cancel(NULL));
+	cute_expect_assertion(utimer_cancel(&inval_tmr));
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+UTILSUT_NOASSERT_TEST(utilsut_utimer_cancel_assert)
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+CUTE_TEST_STATIC(utilsut_utimer_cancel_tspec,
+                 utilsut_utimer_setup_arm,
+                 utilsut_utimer_teardown_arm,
+                 CUTE_DFLT_TMOUT)
+{
+#warning IMPLEMENT ME
+}
+
 CUTE_GROUP(utilsut_timer_group) = {
 	CUTE_REF(utilsut_utimer_monotonic_now),
 
@@ -526,6 +554,8 @@ CUTE_GROUP(utilsut_timer_group) = {
 
 	CUTE_REF(utilsut_utimer_arm_tspec_assert),
 	CUTE_REF(utilsut_utimer_arm_tspec),
+
+	CUTE_REF(utilsut_utimer_cancel_assert),
 };
 
 CUTE_SUITE_EXTERN(utilsut_timer_suite,
