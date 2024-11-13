@@ -627,7 +627,7 @@ utilsut_utimer_setup_cancel(void)
 CUTE_TEST(utilsut_utimer_cancel_assert)
 {
 	struct utimer inval_tmr = {
-		.node = { NULL, NULL },
+		.state = UTIMER_PEND_STAT,
 		.expire = NULL
 	};
 

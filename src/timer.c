@@ -21,6 +21,12 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
 
+#define utimer_assert_timer_intern(_timer) \
+	utimer_assert_intern(_timer); \
+	utimer_assert_intern(((_timer)->state != UTIMER_PEND_STAT) || \
+	                     (!stroll_dlist_empty(&(_timer)->node) && \
+	                      (_timer)->expire))
+
 static inline __utils_nonull(1) __utils_const __utils_nothrow __returns_nonull
 struct utimer *
 utimer_timer_from_node(const struct stroll_dlist_node * __restrict node)
@@ -319,21 +325,28 @@ void
 utimer_arm(struct utimer * __restrict         timer,
            const struct timespec * __restrict tspec)
 {
+	utimer_assert_timer_intern(timer);
+	utimer_assert_intern(tspec);
+
+	if (timer->state != UTIMER_PEND_STAT)
+		stroll_dlist_remove(&timer->node);
+
 	timer->tick = utimer_tick_from_tspec_upper_clamp(tspec);
 	timer->tspec = *tspec;
 
-	stroll_dlist_remove_init(&timer->node);
 	stroll_dlist_insert_inorder_back(&utimer_the_list,
 	                                 &timer->node,
 	                                 utimer_tick_cmp,
 	                                 NULL);
+
+	timer->state = UTIMER_PEND_STAT;
 }
 
 void
 utimer_arm_tspec(struct utimer * __restrict         timer,
                  const struct timespec * __restrict tspec)
 {
-	utimer_assert_api(timer);
+	utimer_assert_timer_api(timer);
 	utimer_assert_api(timer->expire);
 	utime_assert_tspec_api(tspec);
 
@@ -343,7 +356,7 @@ utimer_arm_tspec(struct utimer * __restrict         timer,
 void
 utimer_arm_msec(struct utimer * __restrict timer, int msec)
 {
-	utimer_assert_api(timer);
+	utimer_assert_timer_api(timer);
 	utimer_assert_api(timer->expire);
 	utimer_assert_api(msec >= 0);
 
@@ -358,7 +371,7 @@ utimer_arm_msec(struct utimer * __restrict timer, int msec)
 void
 utimer_arm_sec(struct utimer * __restrict timer, int sec)
 {
-	utimer_assert_api(timer);
+	utimer_assert_timer_api(timer);
 	utimer_assert_api(timer->expire);
 	utimer_assert_api(sec >= 0);
 
@@ -378,7 +391,7 @@ utimer_issue_tick(void)
 		const struct utimer * timer =
 			utimer_lead_timer(&utimer_the_list);
 
-		utimer_assert_intern(timer);
+		utimer_assert_timer_intern(timer);
 		utimer_assert_intern(timer->expire);
 
 		return timer->tick;
@@ -395,7 +408,7 @@ utimer_run(void)
 	while (!stroll_dlist_empty(&utimer_the_list)) {
 		struct utimer * timer = utimer_lead_timer(&utimer_the_list);
 
-		utimer_assert_intern(timer);
+		utimer_assert_timer_intern(timer);
 		utimer_assert_intern(timer->expire);
 
 		if (tick < timer->tick) {
@@ -404,7 +417,8 @@ utimer_run(void)
 				return;
 		}
 
-		stroll_dlist_remove_init(&timer->node);
+		timer->state = UTIMER_IDLE_STAT;
+		stroll_dlist_remove(&timer->node);
 		timer->expire(timer);
 	}
 }
@@ -424,7 +438,7 @@ utimer_run(void)
 	(6U)
 
 #define UTIMER_HWHEEL_SLOT_MASK \
-	((UINT64_C(1) << UTIMER_HWHEEL_SLOT_BITS) - 1)
+	((INT64_C(1) << UTIMER_HWHEEL_SLOT_BITS) - 1)
 
 #define UTIMER_HWHEEL_SLOTS_PER_WHEEL \
 	(1U << UTIMER_HWHEEL_SLOT_BITS)
@@ -459,18 +473,19 @@ utimer_run(void)
  * accounting for sorted eternal timer list).
  */
 #define UTIMER_HWHEEL_TICKS_NR \
-	(1UL << (UTIMER_HWHEEL_SLOT_BITS * UTIMER_HWHEEL_LEVELS_NR))
+	(INT64_C(1) << (UTIMER_HWHEEL_SLOT_BITS * UTIMER_HWHEEL_LEVELS_NR))
 
 struct utimer_hwheel {
 	unsigned int             count;
-	uint64_t                 tick;
-	uint64_t                 issue;
+	int64_t                  tick;
+	int64_t                  issue;
 	struct stroll_dlist_node slots[UTIMER_HWHEEL_LEVELS_NR][UTIMER_HWHEEL_SLOTS_PER_WHEEL];
 	struct stroll_dlist_node eternal;
 };
 
 static struct utimer_hwheel utimer_the_hwheel;
 
+#warning REMOVE ME if not needed...
 #if 0
 /*
  * Warning: Keep these definitions just in case we need them in the futur...
@@ -509,6 +524,28 @@ static struct utimer_hwheel utimer_the_hwheel;
 
 static __utils_nonull(1, 2) __utils_nothrow
 void
+utimer_hwheel_account(struct utimer * __restrict   timer,
+                      struct timespec * __restrict now)
+{
+	utimer_assert_intern(timer);
+	utimer_assert_intern(now);
+
+	utime_monotonic_now(now);
+
+	if (utimer_the_hwheel.count) {
+		utimer_the_hwheel.count += (int)
+		                           stroll_dlist_empty(&timer->node);
+
+		return;
+	}
+
+	utimer_assert_api(stroll_dlist_empty(&timer->node));
+	utimer_the_hwheel.count = 1;
+	utimer_the_hwheel.tick = utimer_tick_from_tspec_lower_clamp(now);
+}
+
+static __utils_nonull(1, 2) __utils_nothrow
+void
 utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
                      struct utimer * __restrict        timer)
 {
@@ -516,8 +553,9 @@ utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
 	utimer_assert_intern(timer);
 	utimer_assert_intern(timer->expire);
 
-	uint64_t tmout = stroll_max(timer->tick, hwheel->tick) - hwheel->tick;
+	int64_t tmout = stroll_max(timer->tick, hwheel->tick) - hwheel->tick;
 
+	utimer_assert_intern(tmout >= 0);
 	if (tmout < UTIMER_HWHEEL_TICKS_NR) {
 		unsigned int lvl;
 		unsigned int bits;
@@ -542,40 +580,20 @@ utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
 
 static __utils_nonull(1, 2) __utils_nothrow
 void
-utimer_hwheel_account(struct utimer * __restrict   timer,
-                      struct timespec * __restrict now)
+utimer_arm(struct utimer * __restrict         timer,
+           const struct timespec * __restrict tspec)
 {
 	utimer_assert_intern(timer);
-	utimer_assert_intern(now);
+	utimer_assert_intern(timer->expire);
+	utimer_assert_intern(tspec);
 
-	utime_monotonic_now(now);
+	timer->tick = utimer_tick_from_tspec_upper_clamp(tspec);
+	timer->tspec = *tspec;
 
-	if (!utimer_the_hwheel.count) {
-		utimer_assert_api(stroll_dlist_empty(&timer->node));
-
-		utimer_the_hwheel.count++;
-		utimer_the_hwheel.tick = utimer_tick_from_tspec_lower(now);
-	}
-}
-
-void
-utimer_arm_tick(struct utimer * __restrict timer, int64_t tick)
-{
-	utimer_assert_api(timer);
-	utimer_assert_api(timer->expire);
-	utimer_assert_api(tick >= 0);
-	utimer_assert_intern(tick <= UTIMER_TICK_MAX);
-
-	struct timespec date;
-
-	utimer_hwheel_account(timer, &date);
-
-	timer->tick = tick;
 	utimer_the_hwheel.issue = stroll_min(timer->tick,
 	                                     utimer_the_hwheel.issue);
 
 	utimer_hwheel_enroll(&utimer_the_hwheel, timer);
-
 }
 
 void
@@ -584,62 +602,50 @@ utimer_arm_tspec(struct utimer * __restrict         timer,
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utimer_assert_api(tspec);
+	utime_assert_tspec_api(tspec);
 
-	struct timespec date;
+	struct timespec now;
 
-	utimer_hwheel_account(timer, &date);
+	utimer_hwheel_account(timer, &now);
 
-	timer->tick = utimer_tick_from_tspec_upper(tspec);
-	utimer_the_hwheel.issue = stroll_min(timer->tick,
-	                                     utimer_the_hwheel.issue);
-
-	utimer_hwheel_enroll(&utimer_the_hwheel, timer);
+	utimer_arm(timer, tspec);
 }
 
 void
-utimer_arm_msec(struct utimer * __restrict timer, unsigned long msec)
+utimer_arm_msec(struct utimer * __restrict timer, int msec)
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utimer_assert_api(msec);
+	utimer_assert_api(msec >= 0);
 
-	struct timespec date;
+	struct timespec expire;
 
-	utimer_hwheel_account(timer, &date);
-	utime_tspec_add_msec(&date, msec);
+	utimer_hwheel_account(timer, &expire);
+	utime_tspec_add_msec_clamp(&expire, msec);
 
-	timer->tick = utimer_tick_from_tspec_upper(&date);
-	utimer_the_hwheel.issue = stroll_min(timer->tick,
-	                                     utimer_the_hwheel.issue);
-
-	utimer_hwheel_enroll(&utimer_the_hwheel, timer);
+	utimer_arm(timer, &expire);
 }
 
 void
-utimer_arm_sec(struct utimer * __restrict timer, unsigned long sec)
+utimer_arm_sec(struct utimer * __restrict timer, int sec)
 {
 	utimer_assert_api(timer);
 	utimer_assert_api(timer->expire);
-	utimer_assert_api(sec);
+	utimer_assert_api(sec >= 0);
 
-	struct timespec date;
+	struct timespec expire;
 
-	utimer_hwheel_account(timer, &date);
-	utime_tspec_add_sec(&date, sec);
+	utimer_hwheel_account(timer, &expire);
+	utime_tspec_add_sec_clamp(&expire, sec);
 
-	timer->tick = utimer_tick_from_tspec_upper(&date);
-	utimer_the_hwheel.issue = stroll_min(timer->tick,
-	                                     utimer_the_hwheel.issue);
-
-	utimer_hwheel_enroll(&utimer_the_hwheel, timer);
+	utimer_arm(timer, &expire);
 }
 
 void
 utimer_cancel(struct utimer * __restrict timer)
 {
 	utimer_assert_api(timer);
-	utimer_assert_api(timer->expire);
+	utimer_assert_api(stroll_dlist_empty(&timer->node) || timer->expire);
 
 	if (!stroll_dlist_empty(&timer->node)) {
 		stroll_dlist_remove_init(&timer->node);
@@ -672,13 +678,13 @@ static __utils_nonull(1) __utils_nothrow
 void
 utimer_hwheel_cascade(struct utimer_hwheel * __restrict hwheel)
 {
-	uint64_t     idx;
+	int64_t      idx;
 	unsigned int lvl;
 
 	for (idx = hwheel->tick >> UTIMER_HWHEEL_SLOT_BITS, lvl = 1;
 	     lvl < UTIMER_HWHEEL_LEVELS_NR;
 	     idx >>= UTIMER_HWHEEL_SLOT_BITS, lvl++) {
-		unsigned int slot = idx & UTIMER_HWHEEL_SLOT_MASK;
+		int slot = idx & UTIMER_HWHEEL_SLOT_MASK;
 
 		utimer_hwheel_cascade_timers(hwheel, &hwheel->slots[lvl][slot]);
 
@@ -718,14 +724,14 @@ utimer_slot_lead_timer(
 
 /* TODO: refactor me !! */
 static __utils_nonull(1) __utils_nothrow
-uint64_t
+int64_t
 utimer_hwheel_find_issue(struct utimer_hwheel * __restrict hwheel)
 {
 	unsigned int          slot = hwheel->tick & UTIMER_HWHEEL_SLOT_MASK;
 	unsigned int          curr;
 	const struct utimer * timer;
-	uint64_t              tick = hwheel->tick;
-	uint64_t              issue = tick + UTIMER_HWHEEL_TICKS_NR - 1;
+	int64_t               tick = hwheel->tick;
+	int64_t               issue = tick + UTIMER_HWHEEL_TICKS_NR - 1;
 	bool                  found = false;
 	unsigned int          lvl;
 
@@ -819,7 +825,7 @@ utimer_issue_tick(void)
 void
 utimer_run(void)
 {
-	uint64_t tick = utimer_tick();
+	int64_t tick = utimer_tick();
 
 	while (tick > utimer_the_hwheel.tick) {
 		unsigned int               slot;
