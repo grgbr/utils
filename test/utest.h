@@ -15,7 +15,7 @@
 #include <time.h>
 
 #define UTILSUT_NOASSERT_TEST(_test) \
-	CUTE_TEST(_test) { }
+	CUTE_TEST(_test) { cute_skip("assertion not supported"); }
 
 extern void
 utilsut_expect_monotonic_now(const struct timespec * expected);

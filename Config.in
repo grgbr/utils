@@ -23,12 +23,6 @@ config UTILS_UTEST
 	help
 	  Build Utils library unit test suite.
 
-config UTILS_VALGRIND
-	bool "Valgrind support"
-	default n
-	help
-	  Build utils library with support for valgrind inspection.
-
 config UTILS_ATOMIC
 	bool "Atomic operations"
 	default y

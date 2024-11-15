@@ -45,7 +45,8 @@ typedef void (utimer_expire_fn)(struct utimer * __restrict);
 
 enum utimer_state {
 	UTIMER_IDLE_STAT,
-	UTIMER_PEND_STAT
+	UTIMER_PEND_STAT,
+	UTIMER_RUN_STAT
 };
 
 struct utimer {
@@ -67,7 +68,9 @@ struct utimer {
 	utimer_assert_api(_timer); \
 	utimer_assert_api(((_timer)->state != UTIMER_PEND_STAT) || \
 	                  (!stroll_dlist_empty(&(_timer)->node) && \
-	                   (_timer)->expire))
+	                   (_timer)->expire)); \
+	utimer_assert_api(((_timer)->state != UTIMER_RUN_STAT) || \
+	                  (_timer)->expire)
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 bool
@@ -100,29 +103,9 @@ extern void
 utimer_arm_sec(struct utimer * __restrict timer, int sec)
 	__utils_nonull(1) __utils_nothrow __leaf;
 
-#if defined(CONFIG_UTILS_TIMER_LIST)
-
-static inline __utils_nonull(1) __utils_nothrow
-void
-utimer_cancel(struct utimer * __restrict timer)
-{
-	utimer_assert_timer_api(timer);
-
-	if (timer->state == UTIMER_PEND_STAT) {
-		stroll_dlist_remove(&timer->node);
-		timer->state = UTIMER_IDLE_STAT;
-	}
-}
-
-#endif /* defined(CONFIG_UTILS_TIMER_LIST) */
-
-#if defined(CONFIG_UTILS_TIMER_HWHEEL)
-
 extern void
 utimer_cancel(struct utimer * __restrict timer)
 	__utils_nonull(1) __utils_nothrow __leaf;
-
-#endif /* defined(CONFIG_UTILS_TIMER_HWHEEL) */
 
 static inline __utils_nonull(1, 2) __utils_nothrow
 void

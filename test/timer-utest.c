@@ -480,7 +480,9 @@ CUTE_TEST_STATIC(utilsut_utimer_arm_tspec,
 		for (t = 0; t < stroll_array_nr(utilsut_timers); t++) {
 			struct utilsut_timer * tmr = &utilsut_timers[t];
 
+			utilsut_expect_monotonic_now(&clk);
 			utimer_arm_tspec(&tmr->base, &tmr->expire);
+			utilsut_expect_monotonic_now(NULL);
 			cute_check_bool(utimer_is_armed(&tmr->base), is, true);
 
 			tmr->count = 1;
@@ -576,8 +578,10 @@ CUTE_TEST_STATIC(utilsut_utimer_rearm_tspec,
 		utilsut_utimer_rearm.count = 0;
 		utilsut_utimer_rearm.expected.tv_sec = 0;
 		utilsut_utimer_rearm.expected.tv_nsec = 0;
+		utilsut_expect_monotonic_now(&clk);
 		utimer_arm_tspec(&utilsut_utimer_rearm.base,
 		                 &utilsut_utimer_rearm.expected);
+		utilsut_expect_monotonic_now(NULL);
 		cute_check_bool(utimer_is_armed(&utilsut_utimer_rearm.base),
 		                is,
 		                true);
@@ -664,23 +668,33 @@ CUTE_TEST_STATIC(utilsut_utimer_cancel,
 		for (t = 0; t < nr; t++) {
 			struct utilsut_timer * tmr = &utilsut_timers[t];
 
+			utilsut_expect_monotonic_now(&clk);
 			utimer_arm_tspec(&tmr->base, &tmr->expire);
+			utilsut_expect_monotonic_now(NULL);
 			cute_check_bool(utimer_is_armed(&tmr->base), is, true);
 
 			tmr->count = 1;
 		}
 
+		utilsut_expect_monotonic_now(&clk);
 		utimer_cancel(&utilsut_timers[0].base);
+		utilsut_expect_monotonic_now(NULL);
 		cute_check_bool(utimer_is_armed(&utilsut_timers[0].base),
 		                is,
 		                false);
 		utilsut_timers[0].count = 0;
+
+		utilsut_expect_monotonic_now(&clk);
 		utimer_cancel(&utilsut_timers[nr / 2].base);
+		utilsut_expect_monotonic_now(NULL);
 		cute_check_bool(utimer_is_armed(&utilsut_timers[nr / 2].base),
 		                is,
 		                false);
 		utilsut_timers[nr / 2].count = 0;
+
+		utilsut_expect_monotonic_now(&clk);
 		utimer_cancel(&utilsut_timers[nr - 1].base);
+		utilsut_expect_monotonic_now(NULL);
 		cute_check_bool(utimer_is_armed(&utilsut_timers[nr - 1].base),
 		                is,
 		                false);
