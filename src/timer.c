@@ -539,6 +539,9 @@ static struct utimer_hwheel utimer_the_hwheel;
 	  UTIMER_TICKS_PER_SEC)
 #endif
 
+#define UTIMER_HWHEEL_TMOUT_MAX(_level) \
+	(INT64_C(1) << ((_level) * UTIMER_HWHEEL_SLOT_BITS))
+
 static __utils_nonull(1, 2) __utils_nothrow
 void
 utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
@@ -548,8 +551,56 @@ utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
 	utimer_assert_intern(timer);
 	utimer_assert_intern(timer->expire);
 
-	int64_t tmout = stroll_max(timer->tick, hwheel->tick) - hwheel->tick;
+	int64_t      tmout = stroll_max(timer->tick, hwheel->tick) -
+	                     hwheel->tick;
+#warning TODO: select whatever implementation is the most performant.
+#if 0
+	unsigned int lvl;
+	unsigned int slot;
 
+	utimer_assert_intern(tmout >= 0);
+
+#if (UTIMER_HWHEEL_LEVELS_NR < 4) || (UTIMER_HWHEEL_LEVELS_NR > 5)
+#error "Hierarchical timing wheel maximum depth not supported !"
+#endif
+	switch (tmout) {
+	case 0 ... UTIMER_HWHEEL_TMOUT_MAX(1) - 1:
+		lvl = 0;
+		break;
+
+	case UTIMER_HWHEEL_TMOUT_MAX(1) ... UTIMER_HWHEEL_TMOUT_MAX(2) - 1:
+		lvl = 1;
+		tmout = timer->tick >> UTIMER_HWHEEL_SLOT_BITS;
+		break;
+
+	case UTIMER_HWHEEL_TMOUT_MAX(2) ... UTIMER_HWHEEL_TMOUT_MAX(3) - 1:
+		lvl = 2;
+		tmout = timer->tick >> (2 * UTIMER_HWHEEL_SLOT_BITS);
+		break;
+
+	case UTIMER_HWHEEL_TMOUT_MAX(3) ... UTIMER_HWHEEL_TMOUT_MAX(4) - 1:
+		lvl = 3;
+		tmout = timer->tick >> (3 * UTIMER_HWHEEL_SLOT_BITS);
+		break;
+
+#if UTIMER_HWHEEL_LEVELS_NR == 5
+	case UTIMER_HWHEEL_TMOUT_MAX(4) ... UTIMER_HWHEEL_TMOUT_MAX(5) - 1:
+		lvl = 4;
+		tmout = timer->tick >> (4 * UTIMER_HWHEEL_SLOT_BITS);
+		break;
+#endif /* UTIMER_HWHEEL_LEVELS_NR == 5 */
+
+	default:
+		stroll_dlist_insert_inorder_back(&hwheel->eternal,
+		                                 &timer->node,
+		                                 utimer_tick_cmp,
+		                                 NULL);
+		return;
+	}
+
+	slot = tmout & UTIMER_HWHEEL_SLOT_MASK;
+	stroll_dlist_insert(&hwheel->slots[lvl][slot], &timer->node);
+#else
 	utimer_assert_intern(tmout >= 0);
 	if (tmout < UTIMER_HWHEEL_TICKS_NR) {
 		unsigned int lvl;
@@ -563,7 +614,7 @@ utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
 				break;
 		}
 
-		slot = (tmout >> bits) & UTIMER_HWHEEL_SLOT_MASK;
+		slot = (timer->tick >> bits) & UTIMER_HWHEEL_SLOT_MASK;
 		stroll_dlist_insert(&hwheel->slots[lvl][slot], &timer->node);
 	}
 	else
@@ -571,6 +622,7 @@ utimer_hwheel_enroll(struct utimer_hwheel * __restrict hwheel,
 		                                 &timer->node,
 		                                 utimer_tick_cmp,
 		                                 NULL);
+#endif
 }
 
 static __utils_nonull(1, 2) __utils_nothrow
@@ -580,13 +632,25 @@ utimer_arm(struct utimer * __restrict timer)
 	utimer_assert_timer_intern(timer);
 	utimer_assert_intern(timer->expire);
 
-	if (timer->state != UTIMER_PEND_STAT)
+	switch (timer->state) {
+	case UTIMER_IDLE_STAT:
 		utimer_the_hwheel.count++;
-	else
+		break;
+
+	case UTIMER_PEND_STAT:
 		stroll_dlist_remove(&timer->node);
+		break;
+
+	case UTIMER_RUN_STAT:
+		break;
+
+	default:
+		utimer_assert_intern(0);
+	}
 
 	timer->tick = utimer_tick_from_tspec_upper_clamp(&timer->tspec);
 
+#warning TODO: set utimer_the_hwheel.issue if utimer_the_hwheel.count == 0 ?
 	utimer_the_hwheel.issue = stroll_min(timer->tick,
 	                                     utimer_the_hwheel.issue);
 
@@ -679,6 +743,7 @@ void
 utimer_hwheel_cascade_timers(struct utimer_hwheel * __restrict     hwheel,
                              struct stroll_dlist_node * __restrict timers)
 {
+#warning TODO: move list to local head and use foreach safe to enroll without individual removal ?
 	while (!stroll_dlist_empty(timers)) {
 		struct utimer * tmr = utimer_lead_timer(timers);
 
@@ -863,10 +928,10 @@ utimer_run(void)
 
 			tmr->expire(tmr);
 
-			if (tmr->state == UTIMER_RUN_STAT)
+			if (tmr->state == UTIMER_RUN_STAT) {
 				tmr->state = UTIMER_IDLE_STAT;
-
-			utimer_the_hwheel.count--;
+				utimer_the_hwheel.count--;
+			}
 		}
 
 		tick = utimer_tick();
