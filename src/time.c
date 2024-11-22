@@ -170,7 +170,7 @@ utime_tspec_add_sec(struct timespec * __restrict result, int sec)
 	return -ERANGE;
 }
 
-static inline __utils_nonull(1, 2) __utils_const __utils_nothrow __warn_result
+static __utils_nonull(1, 2) __utils_const __utils_nothrow __warn_result
 struct timespec
 utime_tspec_absdiff(const struct timespec * __restrict higher,
                     const struct timespec * __restrict lower)

@@ -35,6 +35,12 @@ subdirs   += test
 test-deps := src
 endif # ($(CONFIG_UTILS_UTEST),y)
 
+ifeq ($(CONFIG_ETUX_TIMER),y)
+subdirs    += timer
+timer-deps := src
+test-deps  += timer
+endif # ($(CONFIG_ETUX_TIMER),y)
+
 ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 override libutils_pkgconf_libs := \
 	Libs: -L$${libdir} \
