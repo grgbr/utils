@@ -5,8 +5,13 @@
  * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
  ******************************************************************************/
 
-#include "timer.h"
-#include <errno.h>
+#include "utils/timer.h"
+
+/* Forward declaration required by common.i inclusion */
+static int64_t etux_timer_issue_tick(void)
+        __utils_pure __utils_nothrow __warn_result;
+
+#include "common.i"
 
 static struct stroll_dlist_node etux_timer_the_list =
 	STROLL_DLIST_INIT(etux_timer_the_list);
@@ -32,7 +37,7 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 {
 	etux_timer_assert_timer_api(timer);
 	etux_timer_assert_api(timer->expire);
-	etux_time_assert_tspec_api(tspec);
+	utime_assert_tspec_api(tspec);
 
 	timer->tspec = *tspec;
 	etux_timer_arm(timer);
@@ -45,8 +50,8 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(msec >= 0);
 
-	etux_time_monotonic_now(&timer->tspec);
-	etux_time_tspec_add_msec_clamp(&timer->tspec, msec);
+	utime_monotonic_now(&timer->tspec);
+	utime_tspec_add_msec_clamp(&timer->tspec, msec);
 
 	etux_timer_arm(timer);
 }
@@ -58,8 +63,8 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(sec >= 0);
 
-	etux_time_monotonic_now(&timer->tspec);
-	etux_time_tspec_add_sec_clamp(&timer->tspec, sec);
+	utime_monotonic_now(&timer->tspec);
+	utime_tspec_add_sec_clamp(&timer->tspec, sec);
 
 	etux_timer_arm(timer);
 }
@@ -73,7 +78,7 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 		etux_timer_dismiss(timer);
 }
 
-static __utils_pure __utils_nothrow __warn_result
+static
 int64_t
 etux_timer_issue_tick(void)
 {

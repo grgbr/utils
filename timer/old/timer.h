@@ -20,16 +20,16 @@
  *
  *     ETUX_TIMER_TICK_SUBSEC_BITS     Tick period  Tick frequency
  *                                  (milliseconds)         (Hertz)
- *                               0    1000.000000               1
- *                               1     500.000000               2
- *                               2     250.000000               4
- *                               3     125.000000               8
- *                               4      62.500000              16
- *                               5      31.250000              32
- *                               6      15.625000              64
- *                               7       7.812500             128
- *                               8       3.906250             256
- *                               9       1.953125             512
+ *                               0     1000.000000               1
+ *                               1      500.000000               2
+ *                               2      250.000000               4
+ *                               3      125.000000               8
+ *                               4       62.500000              16
+ *                               5       31.250000              32
+ *                               6       15.625000              64
+ *                               7        7.812500             128
+ *                               8        3.906250             256
+ *                               9        1.953125             512
  *
  * Watch out!
  * The tick period MUST be a divisor of 1000000000 nanoseconds so that we can
@@ -61,12 +61,12 @@
  * tv_sec field of a struct timespec (tv_sec is a time_t, i.e., either a signed
  * 64 or 32 bits word).
  */
-#if ETUX_TIME_TIMET_BITS == 64
+#if UTIME_TIMET_BITS == 64
 
 #define ETUX_TIMER_TICK_MAX \
 	(INT64_MAX)
 
-#elif ETUX_TIME_TIMET_BITS == 32
+#elif UTIME_TIMET_BITS == 32
 
 #define ETUX_TIMER_TICK_MAX \
 	(((int64_t)(INT32_MAX) << ETUX_TIMER_TICK_SUBSEC_BITS) | \
@@ -103,57 +103,5 @@
 	                          (_timer)->expire)); \
 	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_RUN_STAT) || \
 	                         (_timer)->expire)
-
-static inline __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
-struct etux_timer *
-etux_timer_lead_timer(const struct stroll_dlist_node * __restrict head)
-{
-	etux_timer_assert_intern(head);
-	etux_timer_assert_intern(!stroll_dlist_empty(head));
-
-	struct etux_timer * tmr = stroll_dlist_entry(stroll_dlist_next(head),
-	                                             struct etux_timer,
-	                                             node);
-
-	etux_timer_assert_timer_intern(tmr);
-	etux_timer_assert_intern(tmr->expire);
-
-	return tmr;
-}
-
-extern int
-etux_timer_tick_cmp(const struct stroll_dlist_node * __restrict first,
-                    const struct stroll_dlist_node * __restrict second,
-                    void *                                      data __unused)
-	__utils_nonull(1, 2)
-	__utils_pure
-	__utils_nothrow
-	__leaf
-	__warn_result
-	__export_intern;
-
-static inline __utils_nonull(1, 2) __utils_nothrow __warn_result
-void
-etux_timer_insert(struct stroll_dlist_node * __restrict list,
-                  struct etux_timer * __restrict        timer)
-{
-	stroll_dlist_insert_inorder_back(list,
-	                                 &timer->node,
-	                                 etux_timer_tick_cmp,
-	                                 NULL);
-}
-
-static __utils_nonull(1) __utils_nothrow
-void
-etux_timer_dismiss(struct etux_timer * __restrict timer)
-{
-	etux_timer_assert_timer_intern(timer);
-
-	stroll_dlist_remove(&timer->node);
-	timer->state = ETUX_TIMER_IDLE_STAT;
-}
-
-extern int64_t
-etux_timer_tick(void) __utils_nothrow __leaf __warn_result __export_intern;
 
 #endif /* _ETUX_TIMER_INTERN_H */

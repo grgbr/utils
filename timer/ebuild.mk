@@ -17,8 +17,7 @@ common-cflags        := -Wall \
                         -fvisibility=hidden \
                         -D_GNU_SOURCE \
                         -I ../include \
-                        $(EXTRA_CFLAGS) \
-                        $(call kconf_enabled,UTILS_THREAD,-pthread)
+                        $(EXTRA_CFLAGS)
 
 ifeq ($(CONFIG_UTILS_UTEST)$(CONFIG_UTILS_ASSERT_API),yy)
 # When unit testsuite is required to be built, make sure to enable ELF semantic
@@ -39,16 +38,30 @@ common-cflags        := $(filter-out -DNDEBUG,$(common-cflags))
 common-ldflags       := $(filter-out -DNDEBUG,$(common-ldflags))
 endif # ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
 
-solibs                        := $(call kconf_enabled,ETUX_TIMER_LIST,libetux_timer_list.so)
-libetux_timer_list.so-objs    := list.o
-libetux_timer_list.so-cflags  := $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
-libetux_timer_list.so-ldflags := $(filter-out -pie -fpie -fPIE,$(common-ldflags)) \
-                                 -shared -Bsymbolic -fpic \
-                                 -Wl,-soname,libetux_timer_list.so \
-                                 -lutils
+solibs                          := $(call kconf_enabled,ETUX_TIMER_LIST,libetux_timer_list.so)
+libetux_timer_list.so-objs      := $(addprefix shared/, list.o)
+libetux_timer_list.so-cflags    := $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
+libetux_timer_list.so-ldflags   := $(filter-out -pie -fpie -fPIE,$(common-ldflags)) \
+                                   -shared -Bsymbolic -fpic \
+                                   -Wl,-soname,libetux_timer_list.so \
+                                   -lutils
+libetux_timer_list.so-pkgconf   := libstroll
 
-arlibs                        := $(call kconf_enabled,ETUX_TIMER_LIST,libetux_timer_list.a)
-libetux_timer_list.a-objs     := list.o
-libutils.a-cflags             := $(common-cflags)
+arlibs                          := $(call kconf_enabled,ETUX_TIMER_LIST,libetux_timer_list.a)
+libetux_timer_list.a-objs       := $(addprefix static/, list.o)
+libetux_timer_list.a-cflags     := $(common-cflags)
+
+solibs                          += $(call kconf_enabled,ETUX_TIMER_HWHEEL,libetux_timer_hwheel.so)
+libetux_timer_hwheel.so-objs    := $(addprefix shared/, hwheel.o)
+libetux_timer_hwheel.so-cflags  := $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
+libetux_timer_hwheel.so-ldflags := $(filter-out -pie -fpie -fPIE,$(common-ldflags)) \
+                                   -shared -Bsymbolic -fpic \
+                                   -Wl,-soname,libetux_timer_hwheel.so \
+                                   -lutils
+libetux_timer_hwheel.so-pkgconf := libstroll
+
+arlibs                          += $(call kconf_enabled,ETUX_TIMER_HWHEEL,libetux_timer_hwheel.a)
+libetux_timer_hwheel.a-objs     := $(addprefix static/, hwheel.o)
+libetux_timer_hwheel.a-cflags   := $(common-cflags)
 
 # ex: filetype=make :
