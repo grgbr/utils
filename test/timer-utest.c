@@ -12,7 +12,7 @@
 CUTE_TEST(etuxut_timer_monotonic_now)
 {
 	const struct timespec exp = { .tv_sec = 10, .tv_nsec = 1000 };
-	struct timespec now = { -1, -1 };
+	struct timespec       now = { -1, -1 };
 
 	/* Schedule next timespec returned by clock_gettime() syscall. */
 	utilsut_expect_monotonic_now(&exp);
@@ -37,7 +37,7 @@ etuxut_timer_expire(struct etux_timer * __restrict timer __unused)
 CUTE_TEST(etuxut_timer_is_armed_assert)
 {
 	struct etux_timer tmr = ETUX_TIMER_INIT(tmr, NULL);
-	bool          armed __unused;
+	bool              armed __unused;
 
 	cute_expect_assertion(armed = etux_timer_is_armed(NULL));
 }
@@ -247,17 +247,20 @@ CUTE_TEST_STATIC(etuxut_timer_issue_msec,
 			diff.tv_nsec = stroll_round_upper(diff.tv_nsec,
 			                                  ETUX_TIMER_TICK_NSEC);
 			if (diff.tv_nsec >= 1000000000L) {
-				if (diff.tv_sec < (ETUX_TIMER_TICK_MAX >>
-				                   ETUX_TIMER_TICK_SUBSEC_BITS)) {
+				if (diff.tv_sec <
+				    (ETUX_TIMER_TICK_MAX >>
+				     ETUX_TIMER_TICK_SUBSEC_BITS)) {
 					diff.tv_sec += 1;
 					diff.tv_nsec -= 1000000000L;
 				}
 				else {
-					diff.tv_sec  = ETUX_TIMER_TICK_MAX >>
-					               ETUX_TIMER_TICK_SUBSEC_BITS;
-					diff.tv_nsec = (ETUX_TIMER_TICK_MAX &
-					                ETUX_TIMER_TICK_SUBSEC_MASK)
-					               * ETUX_TIMER_TICK_NSEC;
+					diff.tv_sec  =
+						ETUX_TIMER_TICK_MAX >>
+						ETUX_TIMER_TICK_SUBSEC_BITS;
+					diff.tv_nsec =
+						(ETUX_TIMER_TICK_MAX &
+						 ETUX_TIMER_TICK_SUBSEC_MASK) *
+						ETUX_TIMER_TICK_NSEC;
 				}
 			}
 			if (utime_tspec_sub(&diff, &clk) > 0)
@@ -276,7 +279,7 @@ CUTE_TEST_STATIC(etuxut_timer_issue_msec,
 }
 
 struct etuxut_timer {
-	struct etux_timer         base;
+	struct etux_timer     base;
 	const struct timespec expire;
 	int                   count;
 	struct timespec       expected;
@@ -303,7 +306,8 @@ static struct etuxut_timer etuxut_timers[] = {
 #endif
 	{
 		.expire.tv_sec  = 0,
-		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC * ETUX_TIMER_TICK_NSEC) -
+		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC *
+		                   ETUX_TIMER_TICK_NSEC) -
 		                  1
 	},
 
@@ -327,7 +331,8 @@ static struct etuxut_timer etuxut_timers[] = {
 #endif
 	{
 		.expire.tv_sec  = 1,
-		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC * ETUX_TIMER_TICK_NSEC) -
+		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC *
+		                   ETUX_TIMER_TICK_NSEC) -
 		                  1
 	},
 
@@ -351,7 +356,8 @@ static struct etuxut_timer etuxut_timers[] = {
 #endif
 	{
 		.expire.tv_sec  = 37 * 60,
-		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC * ETUX_TIMER_TICK_NSEC) -
+		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC *
+		                   ETUX_TIMER_TICK_NSEC) -
 		                  1
 	},
 
@@ -375,7 +381,8 @@ static struct etuxut_timer etuxut_timers[] = {
 #endif
 	{
 		.expire.tv_sec  = 59 * 60,
-		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC * ETUX_TIMER_TICK_NSEC) -
+		.expire.tv_nsec = (ETUX_TIMER_TICKS_PER_SEC *
+		                   ETUX_TIMER_TICK_NSEC) -
 		                  1
 	},
 };
@@ -427,9 +434,9 @@ etuxut_timer_teardown_arm(void)
 
 CUTE_TEST(etuxut_timer_arm_tspec_assert)
 {
-	struct etux_timer         inval_tmr = ETUX_TIMER_INIT(inval_tmr, NULL);
-	struct etux_timer         valid_tmr = ETUX_TIMER_INIT(valid_tmr,
-	                                              etuxut_timer_expire);
+	struct etux_timer     inval_tmr = ETUX_TIMER_INIT(inval_tmr, NULL);
+	struct etux_timer     valid_tmr = ETUX_TIMER_INIT(valid_tmr,
+	                                                  etuxut_timer_expire);
 	const struct timespec valid_exp = { 10, 0 };
 	const struct timespec sec_neg = {
 		.tv_sec  = -1,
@@ -483,7 +490,9 @@ CUTE_TEST_STATIC(etuxut_timer_arm_tspec,
 			utilsut_expect_monotonic_now(&clk);
 			etux_timer_arm_tspec(&tmr->base, &tmr->expire);
 			utilsut_expect_monotonic_now(NULL);
-			cute_check_bool(etux_timer_is_armed(&tmr->base), is, true);
+			cute_check_bool(etux_timer_is_armed(&tmr->base),
+			                is,
+			                true);
 
 			tmr->count = 1;
 
@@ -580,7 +589,7 @@ CUTE_TEST_STATIC(etuxut_timer_rearm_tspec,
 		etuxut_timer_rearm.expected.tv_nsec = 0;
 		utilsut_expect_monotonic_now(&clk);
 		etux_timer_arm_tspec(&etuxut_timer_rearm.base,
-		                 &etuxut_timer_rearm.expected);
+		                     &etuxut_timer_rearm.expected);
 		utilsut_expect_monotonic_now(NULL);
 		cute_check_bool(etux_timer_is_armed(&etuxut_timer_rearm.base),
 		                is,
@@ -631,7 +640,7 @@ etuxut_timer_setup_cancel(void)
 CUTE_TEST(etuxut_timer_cancel_assert)
 {
 	struct etux_timer inval_tmr = {
-		.state = ETUX_TIMER_PEND_STAT,
+		.state  = ETUX_TIMER_PEND_STAT,
 		.expire = NULL
 	};
 
@@ -671,7 +680,9 @@ CUTE_TEST_STATIC(etuxut_timer_cancel,
 			utilsut_expect_monotonic_now(&clk);
 			etux_timer_arm_tspec(&tmr->base, &tmr->expire);
 			utilsut_expect_monotonic_now(NULL);
-			cute_check_bool(etux_timer_is_armed(&tmr->base), is, true);
+			cute_check_bool(etux_timer_is_armed(&tmr->base),
+			                is,
+			                true);
 
 			tmr->count = 1;
 		}
@@ -687,17 +698,19 @@ CUTE_TEST_STATIC(etuxut_timer_cancel,
 		utilsut_expect_monotonic_now(&clk);
 		etux_timer_cancel(&etuxut_timers[nr / 2].base);
 		utilsut_expect_monotonic_now(NULL);
-		cute_check_bool(etux_timer_is_armed(&etuxut_timers[nr / 2].base),
-		                is,
-		                false);
+		cute_check_bool(
+			etux_timer_is_armed(&etuxut_timers[nr / 2].base),
+			is,
+			false);
 		etuxut_timers[nr / 2].count = 0;
 
 		utilsut_expect_monotonic_now(&clk);
 		etux_timer_cancel(&etuxut_timers[nr - 1].base);
 		utilsut_expect_monotonic_now(NULL);
-		cute_check_bool(etux_timer_is_armed(&etuxut_timers[nr - 1].base),
-		                is,
-		                false);
+		cute_check_bool(
+			etux_timer_is_armed(&etuxut_timers[nr - 1].base),
+			is,
+			false);
 		etuxut_timers[nr - 1].count = 0;
 
 		while (utime_tspec_before_eq(&clk, &last_clk)) {
