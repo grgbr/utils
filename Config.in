@@ -79,20 +79,21 @@ config ETUX_TIMER_SUBSEC_BITS
           values:
               Bits     Tick period  Tick frequency
                     (milliseconds)         (Hertz)
-                 0    1000.000000               1
-                 1     500.000000               2
-                 2     250.000000               4
-                 3     125.000000               8
-                 4      62.500000              16
-                 5      31.250000              32
-                 6      15.625000              64
-                 7       7.812500             128
-                 8       3.906250             256
-                 9       1.953125             512
+                 0     1000.000000               1
+                 1      500.000000               2
+                 2      250.000000               4
+                 3      125.000000               8
+                 4       62.500000              16
+                 5       31.250000              32
+                 6       15.625000              64
+                 7        7.812500             128
+                 8        3.906250             256
+                 9        1.953125             512
 
 config ETUX_TIMER_LIST
 	bool "Doubly linked timer list"
 	depends on ETUX_TIMER
+	default y
 	help
 	  Build utils library with a simple ordered timer list algorithm
 	  support.
@@ -100,6 +101,7 @@ config ETUX_TIMER_LIST
 config ETUX_TIMER_HWHEEL
 	bool "Hierarchical timer wheel"
 	depends on ETUX_TIMER
+	default y
 	help
 	  Build utils library with hierarchical timer wheel algorithm support.
 

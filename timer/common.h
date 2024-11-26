@@ -5,8 +5,8 @@
  * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
  ******************************************************************************/
 
-#ifndef _ETUX_TIMER_INTERN_H
-#define _ETUX_TIMER_INTERN_H
+#ifndef _ETUX_TIMER_COMMON_H
+#define _ETUX_TIMER_COMMON_H
 
 #include "utils/timer.h"
 
@@ -76,32 +76,4 @@
 #error Unexpected time_t bit width value (can only be 32 or 64-bit) !
 #endif
 
-/*
- * Maximum value of a struct timespec's tv_sec field that can be converted to a
- * tick.
- */
-#define ETUX_TIMER_TVSEC_MAX \
-	((time_t)(ETUX_TIMER_TICK_MAX >> ETUX_TIMER_TICK_SUBSEC_BITS))
-
-#if defined(CONFIG_UTILS_ASSERT_INTERN)
-
-#include <stroll/assert.h>
-
-#define etux_timer_assert_intern(_expr) \
-	stroll_assert("etux:timer", _expr)
-
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
-
-#define etux_timer_assert_intern(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
-
-#define etux_timer_assert_timer_intern(_timer) \
-	etux_timer_assert_intern(_timer); \
-	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_PEND_STAT) || \
-	                         (!stroll_dlist_empty(&(_timer)->node) && \
-	                          (_timer)->expire)); \
-	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_RUN_STAT) || \
-	                         (_timer)->expire)
-
-#endif /* _ETUX_TIMER_INTERN_H */
+#endif /* _ETUX_TIMER_COMMON_H */

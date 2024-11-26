@@ -111,23 +111,3 @@ utilsut_expect_monotonic_now(const struct timespec * expected)
 	else
 		utilsut_clock_gettime_wrapped = false;
 }
-
-#if defined(CONFIG_UTILS_TIME)
-extern CUTE_SUITE_DECL(utilsut_time_suite);
-#endif
-#if defined(CONFIG_UTILS_TIMER)
-extern CUTE_SUITE_DECL(utilsut_timer_suite);
-#endif
-
-CUTE_GROUP(utilsut_group) = {
-#if defined(CONFIG_UTILS_TIME)
-	CUTE_REF(utilsut_time_suite),
-#endif
-#if defined(CONFIG_UTILS_TIMER)
-	CUTE_REF(utilsut_timer_suite),
-#endif
-};
-
-CUTE_SUITE(utilsut_suite, utilsut_group);
-
-CUTE_MAIN(utilsut_suite, "Utils", UTILS_VERSION_STRING)

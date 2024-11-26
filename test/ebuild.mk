@@ -38,15 +38,33 @@ test-cflags   := $(filter-out -DNDEBUG,$(test-cflags))
 utest-ldflags := $(filter-out -DNDEBUG,$(utest-ldflags))
 endif # ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
 
-builtins               := builtin_utest.a
-builtin_utest.a-objs   := utest.o $(config-obj)
-builtin_utest.a-cflags := $(test-cflags)
+builtins                         := builtin_utest.a
+builtin_utest.a-objs             := utest.o $(config-obj)
+builtin_utest.a-cflags           := $(test-cflags)
 
-checkbins           := utils-utest
-utils-utest-objs    += $(call kconf_enabled,UTILS_TIME,time-utest.o)
-utils-utest-objs    += $(call kconf_enabled,UTILS_TIMER,timer-utest.o)
-utils-utest-cflags  := $(test-cflags)
-utils-utest-ldflags := $(utest-ldflags)
-utils-utest-pkgconf := libstroll libcute
+checkbins                        := utils-utest
+utils-utest-objs                 := main.o
+utils-utest-objs                 += $(call kconf_enabled, \
+                                           UTILS_TIME, \
+                                           time-utest.o)
+utils-utest-cflags               := $(test-cflags)
+utils-utest-ldflags              := $(utest-ldflags)
+utils-utest-pkgconf              := libstroll libcute
+
+checkbins                        += $(call kconf_enabled, \
+                                           ETUX_TIMER_LIST, \
+                                           utils-timer-list-utest)
+utils-timer-list-utest-objs      := list/timer-utest.o
+utils-timer-list-utest-cflags    := $(test-cflags)
+utils-timer-list-utest-ldflags   := $(utest-ldflags)
+utils-timer-list-utest-pkgconf   := libetux_timer_list libstroll libcute
+
+checkbins                        += $(call kconf_enabled, \
+                                           ETUX_TIMER_HWHEEL, \
+                                           utils-timer-hwheel-utest)
+utils-timer-hwheel-utest-objs    := hwheel/timer-utest.o
+utils-timer-hwheel-utest-cflags  := $(test-cflags)
+utils-timer-hwheel-utest-ldflags := $(utest-ldflags)
+utils-timer-hwheel-utest-pkgconf := libetux_timer_hwheel libstroll libcute
 
 # ex: filetype=make :

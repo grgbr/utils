@@ -68,6 +68,44 @@ endef
 pkgconfigs          := libutils.pc
 libutils.pc-tmpl    := libutils_pkgconf_tmpl
 
+define libetux_timer_list_pkgconf_tmpl
+prefix=$(PREFIX)
+exec_prefix=$${prefix}
+libdir=$${exec_prefix}/lib
+includedir=$${prefix}/include
+
+Name: libetux_timer_list
+Description: eTux timer list library
+Version: $(VERSION)
+Requires: libutils libstroll
+Cflags: -I$${includedir}
+Libs: -L$${libdir} \
+      -Wl,--push-state,--as-needed -letux_timer_list -Wl,--pop-state
+endef
+
+pkgconfigs                 += $(call kconf_enabled,ETUX_TIMER_LIST, \
+                                libetux_timer_list.pc)
+libetux_timer_list.pc-tmpl := libetux_timer_list_pkgconf_tmpl
+
+define libetux_timer_hwheel_pkgconf_tmpl
+prefix=$(PREFIX)
+exec_prefix=$${prefix}
+libdir=$${exec_prefix}/lib
+includedir=$${prefix}/include
+
+Name: libetux_timer_hwheel
+Description: eTux hierarchical timer wheel library
+Version: $(VERSION)
+Requires: libutils libstroll
+Cflags: -I$${includedir}
+Libs: -L$${libdir} \
+      -Wl,--push-state,--as-needed -letux_timer_hwheel -Wl,--pop-state
+endef
+
+pkgconfigs                   += $(call kconf_enabled,ETUX_TIMER_HWHEEL, \
+                                  libetux_timer_hwheel.pc)
+libetux_timer_hwheel.pc-tmpl := libetux_timer_hwheel_pkgconf_tmpl
+
 ################################################################################
 # Source code tags generation
 ################################################################################

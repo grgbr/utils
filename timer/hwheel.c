@@ -5,7 +5,7 @@
  * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
  ******************************************************************************/
 
-#include "utils/timer.h"
+#include "common.h"
 
 /* Forward declaration required by common.i inclusion */
 static int64_t etux_timer_issue_tick(void) __utils_nothrow __warn_result;
