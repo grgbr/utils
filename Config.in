@@ -17,6 +17,12 @@ config UTILS_ASSERT_INTERN
 	help
 	  Build utils library with internal assertions enabled.
 
+config ETUX_TRACE
+	bool "Tracing support"
+	default n
+	help
+	  Build utils library with LTTng tracing framework support.
+
 config UTILS_UTEST
 	bool "Unit tests"
 	default n

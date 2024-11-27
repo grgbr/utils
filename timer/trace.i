@@ -1,0 +1,259 @@
+/******************************************************************************
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
+ * This file is part of Utils.
+ * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+ ******************************************************************************/
+
+#undef LTTNG_UST_TRACEPOINT_PROVIDER
+#define LTTNG_UST_TRACEPOINT_PROVIDER etux
+
+#undef LTTNG_UST_TRACEPOINT_INCLUDE
+#define LTTNG_UST_TRACEPOINT_INCLUDE "trace.i"
+
+#if !defined(_ETUX_TIMER_TRACE_I) || \
+    defined(LTTNG_UST_TRACEPOINT_HEADER_MULTI_READ)
+#define _ETUX_TIMER_TRACE_I
+
+#include <lttng/tracepoint.h>
+
+LTTNG_UST_TRACEPOINT_EVENT_CLASS(
+	etux,
+	etux_void_trcevt_cls,
+	LTTNG_UST_TP_ARGS(void),
+)
+
+#define ETUX_VOID_TRACEPOINT_EVENT(_name) \
+	LTTNG_UST_TRACEPOINT_EVENT_INSTANCE( \
+		etux, \
+		etux_void_trcevt_cls, \
+		etux, \
+		_name, \
+		LTTNG_UST_TP_ARGS(void) \
+	)
+
+#define ETUX_TRACE_ENUM_VALUE(_val) \
+	lttng_ust_field_enum_value(STROLL_STRING(_val), _val)
+
+LTTNG_UST_TRACEPOINT_ENUM(
+	etux,
+	etux_timer_state_enum,
+	LTTNG_UST_TP_ENUM_VALUES(
+		ETUX_TRACE_ENUM_VALUE(ETUX_TIMER_IDLE_STAT)
+		ETUX_TRACE_ENUM_VALUE(ETUX_TIMER_PEND_STAT)
+		ETUX_TRACE_ENUM_VALUE(ETUX_TIMER_RUN_STAT)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT_CLASS(
+	etux,
+	etux_timer_exit_trcevt_cls,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_arm_tspec_enter_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer,
+		const struct timespec *,   tspec
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_enum(etux,
+		                     etux_timer_state_enum,
+		                     enum etux_timer_state,
+		                     timer_state,
+		                     timer->state)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+		lttng_ust_field_integer(time_t, tspec_sec, tspec->tv_sec)
+		lttng_ust_field_integer(long, tspec_nsec, tspec->tv_nsec)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT_INSTANCE(
+	etux,
+	etux_timer_exit_trcevt_cls,
+	etux,
+	etux_timer_arm_tspec_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_arm_msec_enter_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer,
+		int,                       msec
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_enum(etux,
+		                     etux_timer_state_enum,
+		                     enum etux_timer_state,
+		                     timer_state,
+		                     timer->state)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+		lttng_ust_field_integer(int, msec, msec)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT_INSTANCE(
+	etux,
+	etux_timer_exit_trcevt_cls,
+	etux,
+	etux_timer_arm_msec_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_arm_sec_enter_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer,
+		int,                       sec
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_enum(etux,
+		                     etux_timer_state_enum,
+		                     enum etux_timer_state,
+		                     timer_state,
+		                     timer->state)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+		lttng_ust_field_integer(int, sec, sec)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT_INSTANCE(
+	etux,
+	etux_timer_exit_trcevt_cls,
+	etux,
+	etux_timer_arm_sec_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_cancel_enter_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_enum(etux,
+		                     etux_timer_state_enum,
+		                     enum etux_timer_state,
+		                     timer_state,
+		                     timer->state)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT_INSTANCE(
+	etux,
+	etux_timer_exit_trcevt_cls,
+	etux,
+	etux_timer_cancel_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	)
+)
+
+ETUX_VOID_TRACEPOINT_EVENT(etux_timer_issue_tspec_enter_trcevt)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_issue_tspec_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		time_t, sec,
+		long,   nsec
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer(time_t, issue_sec, sec)
+		lttng_ust_field_integer(long, issue_nsec, nsec)
+	)
+)
+
+ETUX_VOID_TRACEPOINT_EVENT(etux_timer_issue_msec_enter_trcevt)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_issue_msec_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		int, msec
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer(int, issue_msec, msec)
+	)
+)
+
+ETUX_VOID_TRACEPOINT_EVENT(etux_timer_run_enter_trcevt)
+
+ETUX_VOID_TRACEPOINT_EVENT(etux_timer_run_exit_trcevt)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_expire_enter_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer,
+		const struct timespec *,   now,
+                int64_t,                   tick
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+		lttng_ust_field_integer(time_t, now_sec, now->tv_sec)
+		lttng_ust_field_integer(long, now_nsec, now->tv_nsec)
+		lttng_ust_field_integer(long, now_tick, tick)
+	)
+)
+
+LTTNG_UST_TRACEPOINT_EVENT(
+	etux,
+	etux_timer_expire_exit_trcevt,
+	LTTNG_UST_TP_ARGS(
+		const struct etux_timer *, timer
+	),
+	LTTNG_UST_TP_FIELDS(
+		lttng_ust_field_integer_hex(unsigned long, timer_addr, timer)
+		lttng_ust_field_enum(etux,
+		                     etux_timer_state_enum,
+		                     enum etux_timer_state,
+		                     timer_state,
+		                     timer->state)
+		lttng_ust_field_integer(int64_t, timer_tick, timer->tick)
+		lttng_ust_field_integer(time_t, timer_sec, timer->tspec.tv_sec)
+		lttng_ust_field_integer(long, timer_nsec, timer->tspec.tv_nsec)
+	)
+)
+
+#endif /* _ETUX_TIMER_TRACE_I */
+
+#include <lttng/tracepoint-event.h>
+
+/* ex: set filetype=c : */

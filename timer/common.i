@@ -349,17 +349,6 @@ etux_timer_dismiss(struct etux_timer * __restrict timer)
 	timer->state = ETUX_TIMER_IDLE_STAT;
 }
 
-static __utils_nothrow __warn_result
-int64_t
-etux_timer_tick(void)
-{
-	struct timespec now;
-
-	utime_monotonic_now(&now);
-	
-	return etux_timer_tick_from_tspec_lower_clamp(&now);
-}
-
 struct timespec *
 etux_timer_issue_tspec(struct timespec * __restrict tspec)
 {
@@ -367,32 +356,42 @@ etux_timer_issue_tspec(struct timespec * __restrict tspec)
 
 	int64_t issue;
 
-	issue = etux_timer_issue_tick();
-	if (issue >= 0) {
-		*tspec = etux_timer_tspec_from_tick(issue);
+	etux_timer_issue_tspec_trace_enter();
 
-		return tspec;
-	}
+	issue = etux_timer_issue_tick();
+	if (issue >= 0)
+		*tspec = etux_timer_tspec_from_tick(issue);
 	else
-		return NULL;
+                tspec = NULL;
+
+	etux_timer_issue_tspec_trace_exit(tspec);
+        
+        return tspec;
 }
 
 int
 etux_timer_issue_msec(void)
 {
 	struct timespec diff;
+        int             msec;
 
+	etux_timer_issue_msec_trace_enter();
+        
 	if (etux_timer_issue_tspec(&diff)) {
 		struct timespec now;
 
 		utime_monotonic_now(&now);
 		if (utime_tspec_sub(&diff, &now) > 0)
-			return utime_msec_from_tspec_upper_clamp(&diff);
+			msec = utime_msec_from_tspec_upper_clamp(&diff);
 		else
-			return 0;
+                        msec = 0;
 	}
 	else
-		return -1;
+		msec = -1;
+        
+	etux_timer_issue_msec_trace_exit(msec);
+        
+        return msec;
 }
 
 /* ex: set filetype=c : */

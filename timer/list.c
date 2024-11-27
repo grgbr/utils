@@ -39,8 +39,12 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 	etux_timer_assert_api(timer->expire);
 	utime_assert_tspec_api(tspec);
 
+	etux_timer_arm_tspec_trace_enter(timer, tspec);
+
 	timer->tspec = *tspec;
 	etux_timer_arm(timer);
+
+	etux_timer_arm_tspec_trace_exit(timer);
 }
 
 void
@@ -50,10 +54,14 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(msec >= 0);
 
+	etux_timer_arm_msec_trace_enter(timer, msec);
+
 	utime_monotonic_now(&timer->tspec);
 	utime_tspec_add_msec_clamp(&timer->tspec, msec);
 
 	etux_timer_arm(timer);
+
+	etux_timer_arm_msec_trace_exit(timer);
 }
 
 void
@@ -63,10 +71,14 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(sec >= 0);
 
+	etux_timer_arm_sec_trace_enter(timer, sec);
+
 	utime_monotonic_now(&timer->tspec);
 	utime_tspec_add_sec_clamp(&timer->tspec, sec);
 
 	etux_timer_arm(timer);
+
+	etux_timer_arm_sec_trace_exit(timer);
 }
 
 void
@@ -74,8 +86,12 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 {
 	etux_timer_assert_timer_api(timer);
 
+	etux_timer_cancel_trace_enter(timer);
+
 	if (timer->state == ETUX_TIMER_PEND_STAT)
 		etux_timer_dismiss(timer);
+
+	etux_timer_cancel_trace_exit(timer);
 }
 
 static
@@ -91,24 +107,33 @@ etux_timer_issue_tick(void)
 void
 etux_timer_run(void)
 {
-	int64_t tick = -1;
+	int64_t         tick = -1;
+	struct timespec now;
+
+	etux_timer_run_trace_enter();
 
 	while (!stroll_dlist_empty(&etux_timer_the_list)) {
 		struct etux_timer * tmr;
 
 		tmr = etux_timer_lead_timer(&etux_timer_the_list);
 		if (tick < tmr->tick) {
-			tick = etux_timer_tick();
+			utime_monotonic_now(&now);
+			tick = etux_timer_tick_from_tspec_lower_clamp(&now);
 			if (tick < tmr->tick)
-				return;
+				goto out;
 		}
 
 		tmr->state = ETUX_TIMER_RUN_STAT;
 		stroll_dlist_remove(&tmr->node);
 
+		etux_timer_expire_trace_enter(tmr, &now, tick);
 		tmr->expire(tmr);
+		etux_timer_expire_trace_exit(tmr);
 
 		if (tmr->state == ETUX_TIMER_RUN_STAT)
 			tmr->state = ETUX_TIMER_IDLE_STAT;
 	}
+
+out:
+	etux_timer_run_trace_exit();
 }

@@ -76,4 +76,260 @@
 #error Unexpected time_t bit width value (can only be 32 or 64-bit) !
 #endif
 
+#if defined(CONFIG_ETUX_TRACE)
+
+#include "trace.i"
+
+static inline
+void
+etux_timer_arm_tspec_trace_enter(const struct etux_timer * __restrict timer,
+                                 const struct timespec * __restrict   tspec)
+{
+	lttng_ust_tracepoint(etux,
+	                     etux_timer_arm_tspec_enter_trcevt,
+	                     timer,
+	                     tspec);
+}
+
+static inline
+void
+etux_timer_arm_tspec_trace_exit(const struct etux_timer * __restrict timer)
+{
+	lttng_ust_tracepoint(etux, etux_timer_arm_tspec_exit_trcevt, timer);
+}
+
+static inline
+void
+etux_timer_arm_msec_trace_enter(const struct etux_timer * __restrict timer,
+                                int                                  msec)
+{
+	lttng_ust_tracepoint(etux,
+	                     etux_timer_arm_msec_enter_trcevt,
+	                     timer,
+	                     msec);
+}
+
+static inline
+void
+etux_timer_arm_msec_trace_exit(const struct etux_timer * __restrict timer)
+{
+	lttng_ust_tracepoint(etux, etux_timer_arm_msec_exit_trcevt, timer);
+}
+
+static inline
+void
+etux_timer_arm_sec_trace_enter(const struct etux_timer * __restrict timer,
+                               int                                  sec)
+{
+	lttng_ust_tracepoint(etux,
+	                     etux_timer_arm_sec_enter_trcevt,
+	                     timer,
+	                     sec);
+}
+
+static inline
+void
+etux_timer_arm_sec_trace_exit(const struct etux_timer * __restrict timer)
+{
+	lttng_ust_tracepoint(etux, etux_timer_arm_sec_exit_trcevt, timer);
+}
+
+static inline
+void
+etux_timer_cancel_trace_enter(const struct etux_timer * __restrict timer)
+{
+	lttng_ust_tracepoint(etux, etux_timer_cancel_enter_trcevt, timer);
+}
+
+static inline
+void
+etux_timer_cancel_trace_exit(const struct etux_timer * __restrict timer)
+{
+	lttng_ust_tracepoint(etux, etux_timer_cancel_exit_trcevt, timer);
+}
+
+static inline
+void
+etux_timer_issue_tspec_trace_enter(void)
+{
+	lttng_ust_tracepoint(etux, etux_timer_issue_tspec_enter_trcevt);
+}
+
+static inline
+void
+etux_timer_issue_tspec_trace_exit(const struct timespec * __restrict tspec)
+{
+	time_t sec = tspec ? tspec->tv_sec : -1;
+	long   nsec = tspec ? tspec->tv_nsec : -1;
+
+	lttng_ust_tracepoint(etux,
+                             etux_timer_issue_tspec_exit_trcevt,
+                             sec,
+                             nsec);
+}
+
+static inline
+void
+etux_timer_issue_msec_trace_enter(void)
+{
+	lttng_ust_tracepoint(etux, etux_timer_issue_msec_enter_trcevt);
+}
+
+static inline
+void
+etux_timer_issue_msec_trace_exit(int msec)
+{
+	lttng_ust_tracepoint(etux, etux_timer_issue_msec_exit_trcevt, msec);
+}
+
+static inline
+void
+etux_timer_run_trace_enter(void)
+{
+	lttng_ust_tracepoint(etux, etux_timer_run_enter_trcevt);
+}
+
+static inline
+void
+etux_timer_run_trace_exit(void)
+{
+	lttng_ust_tracepoint(etux, etux_timer_run_exit_trcevt);
+}
+
+static inline
+void
+etux_timer_expire_trace_enter(const struct etux_timer * __restrict timer,
+                              const struct timespec * __restrict   now,
+                              int64_t                              tick)
+{
+	lttng_ust_tracepoint(etux,
+	                     etux_timer_expire_enter_trcevt,
+	                     timer,
+	                     now,
+	                     tick);
+}
+
+static inline
+void
+etux_timer_expire_trace_exit(const struct etux_timer * __restrict timer)
+{
+	lttng_ust_tracepoint(etux, etux_timer_expire_exit_trcevt, timer);
+}
+
+#else  /* !defined(CONFIG_ETUX_TRACE) */
+
+static inline
+void
+etux_timer_arm_tspec_trace_enter(
+	const struct etux_timer * __restrict timer __unused,
+	const struct timespec * __restrict   tspec __unused)
+{
+}
+
+static inline
+void
+etux_timer_arm_tspec_trace_exit(
+	const struct etux_timer * __restrict timer __unused)
+{
+}
+
+static inline
+void
+etux_timer_arm_msec_trace_enter(
+	const struct etux_timer * __restrict timer __unused,
+	int                                  msec __unused)
+{
+}
+
+static inline
+void
+etux_timer_arm_msec_trace_exit(
+	const struct etux_timer * __restrict timer __unused)
+{
+}
+
+static inline
+void
+etux_timer_arm_sec_trace_enter(
+	const struct etux_timer * __restrict timer __unused,
+	int                                  sec __unused)
+{
+}
+
+static inline
+void
+etux_timer_arm_sec_trace_exit(
+	const struct etux_timer * __restrict timer __unused)
+{
+}
+
+static inline
+void
+etux_timer_cancel_trace_enter(
+        const struct etux_timer * __restrict timer __unused)
+{
+}
+
+static inline
+void
+etux_timer_cancel_trace_exit(
+        const struct etux_timer * __restrict timer __unused)
+{
+}
+
+static inline
+void
+etux_timer_issue_tspec_trace_enter(void)
+{
+}
+
+static inline
+void
+etux_timer_issue_tspec_trace_exit(
+	const struct timespec * __restrict tspec __unused)
+{
+}
+
+static inline
+void
+etux_timer_issue_msec_trace_enter(void)
+{
+}
+
+static inline
+void
+etux_timer_issue_msec_trace_exit(int msec __unused)
+{
+}
+
+static inline
+void
+etux_timer_run_trace_enter(void)
+{
+}
+
+static inline
+void
+etux_timer_run_trace_exit(void)
+{
+}
+
+static inline
+void
+etux_timer_expire_trace_enter(
+	const struct etux_timer * __restrict timer __unused,
+	const struct timespec * __restrict   now __unused,
+	int64_t                              tick __unused)
+{
+}
+
+static inline
+void
+etux_timer_expire_trace_exit(
+	const struct etux_timer * __restrict timer __unused)
+{
+}
+
+#endif /* defined(CONFIG_ETUX_TRACE) */
+
 #endif /* _ETUX_TIMER_COMMON_H */

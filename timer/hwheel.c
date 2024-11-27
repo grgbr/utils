@@ -63,6 +63,17 @@ struct etux_timer_hwheel {
 
 static struct etux_timer_hwheel etux_timer_the_hwheel;
 
+static __utils_nothrow __warn_result
+int64_t
+etux_timer_hwheel_tick(void)
+{
+	struct timespec now;
+
+	utime_monotonic_now(&now);
+	
+	return etux_timer_tick_from_tspec_lower_clamp(&now);
+}
+
 #warning REMOVE ME if not needed...
 #if 0
 /*
@@ -222,6 +233,8 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 	etux_timer_assert_api(timer->expire);
 	utime_assert_tspec_api(tspec);
 
+	etux_timer_arm_tspec_trace_enter(timer, tspec);
+        
 	if (!etux_timer_the_hwheel.count) {
 		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
 
@@ -235,6 +248,8 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 	timer->tspec = *tspec;
 
 	etux_timer_arm(timer);
+        
+	etux_timer_arm_tspec_trace_exit(timer);
 }
 
 void
@@ -244,6 +259,8 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(msec >= 0);
 
+	etux_timer_arm_msec_trace_enter(timer, msec);
+        
 	utime_monotonic_now(&timer->tspec);
 	if (!etux_timer_the_hwheel.count) {
 		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
@@ -255,6 +272,8 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	utime_tspec_add_msec_clamp(&timer->tspec, msec);
 
 	etux_timer_arm(timer);
+        
+	etux_timer_arm_msec_trace_exit(timer);
 }
 
 void
@@ -264,6 +283,8 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(sec >= 0);
 
+	etux_timer_arm_sec_trace_enter(timer, sec);
+        
 	utime_monotonic_now(&timer->tspec);
 	if (!etux_timer_the_hwheel.count) {
 		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
@@ -275,6 +296,8 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	utime_tspec_add_sec_clamp(&timer->tspec, sec);
 
 	etux_timer_arm(timer);
+        
+	etux_timer_arm_sec_trace_exit(timer);
 }
 
 void
@@ -282,6 +305,8 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 {
 	etux_timer_assert_timer_api(timer);
 
+	etux_timer_cancel_trace_enter(timer);
+        
 	if (timer->state == ETUX_TIMER_PEND_STAT) {
 		etux_timer_dismiss(timer);
 
@@ -290,8 +315,10 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 				etux_timer_the_hwheel.tick;
 
 		if (!--etux_timer_the_hwheel.count)
-			etux_timer_the_hwheel.tick = etux_timer_tick();
+			etux_timer_the_hwheel.tick = etux_timer_hwheel_tick();
 	}
+        
+	etux_timer_cancel_trace_exit(timer);
 }
 
 static __utils_nonull(1, 2) __utils_nothrow
@@ -459,15 +486,20 @@ etux_timer_issue_tick(void)
 void
 etux_timer_run(void)
 {
-	int64_t tick = etux_timer_tick();
+	struct timespec now;
+	int64_t         tick;
 
+	etux_timer_run_trace_enter();
+
+	utime_monotonic_now(&now);
+	tick = etux_timer_tick_from_tspec_lower_clamp(&now);
 	while (tick >= etux_timer_the_hwheel.tick) {
 		unsigned int               slot;
 		struct stroll_dlist_node * expired;
 
 		if (!etux_timer_the_hwheel.count) {
 			etux_timer_the_hwheel.tick = tick;
-			return;
+			goto out;
 		}
 
 		slot = etux_timer_the_hwheel.tick & ETUX_TIMER_HWHEEL_SLOT_MASK;
@@ -488,7 +520,9 @@ etux_timer_run(void)
 			tmr->state = ETUX_TIMER_RUN_STAT;
 			stroll_dlist_remove(&tmr->node);
 
+			etux_timer_expire_trace_enter(tmr, &now, tick);
 			tmr->expire(tmr);
+			etux_timer_expire_trace_exit(tmr);
 
 			if (tmr->state == ETUX_TIMER_RUN_STAT) {
 				tmr->state = ETUX_TIMER_IDLE_STAT;
@@ -496,8 +530,12 @@ etux_timer_run(void)
 			}
 		}
 
-		tick = etux_timer_tick();
+		utime_monotonic_now(&now);
+		tick = etux_timer_tick_from_tspec_lower_clamp(&now);
 	}
+
+out:
+	etux_timer_run_trace_exit();
 }
 
 /* TODO: expose timer lib init API ?? */
@@ -518,6 +556,6 @@ etux_timer_ctor(void)
 	stroll_dlist_init(&etux_timer_the_hwheel.eternal);
 
 	etux_timer_the_hwheel.count = 0;
-	etux_timer_the_hwheel.tick = etux_timer_tick();
+	etux_timer_the_hwheel.tick = etux_timer_hwheel_tick();
 	etux_timer_the_hwheel.issue = etux_timer_the_hwheel.tick;
 }
