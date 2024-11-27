@@ -70,7 +70,7 @@ etux_timer_hwheel_tick(void)
 	struct timespec now;
 
 	utime_monotonic_now(&now);
-	
+
 	return etux_timer_tick_from_tspec_lower_clamp(&now);
 }
 
@@ -234,7 +234,7 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 	utime_assert_tspec_api(tspec);
 
 	etux_timer_arm_tspec_trace_enter(timer, tspec);
-        
+
 	if (!etux_timer_the_hwheel.count) {
 		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
 
@@ -248,7 +248,7 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 	timer->tspec = *tspec;
 
 	etux_timer_arm(timer);
-        
+
 	etux_timer_arm_tspec_trace_exit(timer);
 }
 
@@ -260,7 +260,7 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	etux_timer_assert_api(msec >= 0);
 
 	etux_timer_arm_msec_trace_enter(timer, msec);
-        
+
 	utime_monotonic_now(&timer->tspec);
 	if (!etux_timer_the_hwheel.count) {
 		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
@@ -272,7 +272,7 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	utime_tspec_add_msec_clamp(&timer->tspec, msec);
 
 	etux_timer_arm(timer);
-        
+
 	etux_timer_arm_msec_trace_exit(timer);
 }
 
@@ -284,7 +284,7 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	etux_timer_assert_api(sec >= 0);
 
 	etux_timer_arm_sec_trace_enter(timer, sec);
-        
+
 	utime_monotonic_now(&timer->tspec);
 	if (!etux_timer_the_hwheel.count) {
 		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
@@ -296,7 +296,7 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	utime_tspec_add_sec_clamp(&timer->tspec, sec);
 
 	etux_timer_arm(timer);
-        
+
 	etux_timer_arm_sec_trace_exit(timer);
 }
 
@@ -306,7 +306,7 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 	etux_timer_assert_timer_api(timer);
 
 	etux_timer_cancel_trace_enter(timer);
-        
+
 	if (timer->state == ETUX_TIMER_PEND_STAT) {
 		etux_timer_dismiss(timer);
 
@@ -317,7 +317,7 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 		if (!--etux_timer_the_hwheel.count)
 			etux_timer_the_hwheel.tick = etux_timer_hwheel_tick();
 	}
-        
+
 	etux_timer_cancel_trace_exit(timer);
 }
 

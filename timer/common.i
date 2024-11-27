@@ -362,21 +362,21 @@ etux_timer_issue_tspec(struct timespec * __restrict tspec)
 	if (issue >= 0)
 		*tspec = etux_timer_tspec_from_tick(issue);
 	else
-                tspec = NULL;
+		tspec = NULL;
 
 	etux_timer_issue_tspec_trace_exit(tspec);
-        
-        return tspec;
+
+	return tspec;
 }
 
 int
 etux_timer_issue_msec(void)
 {
 	struct timespec diff;
-        int             msec;
+	int             msec;
 
 	etux_timer_issue_msec_trace_enter();
-        
+
 	if (etux_timer_issue_tspec(&diff)) {
 		struct timespec now;
 
@@ -384,14 +384,14 @@ etux_timer_issue_msec(void)
 		if (utime_tspec_sub(&diff, &now) > 0)
 			msec = utime_msec_from_tspec_upper_clamp(&diff);
 		else
-                        msec = 0;
+			msec = 0;
 	}
 	else
 		msec = -1;
-        
+
 	etux_timer_issue_msec_trace_exit(msec);
-        
-        return msec;
+
+	return msec;
 }
 
 /* ex: set filetype=c : */
