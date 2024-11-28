@@ -5,11 +5,7 @@
  * Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
  ******************************************************************************/
 
-#ifdef _ETUX_TIMER_COMMON_I
-#error "Multiple inclusions of common timer definitions !"
-#endif /* _ETUX_TIMER_COMMON_I */
-#define _ETUX_TIMER_COMMON_I
-
+#include "common.h"
 #include <errno.h>
 
 /*
@@ -18,27 +14,6 @@
  */
 #define ETUX_TIMER_TVSEC_MAX \
 	((time_t)(ETUX_TIMER_TICK_MAX >> ETUX_TIMER_TICK_SUBSEC_BITS))
-
-#if defined(CONFIG_UTILS_ASSERT_INTERN)
-
-#include <stroll/assert.h>
-
-#define etux_timer_assert_intern(_expr) \
-	stroll_assert("etux:timer", _expr)
-
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
-
-#define etux_timer_assert_intern(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
-
-#define etux_timer_assert_timer_intern(_timer) \
-	etux_timer_assert_intern(_timer); \
-	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_PEND_STAT) || \
-	                         (!stroll_dlist_empty(&(_timer)->node) && \
-	                          (_timer)->expire)); \
-	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_RUN_STAT) || \
-	                         (_timer)->expire)
 
 /******************************************************************************
  * Tick handling
@@ -70,7 +45,6 @@ etux_timer_int64_add_overflow(int64_t a, int64_t b, int64_t * __restrict res)
 
 #if UTIME_TIMET_BITS == 64
 
-static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
 etux_timer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 {
@@ -88,7 +62,6 @@ etux_timer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 	       ((int64_t)tspec->tv_nsec / (int64_t)ETUX_TIMER_TICK_NSEC);
 }
 
-static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
 etux_timer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 {
@@ -111,7 +84,6 @@ etux_timer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 
 #elif UTIME_TIMET_BITS == 32
 
-static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
 etux_timer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 {
@@ -126,7 +98,6 @@ etux_timer_tick_from_tspec_lower(const struct timespec * __restrict tspec)
 	       ((int64_t)tspec->tv_nsec / (int64_t)ETUX_TIMER_TICK_NSEC);
 }
 
-static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int64_t
 etux_timer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 {
@@ -148,28 +119,6 @@ etux_timer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 #else
 #error Unexpected time_t bit width value (can only be 32 or 64-bit) !
 #endif
-
-static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
-int64_t
-etux_timer_tick_from_tspec_lower_clamp(const struct timespec * __restrict tspec)
-{
-	utime_assert_tspec_api(tspec);
-
-	int64_t tick = etux_timer_tick_from_tspec_lower(tspec);
-
-	return (tick >= 0) ? tick : ETUX_TIMER_TICK_MAX;
-}
-
-static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
-int64_t
-etux_timer_tick_from_tspec_upper_clamp(const struct timespec * __restrict tspec)
-{
-	utime_assert_tspec_api(tspec);
-
-	int64_t tick = etux_timer_tick_from_tspec_upper(tspec);
-
-	return (tick >= 0) ? tick : ETUX_TIMER_TICK_MAX;
-}
 
 #warning REMOVE ME if not needed...
 #if 0
@@ -281,7 +230,7 @@ etux_timer_tick_from_msec_upper(int msec)
 #endif
 
 /******************************************************************************
- * Generic timer handling
+ * Timer generic logic
  ******************************************************************************/
 
 static inline __utils_nonull(1) __utils_const __utils_nothrow __returns_nonull
@@ -291,23 +240,6 @@ etux_timer_timer_from_node(const struct stroll_dlist_node * __restrict node)
 	etux_timer_assert_intern(node);
 
 	return stroll_dlist_entry(node, struct etux_timer, node);
-}
-
-static __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
-struct etux_timer *
-etux_timer_lead_timer(const struct stroll_dlist_node * __restrict head)
-{
-	etux_timer_assert_intern(head);
-	etux_timer_assert_intern(!stroll_dlist_empty(head));
-
-	struct etux_timer * tmr = stroll_dlist_entry(stroll_dlist_next(head),
-	                                             struct etux_timer,
-	                                             node);
-
-	etux_timer_assert_timer_intern(tmr);
-	etux_timer_assert_intern(tmr->expire);
-
-	return tmr;
 }
 
 static __utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result
@@ -328,7 +260,7 @@ etux_timer_tick_cmp(const struct stroll_dlist_node * __restrict first,
 	return (fst->tick > snd->tick) - (fst->tick < snd->tick);
 }
 
-static __utils_nonull(1, 2) __utils_nothrow
+__utils_nonull(1, 2) __utils_nothrow
 void
 etux_timer_insert(struct stroll_dlist_node * __restrict list,
                   struct etux_timer * __restrict        timer)
@@ -337,16 +269,6 @@ etux_timer_insert(struct stroll_dlist_node * __restrict list,
 	                                 &timer->node,
 	                                 etux_timer_tick_cmp,
 	                                 NULL);
-}
-
-static __utils_nonull(1) __utils_nothrow
-void
-etux_timer_dismiss(struct etux_timer * __restrict timer)
-{
-	etux_timer_assert_timer_intern(timer);
-
-	stroll_dlist_remove(&timer->node);
-	timer->state = ETUX_TIMER_IDLE_STAT;
 }
 
 struct timespec *

@@ -6,11 +6,7 @@
  ******************************************************************************/
 
 #include "common.h"
-
-/* Forward declaration required by common.i inclusion */
-static int64_t etux_timer_issue_tick(void) __utils_nothrow __warn_result;
-
-#include "common.i"
+#include <errno.h>
 
 #define ETUX_TIMER_HWHEEL_SLOT_BITS \
 	(6U)
@@ -469,7 +465,6 @@ etux_timer_hwheel_find_issue(struct etux_timer_hwheel * __restrict hwheel)
 	return issue;
 }
 
-static
 int64_t
 etux_timer_issue_tick(void)
 {

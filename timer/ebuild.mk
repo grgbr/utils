@@ -45,16 +45,20 @@ shared-common-ldflags := $(filter-out -pie -fpie -fPIE,$(common-ldflags)) \
 common-pkgconf        := libstroll $(call kconf_enabled,ETUX_TRACE,lttng-ust)
 
 builtins                 := shared/builtin.a
-shared/builtin.a-objs    := $(call kconf_enabled,ETUX_TRACE,shared/trace.o)
+shared/builtin.a-objs    := shared/common.o
+shared/builtin.a-objs    += $(call kconf_enabled,ETUX_TRACE,shared/trace.o)
 shared/builtin.a-cflags  := $(shared-common-cflags)
 shared/builtin.a-pkgconf := $(common-pkgconf)
 
 builtins                 += static/builtin.a
-static/builtin.a-objs    := $(call kconf_enabled,ETUX_TRACE,static/trace.o)
+static/builtin.a-objs    := static/common.o
+static/builtin.a-objs    += $(call kconf_enabled,ETUX_TRACE,static/trace.o)
 static/builtin.a-cflags  := $(common-cflags)
 static/builtin.a-pkgconf := $(common-pkgconf)
 
-solibs                          := $(call kconf_enabled,ETUX_TIMER_LIST,libetux_timer_list.so)
+solibs                          := $(call kconf_enabled, \
+                                          ETUX_TIMER_LIST, \
+                                          libetux_timer_list.so)
 libetux_timer_list.so-objs      := shared/list.o
 libetux_timer_list.so-cflags    := $(shared-common-cflags)
 libetux_timer_list.so-ldflags   := $(shared-common-ldflags) \
@@ -62,12 +66,17 @@ libetux_timer_list.so-ldflags   := $(shared-common-ldflags) \
                                    -Wl,-soname,libetux_timer_list.so
 libetux_timer_list.so-pkgconf    = $(common-pkgconf)
 
-arlibs                          := $(call kconf_enabled,ETUX_TIMER_LIST,libetux_timer_list.a)
-libetux_timer_list.a-objs       := static/list.o static/trace.o
+arlibs                          := $(call kconf_enabled, \
+                                          ETUX_TIMER_LIST, \
+                                          libetux_timer_list.a)
+libetux_timer_list.a-objs       := static/list.o
+libetux_timer_list.a-lots       := static/common.o static/trace.o
 libetux_timer_list.a-cflags     := $(common-cflags)
 libetux_timer_list.a-pkgconf     = $(common-pkgconf)
 
-solibs                          += $(call kconf_enabled,ETUX_TIMER_HWHEEL,libetux_timer_hwheel.so)
+solibs                          += $(call kconf_enabled, \
+                                          ETUX_TIMER_HWHEEL, \
+                                          libetux_timer_hwheel.so)
 libetux_timer_hwheel.so-objs    := shared/hwheel.o
 libetux_timer_hwheel.so-cflags  := $(shared-common-cflags)
 libetux_timer_hwheel.so-ldflags := $(shared-common-ldflags) \
@@ -75,8 +84,11 @@ libetux_timer_hwheel.so-ldflags := $(shared-common-ldflags) \
                                    -Wl,-soname,libetux_timer_hwheel.so
 libetux_timer_hwheel.so-pkgconf  = $(common-pkgconf)
 
-arlibs                          += $(call kconf_enabled,ETUX_TIMER_HWHEEL,libetux_timer_hwheel.a)
-libetux_timer_hwheel.a-objs     := static/hwheel.o static/trace.o
+arlibs                          += $(call kconf_enabled, \
+                                          ETUX_TIMER_HWHEEL, \
+                                          libetux_timer_hwheel.a)
+libetux_timer_hwheel.a-objs     := static/hwheel.o
+libetux_timer_hwheel.a-lots     := static/common.o static/trace.o
 libetux_timer_hwheel.a-cflags   := $(common-cflags)
 libetux_timer_hwheel.a-pkgconf   = $(common-pkgconf)
 

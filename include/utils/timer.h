@@ -91,8 +91,8 @@ etux_timer_expiry_tspec(const struct etux_timer * __restrict timer)
 }
 
 extern void
-etux_timer_arm_tspec(struct etux_timer * __restrict         timer,
-                 const struct timespec * __restrict tspec)
+etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
+                     const struct timespec * __restrict tspec)
 	__utils_nonull(1, 2) __utils_nothrow __leaf __export_public;
 
 extern void
@@ -110,7 +110,7 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 static inline __utils_nonull(1, 2) __utils_nothrow
 void
 etux_timer_setup(struct etux_timer * __restrict timer,
-             etux_timer_expire_fn *         expire)
+                 etux_timer_expire_fn *         expire)
 {
 	etux_timer_assert_api(timer);
 	etux_timer_assert_api(expire);

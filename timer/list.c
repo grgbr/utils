@@ -6,12 +6,7 @@
  ******************************************************************************/
 
 #include "common.h"
-
-/* Forward declaration required by common.i inclusion */
-static int64_t etux_timer_issue_tick(void)
-        __utils_pure __utils_nothrow __warn_result;
-
-#include "common.i"
+#include <errno.h>
 
 static struct stroll_dlist_node etux_timer_the_list =
 	STROLL_DLIST_INIT(etux_timer_the_list);
@@ -94,7 +89,6 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 	etux_timer_cancel_trace_exit(timer);
 }
 
-static
 int64_t
 etux_timer_issue_tick(void)
 {

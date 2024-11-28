@@ -29,6 +29,12 @@ config UTILS_UTEST
 	help
 	  Build Utils library unit test suite.
 
+config ETUX_PTEST
+	bool "Performance tests"
+	default n
+	help
+	  Build eTux library performance test suite.
+
 config UTILS_ATOMIC
 	bool "Atomic operations"
 	default y
@@ -69,7 +75,7 @@ menuconfig ETUX_TIMER
 	select UTILS_TIME
 	default y
 	help
-	  Build utils library with timer support.
+	  Build eTux library with timer support.
 
 if ETUX_TIMER
 
@@ -101,7 +107,7 @@ config ETUX_TIMER_LIST
 	depends on ETUX_TIMER
 	default y
 	help
-	  Build utils library with a simple ordered timer list algorithm
+	  Build eTux library with a simple ordered timer list algorithm
 	  support.
 
 config ETUX_TIMER_HWHEEL
@@ -109,7 +115,7 @@ config ETUX_TIMER_HWHEEL
 	depends on ETUX_TIMER
 	default y
 	help
-	  Build utils library with hierarchical timer wheel algorithm support.
+	  Build eTux library with hierarchical timer wheel algorithm support.
 
 endif # ETUX_TIMER
 

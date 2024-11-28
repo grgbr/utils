@@ -27,15 +27,25 @@ test-cflags := -Wall \
 # purposes.
 utest-ldflags := \
 	$(test-cflags) \
+	-L$(BUILDDIR)/../timer \
 	-L$(BUILDDIR)/../src \
 	$(EXTRA_LDFLAGS) \
 	-Wl,-z,start-stop-visibility=hidden \
 	-Wl,-whole-archive $(BUILDDIR)/builtin_utest.a -Wl,-no-whole-archive \
 	-lutils
 
+ptest-ldflags := $(test-cflags) \
+                 -L$(BUILDDIR)/../timer \
+                 -L$(BUILDDIR)/../src \
+                 $(EXTRA_LDFLAGS) \
+                 -Wl,-z,start-stop-visibility=hidden
+
+utest-pkgconf := libstroll libcute
+
 ifneq ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
 test-cflags   := $(filter-out -DNDEBUG,$(test-cflags))
 utest-ldflags := $(filter-out -DNDEBUG,$(utest-ldflags))
+ptest-ldflags := $(filter-out -DNDEBUG,$(ptest-ldflags))
 endif # ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
 
 builtins                         := builtin_utest.a
@@ -46,25 +56,36 @@ checkbins                        := utils-utest
 utils-utest-objs                 := main.o
 utils-utest-objs                 += $(call kconf_enabled, \
                                            UTILS_TIME, \
-                                           time-utest.o)
+                                           time_utest.o)
 utils-utest-cflags               := $(test-cflags)
 utils-utest-ldflags              := $(utest-ldflags)
-utils-utest-pkgconf              := libstroll libcute
+utils-utest-pkgconf              := $(utest-pkgconf)
 
 checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_LIST, \
                                            utils-timer-list-utest)
-utils-timer-list-utest-objs      := list/timer-utest.o
+utils-timer-list-utest-objs      := list/timer_utest.o
 utils-timer-list-utest-cflags    := $(test-cflags)
-utils-timer-list-utest-ldflags   := $(utest-ldflags)
-utils-timer-list-utest-pkgconf   := libetux_timer_list libstroll libcute
+utils-timer-list-utest-ldflags   := $(utest-ldflags) -letux_timer_list
+utils-timer-list-utest-pkgconf   := $(utest-pkgconf)
 
 checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HWHEEL, \
                                            utils-timer-hwheel-utest)
-utils-timer-hwheel-utest-objs    := hwheel/timer-utest.o
+utils-timer-hwheel-utest-objs    := hwheel/timer_utest.o
 utils-timer-hwheel-utest-cflags  := $(test-cflags)
-utils-timer-hwheel-utest-ldflags := $(utest-ldflags)
-utils-timer-hwheel-utest-pkgconf := libetux_timer_hwheel libstroll libcute
+utils-timer-hwheel-utest-ldflags := $(utest-ldflags) -letux_timer_hwheel
+utils-timer-hwheel-utest-pkgconf := $(utest-pkgconf)
+
+ifeq ($(CONFIG_ETUX_PTEST),y)
+
+checkbins                        += $(call kconf_enabled, \
+                                           ETUX_TIMER_LIST, \
+                                           utils-timer-list-ptest)
+utils-timer-list-ptest-objs      := list/timer_ptest.o
+utils-timer-list-ptest-cflags    := $(test-cflags)
+utils-timer-list-ptest-ldflags   := $(ptest-ldflags) -letux_timer_list
+
+endif # ($(CONFIG_ETUX_PTEST),y)
 
 # ex: filetype=make :
