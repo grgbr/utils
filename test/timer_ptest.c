@@ -18,6 +18,7 @@ struct etuxpt_timer_cmd {
 	union {
 		const struct timespec tspec;
 		int                   msec;
+		int                   sec;
 	};
 };
 
@@ -67,6 +68,17 @@ etuxpt_timer_arm_msec_op(const struct etuxpt_timer_cmd * __restrict command)
 
 static
 void
+etuxpt_timer_arm_sec_op(const struct etuxpt_timer_cmd * __restrict command)
+{
+	struct etuxpt_timer * tmr = etuxpt_timer_get(command->tmr_id);
+
+	assert(tmr);
+
+	etux_timer_arm_sec(tmr->base, command->sec);
+}
+
+static
+void
 etuxpt_timer_cancel_op(const struct etuxpt_timer_cmd * __restrict command)
 {
 	struct etuxpt_timer * tmr = etuxpt_timer_get(command->tmr_id);
@@ -100,12 +112,22 @@ static const struct etuxpt_timer_cmd etuxpt_timer_cmds[] = {
 		.msec   = 100
 	},
 	{
+		.op     = etuxpt_timer_arm_sec_op,
+		.tmr_id = 0,
+		.msec   = 2
+	},
+	{
 		.op     = etuxpt_timer_run_op,
 		.tmr_id = 0
 	},
 	{
 		.op     = etuxpt_timer_cancel_op,
 		.tmr_id = 0
+	},
+	{
+		.op     = etuxpt_timer_arm_msec_op,
+		.tmr_id = 0,
+		.msec   = 50
 	},
 	{
 		.op     = etuxpt_timer_run_op,

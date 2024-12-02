@@ -271,20 +271,32 @@ etux_timer_insert(struct stroll_dlist_node * __restrict list,
 	                                 NULL);
 }
 
+static __utils_nonull(1) __utils_nothrow __warn_result
+struct timespec *
+_etux_timer_issue_tspec(struct timespec * __restrict tspec)
+{
+	etux_timer_assert_intern(tspec);
+
+	int64_t issue;
+
+	issue = etux_timer_issue_tick();
+	if (issue >= 0) {
+		*tspec = etux_timer_tspec_from_tick(issue);
+
+		return tspec;
+	}
+
+	return NULL;
+}
+
 struct timespec *
 etux_timer_issue_tspec(struct timespec * __restrict tspec)
 {
 	etux_timer_assert_api(tspec);
 
-	int64_t issue;
-
 	etux_timer_issue_tspec_trace_enter();
 
-	issue = etux_timer_issue_tick();
-	if (issue >= 0)
-		*tspec = etux_timer_tspec_from_tick(issue);
-	else
-		tspec = NULL;
+	tspec = _etux_timer_issue_tspec(tspec);
 
 	etux_timer_issue_tspec_trace_exit(tspec);
 
@@ -299,7 +311,7 @@ etux_timer_issue_msec(void)
 
 	etux_timer_issue_msec_trace_enter();
 
-	if (etux_timer_issue_tspec(&diff)) {
+	if (_etux_timer_issue_tspec(&diff)) {
 		struct timespec now;
 
 		utime_monotonic_now(&now);
