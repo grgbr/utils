@@ -301,15 +301,15 @@ utime_tspec_add_sec_clamp(struct timespec * __restrict result,
 extern int
 utime_tspec_sub(struct timespec * __restrict       result,
                 const struct timespec * __restrict amount)
-	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
 
 extern int
 utime_tspec_sub_msec(struct timespec * __restrict result, int msec)
-	__utils_nonull(1) __utils_nothrow __warn_result;
+	__utils_nonull(1) __utils_nothrow;
 
 extern int
 utime_tspec_sub_sec(struct timespec * __restrict result, int sec)
-	__utils_nonull(1) __utils_nothrow __warn_result;
+	__utils_nonull(1) __utils_nothrow;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 

@@ -84,7 +84,8 @@ checkbins                        += $(call kconf_enabled, \
                                            utils-timer-list-ptest)
 utils-timer-list-ptest-objs      := list/timer_ptest.o
 utils-timer-list-ptest-cflags    := $(test-cflags)
-utils-timer-list-ptest-ldflags   := $(ptest-ldflags) -letux_timer_list
+utils-timer-list-ptest-ldflags   := $(ptest-ldflags) -letux_timer_list -lutils
+utils-timer-list-ptest-pkgconf   := libstroll
 
 endif # ($(CONFIG_ETUX_PTEST),y)
 

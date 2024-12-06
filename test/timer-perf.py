@@ -17,6 +17,8 @@ import math
 import io
 import logging
 
+INT32_MAX = (1<<31) - 1
+
 class etuxTimerPerfKind(Enum):
     ARM_TSPEC   = 0
     ARM_MSEC    = 1
@@ -28,22 +30,24 @@ class etuxTimerPerfKind(Enum):
     EXPIRE      = 7
 
 
-def etux_decode_tspec(tspec: float) -> tuple[int, int]:
-    nsec, sec = math.modf(tspec)
-    sec = int(sec)
-    if sec < 0:
-        return None
-    nsec = int(nsec * 1000000000)
-    if nsec < 0 or nsec >= 1000000000:
-        return None
+def etux_jiffies_to_tspec(jiffies: int, hz: int) -> tuple[int, int]:
+    sec = jiffies / hz
+    nsec = (jiffies % hz) * (1000000000 / hz)
+    assert nsec >= 0
+    assert nsec < 1000000000
 
-    return (sec, nsec)
+    return sec, nsec
 
 
-def etux_decode_msec(tspec: float) -> int:
-    sec, nsec = etux_decode_tspec(tspec)
+def etux_tspec_is_valid(tspec: tuple[int, int]) -> bool:
+    if len(tspec) != 2:
+        return False
+    if tspec[0] < 0:
+        return False
+    if tspec[1] < 0 or tspec[1] >= 1000000000:
+        return False
+    return True
 
-    return (sec * 1000) + (nsec / 1000000)
 
 def etux_task_is_valid(task: str) -> bool:
     length = len(task)
@@ -54,50 +58,99 @@ def etux_task_is_valid(task: str) -> bool:
 
 
 class etuxTimerPerfEvent:
-    def __init__(self, stamp, task, kind):
-        assert etux_decode_tspec(stamp) is not None
+    def __init__(self,
+                 stamp: tuple[int, int],
+                 task:  str,
+                 kind:  etuxTimerPerfKind):
+        assert etux_tspec_is_valid(stamp) is True
         assert etux_task_is_valid(task) is True
         assert kind in etuxTimerPerfKind
 
-        self._stamp = stamp
+        self._stamp_sec = stamp[0]
+        self._stamp_nsec = stamp[1]
         self._task = task
         self._kind = kind
 
     def show(self):
-        print("<{:.9f}> {}: ({})".format(self._stamp,
-                                         self._kind.name.lower(),
-                                         self._task))
+        print("<{}.{:09d}> {}: ({})".format(self._stamp_sec, self._stamp_nsec,
+                                            self._kind.name.lower(),
+                                            self._task))
 
 
 class etuxTimerPerfArmTspecEvent(etuxTimerPerfEvent):
-    def __init__(self, stamp, task, timer, tspec):
+    def __init__(self,
+                 stamp: tuple[int, int],
+                 task:  str,
+                 timer: int,
+                 tspec: tuple[int, int]):
         assert timer >= 0
-        assert etux_decode_tspec(stamp) is not None
+        assert etux_tspec_is_valid(tspec) is True
 
         super().__init__(stamp, task, etuxTimerPerfKind.ARM_TSPEC)
         self._timer = timer
-        self._tspec = tspec
+        self._sec = tspec[0]
+        self._nsec = tspec[1]
 
     def show(self):
-        print("<{:.9f}> {}: @0x{} [{:.9f}] ({})".format(self._stamp,
-                                                        self._kind.name.lower(),
-                                                        self._timer,
-                                                        self._tspec,
-                                                        self._task))
+        print("<{}.{:09d}> {}: @0x{:x} [{}.{:09d}] ({})".format(
+            self._stamp_sec, self._stamp_nsec,
+            self._kind.name.lower(),
+            self._timer,
+            self._sec, self._nsec,
+            self._task))
+
+
+class etuxTimerPerfArmMsecEvent(etuxTimerPerfEvent):
+    def __init__(self,
+                 stamp: tuple[int, int],
+                 task:  str,
+                 timer: int,
+                 msec:  int):
+        assert timer >= 0
+        assert msec >= 0
+
+        super().__init__(stamp, task, etuxTimerPerfKind.ARM_MSEC)
+        self._timer = timer
+        self._sec = int(msec / 1000)
+        self._nsec = (msec % 1000) * 1000000
+        assert self._nsec >= 0
+        assert self._nsec < 1000000000
+
+    def show(self):
+        print("<{}.{:09d}> {}: @0x{:x} [{}.{:09d}] ({})".format(
+            self._stamp_sec, self._stamp_nsec,
+            self._kind.name.lower(),
+            self._timer,
+            self._sec, self._nsec,
+            self._task))
 
 
 class etuxTimerPerfCancelEvent(etuxTimerPerfEvent):
-    def __init__(self, stamp, task, timer):
+    def __init__(self, stamp: tuple[int, int], task: str, timer: int):
         assert timer >= 0
 
         super().__init__(stamp, task, etuxTimerPerfKind.CANCEL)
         self._timer = timer
 
     def show(self):
-        print("<{:.9f}> {}: @0x{} ({})".format(self._stamp,
-                                               self._kind.name.lower(),
-                                               self._timer,
-                                               self._task))
+        print("<{}.{:09d}> {}: @0x{:x} ({})".format(
+            self._stamp_sec,
+            self._stamp_nsec,
+            self._kind.name.lower(),
+            self._timer,
+            self._task))
+
+
+class etuxTimerPerfRunEvent(etuxTimerPerfEvent):
+    def __init__(self, stamp: tuple[int, int], task: str):
+        super().__init__(stamp, task, etuxTimerPerfKind.RUN)
+
+    def show(self):
+        print("<{}.{:09d}> {}: ({})".format(
+            self._stamp_sec,
+            self._stamp_nsec,
+            self._kind.name.lower(),
+            self._task))
 
 
 class etuxTimerPerfEventUnpacker:
@@ -111,8 +164,14 @@ class etuxTimerPerfEventUnpacker:
             raise Exception('Cannot probe performance event endianness: '
                             'missing input data')
         endian = struct.unpack_from(fmt, data, 0)[0]
-        self._endian = endian.decode(encoding = 'ascii')
-        if self._endian not in [ '=', '<', '>' ]:
+        endian = endian.decode(encoding = 'ascii')
+        if endian == 'n':
+            self._endian = '='
+        elif endian == 'l':
+            self._endian = '<'
+        elif endian == 'b':
+            self._endian = '>'
+        else:
             raise Exception('Cannot probe performance event endianness: '
                             'invalid endianness code')
 
@@ -139,26 +198,39 @@ class etuxTimerPerfEventUnpacker:
         return self._unpack_one()
 
     @property
-    def count(self):
+    def count(self) -> int:
         return self._count
 
-    def _unpack_tspec(self) -> float:
+    def _unpack_tspec(self) -> tuple[int, int]:
         fmt = "{}qq".format(self._endian)
         tlen = struct.calcsize(fmt)
         if (self._off + tlen) > len(self._data):
             raise Exception('Cannot unpack performance event timespec: '
                             'missing input data')
         tspec = struct.unpack_from(fmt, self._data, self._off)
-        stamp = float(tspec[0]) + (float(tspec[1]) / 1000000000)
-        if etux_decode_tspec(stamp) is None:
+        if etux_tspec_is_valid(tspec) is False:
             raise Exception('Cannot unpack performance event timespec: '
                             'invalid range')
         self._off += tlen
 
-        return stamp
+        return tspec
+
+    def _unpack_msec(self) -> int:
+        fmt = "{}q".format(self._endian)
+        tlen = struct.calcsize(fmt)
+        if (self._off + tlen) > len(self._data):
+            raise Exception('Cannot unpack performance event milliseconds: '
+                            'missing input data')
+        msec = struct.unpack_from(fmt, self._data, self._off)[0]
+        if msec < 0:
+            raise Exception('Cannot unpack performance event milliseconds: '
+                            'invalid range')
+        self._off += tlen
+
+        return msec
 
     def _unpack_task(self) -> str:
-        fmt = "{}B".format(self._endian)
+        fmt = "{}H".format(self._endian)
         clen = struct.calcsize(fmt)
         if (self._off + clen) > len(self._data):
             raise Exception('Cannot unpack performance event task: '
@@ -208,24 +280,39 @@ class etuxTimerPerfEventUnpacker:
         return addr
 
     def _unpack_arm_tspec(self,
-                          stamp: float,
+                          stamp: tuple[int, int],
                           task:  str) -> etuxTimerPerfArmTspecEvent:
         addr = self._unpack_addr()
         tspec = self._unpack_tspec()
 
         return etuxTimerPerfArmTspecEvent(stamp, task, addr, tspec)
 
+    def _unpack_arm_msec(self,
+                         stamp: tuple[int, int],
+                         task:  str) -> etuxTimerPerfArmMsecEvent:
+        addr = self._unpack_addr()
+        msec = self._unpack_msec()
+
+        return etuxTimerPerfArmMsecEvent(stamp, task, addr, msec)
+
     def _unpack_cancel(self,
-                       stamp: float,
+                       stamp: tuple[int, int],
                        task:  str) -> etuxTimerPerfCancelEvent:
         addr = self._unpack_addr()
 
         return etuxTimerPerfCancelEvent(stamp, task, addr)
 
+    def _unpack_run(self,
+                    stamp: tuple[int, int],
+                    task:  str) -> etuxTimerPerfRunEvent:
+        return etuxTimerPerfRunEvent(stamp, task)
+
     def _unpack_one(self) -> etuxTimerPerfEvent:
         unpackers = {
             etuxTimerPerfKind.ARM_TSPEC: self._unpack_arm_tspec,
-            etuxTimerPerfKind.CANCEL:    self._unpack_cancel
+            etuxTimerPerfKind.ARM_MSEC:  self._unpack_arm_msec,
+            etuxTimerPerfKind.CANCEL:    self._unpack_cancel,
+            etuxTimerPerfKind.RUN:       self._unpack_run,
         }
 
         stamp = self._unpack_tspec()
@@ -242,7 +329,8 @@ class etuxTimerPerfEventUnpacker:
 
 
 class etuxTimerPerfKernelPacker:
-    _pattern = re.compile(r'^\s*(.+)\[[0-9]+\]\s+....\s+([0-9.]+):\s+([^:]+):\s+timer=([0-9a-fA-F]+)(.*)$')
+    _glob_pat = re.compile(r'^\s*(.+)\[[0-9]+\]\s+.....?\s+([0-9.]+):\s+([^:]+):\s+timer=([0-9a-fA-F]+)(.*)$')
+    _arm_pat = re.compile(r'.*\s+\[timeout=([0-9]+)\]\s+.*$')
 
     def __init__(self, endian: str):
         assert endian in [ 'native', 'little', 'big' ]
@@ -259,94 +347,149 @@ class etuxTimerPerfKernelPacker:
         self._count = 0
 
     @staticmethod
-    def _pack_kind(oper):
+    def _pack_kind(oper: etuxTimerPerfKind) -> bytes:
         assert oper in etuxTimerPerfKind
 
         return struct.pack("B", oper.value)
 
     @property
-    def count(self):
+    def count(self) -> int:
         return self._count
 
-    def _pack_tspec(self, stamp):
-        tspec = etux_decode_tspec(stamp)
-        assert tspec is not None
+    def _pack_tspec(self, stamp: tuple[int, int]) -> bytes:
+        assert etux_tspec_is_valid(stamp) is True
 
-        return struct.pack("{}qq".format(self._endian), tspec[0], tspec[1])
+        return struct.pack("{}qq".format(self._endian), stamp[0], stamp[1])
 
-    def _pack_msec(self, stamp):
-        msec = etux_decode_msec(stamp)
+    def _pack_msec(self, msec: int) -> bytes:
         assert msec >= 0
+        assert msec <= INT32_MAX
 
         return struct.pack("{}q".format(self._endian), msec)
 
-    def _pack_task(self, task):
-        length = len(task)
-        assert length > 0 and length <= 0xff
+    def _pack_task(self, task: str) -> bytes:
+        assert etux_task_is_valid(task) is True
 
-        return struct.pack("{}B{}s".format(self._endian, length),
-                           length,
+        tlen = len(task)
+
+        return struct.pack("{}H{}s".format(self._endian, tlen),
+                           tlen,
                            bytes(task, encoding='ascii'))
 
-    def _pack_addr(self, timer):
+    def _pack_addr(self, timer: int) -> bytes:
         assert timer > 0
 
         return struct.pack("{}q".format(self._endian), timer)
 
-    def _pack_arm_tspec(self, tokens):
+    def _pack_arm_msec(self, tokens: re.Match) -> bytes or None:
         assert len(tokens.groups()) == 5
 
-        timer = int(tokens[4], 16)
+        self._last = etuxTimerPerfKind.ARM_MSEC
 
-        match = re.match('.*\s+\[timeout=([0-9]+)\]\s+.*$', tokens[5])
-        if match is None or len(match.groups()) != 1:
+        timer = int(tokens[4], 16)
+        tokens = self._arm_pat.match(tokens[5])
+        if tokens is None or len(tokens.groups()) != 1:
             logging.warning("Warning: ignoring trace: "
                             "invalid 'timer_start' timer operation")
             return None
-        tmout = float(match[1]) / self._clk_tck
+        tmout = int(int(tokens[1]) * 1000 / self._clk_tck)
+        if tmout < 0:
+            logging.warning("Warning: ignoring trace: "
+                            "invalid 'timer_start' timer milliseconds expiry")
+            return None
+        if tmout > INT32_MAX:
+            tmout = INT32_MAX
 
-        return self._pack_kind(etuxTimerPerfKind.ARM_TSPEC) + \
+        return self._pack_kind(etuxTimerPerfKind.ARM_MSEC) + \
                self._pack_addr(timer) + \
-               self._pack_tspec(tmout)
+               self._pack_msec(tmout)
 
-    def _pack_cancel(self, tokens):
+    def _pack_cancel(self, tokens: re.Match) -> bytes:
         assert len(tokens.groups()) == 5
+
+        self._last = etuxTimerPerfKind.CANCEL
 
         timer = int(tokens[4], 16)
 
         return self._pack_kind(etuxTimerPerfKind.CANCEL) + \
                self._pack_addr(timer)
 
-    def _pack_one(self, string):
+    def _pack_run(self, tokens: re.Match) -> bytes or None:
+        assert len(tokens.groups()) == 5
+
+        # Merge subsequent kernel timer_expire_entry / timer_expire_exit traces
+        if self._last == etuxTimerPerfKind.RUN:
+            return None
+        self._last = etuxTimerPerfKind.RUN
+
+        return self._pack_kind(etuxTimerPerfKind.RUN)
+
+    def _skip_expire_exit(self, tokens: re.Match) -> None:
+        assert len(tokens.groups()) == 5
+
+        # Merge subsequent kernel timer_expire_entry / timer_expire_exit traces
+        self._last = etuxTimerPerfKind.RUN
+
+        return None
+
+    def _pack_one(self, string: str) -> bytes or None:
         packers = {
-            'timer_start':  self._pack_arm_tspec,
-            'timer_cancel': self._pack_cancel
+            'timer_start':        self._pack_arm_msec,
+            'timer_cancel':       self._pack_cancel,
+            'timer_expire_entry': self._pack_run,
+            'timer_expire_exit':  self._skip_expire_exit
         }
 
-        tokens = self._pattern.match(string)
+        tokens = self._glob_pat.match(string)
         if not tokens or len(tokens.groups()) != 5:
             logging.warning("Warning: ignoring trace: "
                             "unmatched regular expression")
+            self._last = None
             return None
 
         oper = tokens[3]
         if oper not in packers:
             logging.debug("Debug: ignoring trace: "
                           "unsupported '{}' timer operation".format(oper))
+            self._last = None
             return None
+
+        stamp = tokens[2].split('.')
+        if len(stamp) != 2:
+            logging.warning("Warning: ignoring trace: invalid timestamp format")
+            self._last = None
+            return None
+        if len(stamp[1]) != 6:
+            logging.warning("Warning: ignoring trace: "
+                            "invalid timestamp microseconds format")
+            self._last = None
+            return None
+        stamp = int(stamp[0]), int(stamp[1]) * 1000
+        if etux_tspec_is_valid(stamp) is False:
+            logging.warning("Warning: ignoring trace: invalid timestamp range")
+            self._last = None
+            return None
+
+        task = tokens[1].strip()
+
         data = packers[oper](tokens)
         if data is None:
             return None
-
-        stamp = float(tokens[2])
-        task = tokens[1].strip()
 
         return self._pack_tspec(stamp) + self._pack_task(task) + data
 
     def _pack_head(self, count: int) -> bytes:
         assert count > 0
+        assert self._endian in [ '=', '<', '>' ]
 
-        head = struct.pack("c", bytes(self._endian, encoding='ascii'))
+        if self._endian == '=':
+            endian = 'n'
+        elif self._endian == '<':
+            endian = 'l'
+        elif self._endian == '>':
+            endian = 'b'
+
+        head = struct.pack("c", bytes(endian, encoding='ascii'))
         head += struct.pack("{}I".format(self._endian), count)
 
         return head
