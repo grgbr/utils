@@ -84,7 +84,7 @@ fi
 
 # Run command to trace
 log_info "running '$1' command..."
-$1
+$*
 
 # Stop recording session
 log_info "stopping '$session' session..."

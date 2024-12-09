@@ -7,6 +7,7 @@
 
 #include "../timer/common.h"
 #include "utest.h"
+#include "timer_clock.h"
 
 /* Just make sure that clock_gettime() syscall mocking operates properly. */
 CUTE_TEST(etuxut_timer_monotonic_now)
@@ -15,12 +16,12 @@ CUTE_TEST(etuxut_timer_monotonic_now)
 	struct timespec       now = { -1, -1 };
 
 	/* Schedule next timespec returned by clock_gettime() syscall. */
-	utilsut_expect_monotonic_now(&exp);
+	etuxpt_timer_clock_expect(&exp);
 	/* Call clock_gettime() thanks to our library. */
 	utime_monotonic_now(&now);
-	utilsut_expect_monotonic_now(NULL);
+	etuxpt_timer_clock_expect(NULL);
 
-	/* Check that values scheduled by utilsut_expect_monotonic_now() call
+	/* Check that values scheduled by etuxpt_timer_clock_expect() call
 	 * above have effectively been stored into the timespec structure.
 	 */
 	cute_check_sint(now.tv_sec, equal, 10);
@@ -60,7 +61,7 @@ static void
 etuxut_timer_teardown(void)
 {
 	etux_timer_cancel(&etuxut_the_timer);
-	utilsut_expect_monotonic_now(NULL);
+	etuxpt_timer_clock_expect(NULL);
 }
 
 CUTE_TEST_STATIC(etuxut_timer_is_armed,
@@ -268,9 +269,9 @@ CUTE_TEST_STATIC(etuxut_timer_issue_msec,
 			else
 				msec = 0;
 
-			utilsut_expect_monotonic_now(&etuxut_clock[c]);
+			etuxpt_timer_clock_expect(&etuxut_clock[c]);
 			cute_check_sint(etux_timer_issue_msec(), equal, msec);
-			utilsut_expect_monotonic_now(NULL);
+			etuxpt_timer_clock_expect(NULL);
 		}
 
 		etux_timer_cancel(&etuxut_the_timer);
@@ -427,7 +428,7 @@ etuxut_timer_teardown_arm(void)
 		etux_timer_cancel(&tmr->base);
 	}
 
-	utilsut_expect_monotonic_now(NULL);
+	etuxpt_timer_clock_expect(NULL);
 }
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -487,9 +488,9 @@ CUTE_TEST_STATIC(etuxut_timer_arm_tspec,
 		for (t = 0; t < stroll_array_nr(etuxut_timers); t++) {
 			struct etuxut_timer * tmr = &etuxut_timers[t];
 
-			utilsut_expect_monotonic_now(&clk);
+			etuxpt_timer_clock_expect(&clk);
 			etux_timer_arm_tspec(&tmr->base, &tmr->expire);
-			utilsut_expect_monotonic_now(NULL);
+			etuxpt_timer_clock_expect(NULL);
 			cute_check_bool(etux_timer_is_armed(&tmr->base),
 			                is,
 			                true);
@@ -511,9 +512,9 @@ CUTE_TEST_STATIC(etuxut_timer_arm_tspec,
 
 		while (utime_tspec_before_eq(&clk, &last_clk)) {
 			etuxut_curr_clock = &clk;
-			utilsut_expect_monotonic_now(&clk);
+			etuxpt_timer_clock_expect(&clk);
 			etux_timer_run();
-			utilsut_expect_monotonic_now(NULL);
+			etuxpt_timer_clock_expect(NULL);
 
 			utime_tspec_add_msec_clamp(&clk, (int)msecs[m]);
 		}
@@ -563,7 +564,7 @@ static void
 etuxut_timer_teardown_rearm(void)
 {
 	etux_timer_cancel(&etuxut_timer_rearm.base);
-	utilsut_expect_monotonic_now(NULL);
+	etuxpt_timer_clock_expect(NULL);
 }
 
 CUTE_TEST_STATIC(etuxut_timer_rearm_tspec,
@@ -587,19 +588,19 @@ CUTE_TEST_STATIC(etuxut_timer_rearm_tspec,
 		etuxut_timer_rearm.count = 0;
 		etuxut_timer_rearm.expected.tv_sec = 0;
 		etuxut_timer_rearm.expected.tv_nsec = 0;
-		utilsut_expect_monotonic_now(&clk);
+		etuxpt_timer_clock_expect(&clk);
 		etux_timer_arm_tspec(&etuxut_timer_rearm.base,
 		                     &etuxut_timer_rearm.expected);
-		utilsut_expect_monotonic_now(NULL);
+		etuxpt_timer_clock_expect(NULL);
 		cute_check_bool(etux_timer_is_armed(&etuxut_timer_rearm.base),
 		                is,
 		                true);
 
 		while (utime_tspec_before(&clk, &last_clk)) {
 			etuxut_curr_clock = &clk;
-			utilsut_expect_monotonic_now(&clk);
+			etuxpt_timer_clock_expect(&clk);
 			etux_timer_run();
-			utilsut_expect_monotonic_now(NULL);
+			etuxpt_timer_clock_expect(NULL);
 
 			utime_tspec_add_msec_clamp(&clk, (int)msecs[m]);
 		}
@@ -677,9 +678,9 @@ CUTE_TEST_STATIC(etuxut_timer_cancel,
 		for (t = 0; t < nr; t++) {
 			struct etuxut_timer * tmr = &etuxut_timers[t];
 
-			utilsut_expect_monotonic_now(&clk);
+			etuxpt_timer_clock_expect(&clk);
 			etux_timer_arm_tspec(&tmr->base, &tmr->expire);
-			utilsut_expect_monotonic_now(NULL);
+			etuxpt_timer_clock_expect(NULL);
 			cute_check_bool(etux_timer_is_armed(&tmr->base),
 			                is,
 			                true);
@@ -687,26 +688,26 @@ CUTE_TEST_STATIC(etuxut_timer_cancel,
 			tmr->count = 1;
 		}
 
-		utilsut_expect_monotonic_now(&clk);
+		etuxpt_timer_clock_expect(&clk);
 		etux_timer_cancel(&etuxut_timers[0].base);
-		utilsut_expect_monotonic_now(NULL);
+		etuxpt_timer_clock_expect(NULL);
 		cute_check_bool(etux_timer_is_armed(&etuxut_timers[0].base),
 		                is,
 		                false);
 		etuxut_timers[0].count = 0;
 
-		utilsut_expect_monotonic_now(&clk);
+		etuxpt_timer_clock_expect(&clk);
 		etux_timer_cancel(&etuxut_timers[nr / 2].base);
-		utilsut_expect_monotonic_now(NULL);
+		etuxpt_timer_clock_expect(NULL);
 		cute_check_bool(
 			etux_timer_is_armed(&etuxut_timers[nr / 2].base),
 			is,
 			false);
 		etuxut_timers[nr / 2].count = 0;
 
-		utilsut_expect_monotonic_now(&clk);
+		etuxpt_timer_clock_expect(&clk);
 		etux_timer_cancel(&etuxut_timers[nr - 1].base);
-		utilsut_expect_monotonic_now(NULL);
+		etuxpt_timer_clock_expect(NULL);
 		cute_check_bool(
 			etux_timer_is_armed(&etuxut_timers[nr - 1].base),
 			is,
@@ -715,9 +716,9 @@ CUTE_TEST_STATIC(etuxut_timer_cancel,
 
 		while (utime_tspec_before_eq(&clk, &last_clk)) {
 			etuxut_curr_clock = &clk;
-			utilsut_expect_monotonic_now(&clk);
+			etuxpt_timer_clock_expect(&clk);
 			etux_timer_run();
-			utilsut_expect_monotonic_now(NULL);
+			etuxpt_timer_clock_expect(NULL);
 
 			utime_tspec_add_msec_clamp(&clk, (int)msecs[m]);
 		}

@@ -1,4 +1,5 @@
 #include "utils/timer.h"
+#include "timer_clock.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -39,8 +40,8 @@ struct etuxpt_timer_event {
 };
 
 struct etuxpt_timer {
-	struct etux_timer * base;
 	unsigned long       id;
+	struct etux_timer * base;
 };
 
 static unsigned int          etuxpt_timer_cnt;
@@ -119,16 +120,17 @@ void
 etuxpt_timer_process_run(
 	const struct etuxpt_timer_event * __restrict event  __unused)
 {
-	etux_timer_run();
+	if (!etux_timer_issue_msec())
+		etux_timer_run();
 }
 
 static
 void
 etuxpt_timer_expire(struct etux_timer * timer __unused)
 {
-	struct timespec         now;
-	struct timespec         diff;
-	const struct timespec * exp;
+	struct timespec             now;
+	struct timespec             diff;
+	const struct timespec *     exp;
 
 	utime_monotonic_now(&now);
 
@@ -170,8 +172,8 @@ etuxpt_timer_build(unsigned long id)
 			return NULL;
 		etux_timer_init(base, etuxpt_timer_expire);
 
-		etuxpt_timers[etuxpt_timer_cnt].base = base;
 		etuxpt_timers[etuxpt_timer_cnt].id = id;
+		etuxpt_timers[etuxpt_timer_cnt].base = base;
 
 		return &etuxpt_timers[etuxpt_timer_cnt++];
 	}
@@ -562,12 +564,14 @@ etuxpt_timer_step_data_iter(const struct etuxpt_timer_data * __restrict data,
 
 	case ETUXPT_TIMER_RUN_KIND:
 		event->process = etuxpt_timer_process_run;
+		event->addr = 0;
 		break;
 
 	case ETUXPT_TIMER_ISSUE_TSPEC:
 	case ETUXPT_TIMER_ISSUE_MSEC:
 	case ETUXPT_TIMER_EXPIRE_KIND:
 		event->process = etuxpt_timer_process_null;
+		event->addr = 0;
 		break;
 
 	default:
@@ -740,23 +744,12 @@ etuxpt_timer_run_evts(struct etuxpt_timer_event * events, unsigned int nr)
 	utime_monotonic_now(&start);
 	for (e = 0; e < nr; e++) {
 		struct timespec wait = start;
-		int             err;
 
 		utime_tspec_add_clamp(&wait, &events[e].stamp);
-		do {
-			err = clock_nanosleep(CLOCK_MONOTONIC,
-			                      TIMER_ABSTIME,
-			                      &wait,
-			                      NULL);
-		} while (err && (errno == -EINTR));
 
-		if (err) {
-			assert(errno != EFAULT);
-			assert(errno != EINVAL);
-			assert(errno != ENOTSUP);
-		}
-
+		etuxpt_timer_clock_expect(&wait);
 		events[e].process(&events[e]);
+		etuxpt_timer_clock_expect(NULL);
 	}
 
 	for (t = 0; t < etuxpt_timer_cnt; t++)
@@ -782,6 +775,15 @@ main(int argc, char * const argv[])
 {
 	struct etuxpt_timer_data    data;
 	struct etuxpt_timer_event * events;
+	int                         err;
+
+	err = etuxpt_timer_setup_lttng_clock();
+	if (err) {
+		etuxpt_err("failed to setup LTTng clock: %s (%d).\n",
+		           strerror(-err),
+		           -err);
+		return EXIT_FAILURE;
+	}
 
 	events = etuxpt_timer_load_evts(&data, argv[1]);
 	if (!events)

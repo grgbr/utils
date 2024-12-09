@@ -156,6 +156,76 @@ class etuxTimerTraceParser:
             logging.warning(warnmsg.format(name))
 
     def show(self):
+        nr = 0
+        arm_nr = 0
+        ctrl_nr = 0
+        issue_nr = 0
+        
+        arm_tspec_stats = self._arm_tspec_parser.stats()
+        if arm_tspec_stats is not None:
+            nr += arm_tspec_stats[0]
+            arm_nr += arm_tspec_stats[0]
+            ctrl_nr += arm_tspec_stats[0]
+        arm_msec_stats = self._arm_msec_parser.stats()
+        if arm_msec_stats is not None:
+            nr += arm_msec_stats[0]
+            arm_nr += arm_msec_stats[0]
+            ctrl_nr += arm_msec_stats[0]
+        arm_sec_stats = self._arm_sec_parser.stats()
+        if arm_sec_stats is not None:
+            nr += arm_sec_stats[0]
+            arm_nr += arm_sec_stats[0]
+            ctrl_nr += arm_sec_stats[0]
+        cancel_stats = self._cancel_parser.stats()
+        if cancel_stats is not None:
+            nr += cancel_stats[0]
+            ctrl_nr += cancel_stats[0]
+        expire_stats = self._expire_parser.stats()
+        if expire_stats is not None:
+            nr += expire_stats[0]
+            ctrl_nr += expire_stats[0]
+        issue_tspec_stats = self._issue_tspec_parser.stats()
+        if issue_tspec_stats is not None:
+            nr += issue_tspec_stats[0]
+            issue_nr += issue_tspec_stats[0]
+        issue_msec_stats = self._issue_msec_parser.stats()
+        if issue_msec_stats is not None:
+            nr += issue_msec_stats[0]
+            issue_nr += issue_msec_stats[0]
+        run_stats = self._run_parser.stats()
+        if run_stats is not None:
+            nr += run_stats[0]
+           
+        width = len(str(nr))
+        print("OPERATION {:>{width}s}/{:>{width}s} #NR/#CTRL_NR #TOTAL".format(
+            "#NR",
+            "#ARM_NR",
+            width=width))
+        
+        if arm_tspec_stats is not None:
+            print("{}: {}".format("arm tspec", arm_tspec_stats[0]))
+        else:
+            print("{}: 0".format("arm tspec"))
+        
+        #(nr, min, max, stdev, median, mean)
+        
+        arm_msec_stats = self._arm_msec_parser.stats()
+        if arm_msec_stats is not None:
+            print("{}: {:{width}d}/{:{width}d} ({:3d}%) {:{width}d}/{:{width}d} ({:3d}%) {:{width}d}".format(
+                "arm msec",
+                arm_msec_stats[0],
+                arm_nr,
+                int(arm_msec_stats[0] * 100 / arm_nr),
+                arm_msec_stats[0],
+                ctrl_nr,
+                int(arm_msec_stats[0] * 100 / ctrl_nr),
+                nr,
+                width=width))
+        else:
+            print("{}: 0".format("arm msec"))
+         
+        print("#################################")
+
         print("arm tspec", end = ": ")
         print(self._arm_tspec_parser.stats())
         print("arm msec", end = ": ")
