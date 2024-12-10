@@ -128,6 +128,7 @@ static
 void
 etuxpt_timer_expire(struct etux_timer * timer __unused)
 {
+#if 0
 	struct timespec             now;
 	struct timespec             diff;
 	const struct timespec *     exp;
@@ -143,6 +144,7 @@ etuxpt_timer_expire(struct etux_timer * timer __unused)
 	       now.tv_sec, now.tv_nsec,
 	       exp->tv_sec, exp->tv_nsec,
 	       diff.tv_sec, diff.tv_nsec);
+#endif
 }
 
 static
