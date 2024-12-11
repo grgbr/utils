@@ -12,12 +12,18 @@ from typing import Literal
 import sys
 
 import bt2
+from bt2.field_class import _StructureFieldClassMemberConst
+from bt2.event_class import _EventClassConst
 import collections
 import logging
 import statistics as stats
 from rich.table import Table, Column
-from rich.padding import PaddingDimensions
+from rich.padding import Padding, PaddingDimensions
 from rich.console import Console, RenderableType
+from rich.text import Text
+from rich.style import Style
+from rich.box import Box
+from rich.columns import Columns
 
 class etuxTimerTraceStat:
     def __init__(self, data: list[float]) -> None:
@@ -99,11 +105,11 @@ class etuxTimerTraceElapseBase:
     @property
     def _mark(self) -> int:
         return len(self._elapsed)
-    
+
     def _samples(self, mark: int) -> list[int]:
         assert mark >= 0
         return self._elapsed[mark:-1]
-    
+
     def stats(self) -> etuxTimerTraceStat:
         return etuxTimerTraceStat(
             list(map(lambda nsec: nsec / 1000.0, self._elapsed)))
@@ -168,8 +174,31 @@ class etuxTimerTraceElapse(etuxTimerTraceElapseBase):
         self._enter = -1
 
 
+class etuxTimerTraceExpireElapse(etuxTimerTraceKeyedElapse):
+    def __init__(self) -> None:
+        super().__init__()
+        self._latency = list()
+
+    def begin(self, message):
+        super().begin(message)
+
+        lat_sec = int(message.event['now_sec']) - \
+                  int(message.event['timer_sec'])
+        lat_nsec = int(message.event['now_nsec']) - \
+                   int(message.event['timer_nsec'])
+        if lat_nsec < 0:
+            lat_sec -= 1
+            lat_nsec += 1000000000
+
+        self._latency.append((lat_sec * 1000000000) + lat_nsec)
+
+    def latency_stats(self) -> etuxTimerTraceStat:
+        return etuxTimerTraceStat(
+            list(map(lambda nsec: nsec / 1000.0, self._latency)))
+
+
 class etuxTimerTraceRunElapse(etuxTimerTraceElapse):
-    def __init__(self, expire: etuxTimerTraceKeyedElapse):
+    def __init__(self, expire: etuxTimerTraceExpireElapse):
         super().__init__()
         self._expire = expire
         self._expire_mark = -1
@@ -198,7 +227,7 @@ class etuxTimerTraceParser:
         self._cancel_parser = etuxTimerTraceKeyedElapse()
         self._issue_tspec_parser = etuxTimerTraceElapse()
         self._issue_msec_parser = etuxTimerTraceElapse()
-        self._expire_parser = etuxTimerTraceKeyedElapse()
+        self._expire_parser = etuxTimerTraceExpireElapse()
         self._run_parser = etuxTimerTraceRunElapse(self._expire_parser)
 
         self._arm_tspec_stats = None
@@ -211,6 +240,7 @@ class etuxTimerTraceParser:
         self._issue_stats = None
         self._run_stats = None
         self._expire_stats = None
+        self._expire_latency_stats = None
         self._total_stats = None
 
     def parse(self, message):
@@ -309,6 +339,12 @@ class etuxTimerTraceParser:
         return self._expire_stats
 
     @property
+    def expire_latency_stats(self) -> etuxTimerTraceStat:
+        if self._expire_latency_stats is None:
+            self._expire_latency_stats = self._expire_parser.latency_stats()
+        return self._expire_latency_stats
+
+    @property
     def run_stats(self) -> etuxTimerTraceStat:
         if self._run_stats is None:
             self._run_stats = self._run_parser.stats()
@@ -327,185 +363,261 @@ class etuxTimerTraceParser:
         return self._total_stats
 
 
-    def show(self):
-        def _show(op, sts, tot):
-            print("{:12.12s} {:8.3f} {:8.3f} {:8.3f} {:8.3f} {:8.3f} {:8.3f}/{:8.3f} {:6d}/{:6d}".format(
-                  op,
-                  sts.min,
-                  sts.max,
-                  sts.stdev,
-                  sts.median,
-                  sts.mean,
-                  sts.sum / 1000.0,
-                  tot.sum / 1000.0,
-                  sts.count,
-                  tot.count))
-            
-        print("OPERATION         MIN      MAX   STDDEV     MEDIAN   MEAN        MSEC/TOTAL    #NR/#TOTAL")
-        print("               (usec)   (usec)   (usec)     (usec) (usec)            (msec)")
-        print("=========================================================================================")
-        
-        tot_sts = self.total_stats
-        _show("arm tspec", self.arm_tspec_stats, tot_sts)
-        _show("arm msec", self.arm_msec_stats, tot_sts)
-        _show("arm sec", self.arm_sec_stats, tot_sts)
-        print("-----------------------------------------------------------------------------------------")
-        _show("arm", self.arm_stats, tot_sts)
-        print("=========================================================================================")
-        _show("issue tspec", self.issue_tspec_stats, tot_sts)
-        _show("issue msec", self.issue_msec_stats, tot_sts)
-        print("-----------------------------------------------------------------------------------------")
-        _show("issue", self.issue_stats, tot_sts)
-        print("=========================================================================================")
-        _show("arm", self.arm_stats, tot_sts)
-        _show("cancel", self.cancel_stats, tot_sts)
-        _show("issue", self.issue_stats, tot_sts)
-        _show("run", self.run_stats, tot_sts)
-        print("=========================================================================================")
-        _show("total", tot_sts, tot_sts)
-
-
-
 class etuxTimerTraceTableColumn(Column):
     def __init__(self,
                  header: str = '',
-                 footer: RenderableType = '',
                  justify: Literal['default',
                                   'left',
                                   'center',
                                   'right',
-                                  'full'] = 'left',
-                 wrap: bool = False) -> None:
+                                  'full'] = 'left') -> None:
         super().__init__(header = header,
-                         footer = footer,
+                         footer = '',
                          justify = justify,
-                         no_wrap = not wrap)
+                         no_wrap = True)
 
 
 class etuxTimerTraceTable(Table):
-    def __init__(self,
-                 *columns: Column,
-                 title: str,
-                 show_header: bool = False,
-                 padding: PaddingDimensions = (0, 0, 0, 1)) -> None:
-        ttl = etuxTimerTraceSectionTitle(title)
+    _box = Box(
+        """\
+    
+    
+    
+    
+ -- 
+ == 
+    
+    
+""",
+            ascii = True
+    )
+
+    def __init__(self, *columns: Column) -> None:
         super().__init__(*columns,
-                         title = ttl,
-                         title_justify = 'left',
-                         box = None,
-                         show_header = show_header,
+                         box = self._box,
+                         show_header = True,
                          show_edge = False,
-                         pad_edge = False,
-                         min_width = ttl.width,
-                         padding = padding)
+                         pad_edge = False)
 
 
-class etuxTimerTraceReport(Table):
+class etuxTimerTraceReport(etuxTimerTraceTable):
     def __init__(self, parser: etuxTimerTraceParser) -> None:
-        super().__init__(etuxTimerTraceTableColumn(header = 'MIN'),
-                         etuxTimerTraceTableColumn(header = 'MAX'),
-                         etuxTimerTraceTableColumn(header = 'STDDEV'),
-                         etuxTimerTraceTableColumn(header = 'MEDIAN'),
-                         etuxTimerTraceTableColumn(header = 'MEAN'),
-                         etuxTimerTraceTableColumn(header = 'DURATION'),
-                         etuxTimerTraceTableColumn(header = '#NR'),
-                         title = 'Timer statistics',
-                         show_header = True)
+        super().__init__(
+            etuxTimerTraceTableColumn(header = 'OPERATION\n'),
+            etuxTimerTraceTableColumn(header = 'MIN\nusec',
+                                      justify = 'right'),
+            etuxTimerTraceTableColumn(header = 'MAX\nusec',
+                                      justify = 'right'),
+            etuxTimerTraceTableColumn(header = 'STDDEV\nusec',
+                                      justify = 'right'),
+            etuxTimerTraceTableColumn(header = 'MEDIAN\nusec',
+                                      justify = 'right'),
+            etuxTimerTraceTableColumn(header = 'MEAN\nusec',
+                                      justify = 'right'),
+            etuxTimerTraceTableColumn(header = 'TOTAL( RATIO)\nmsec(     %)',
+                                      justify = 'right'),
+            etuxTimerTraceTableColumn(header = '#NR( RATIO)\n    (     %)',
+                                      justify = 'right'))
+        all_stats = parser.total_stats
 
-# Report
-#
-# Timer arm operations
-# --------------------
-#
-# OPERATION       MIN     MAX   STDDEV   MEDIAN     MEAN  MSEC/TOTAL_MSEC  #NR/#TOTAL_NR
-#              (nsec)  (nsec)   (nsec)   (nsec)   (nsec)           (msec)
-# arm tspec       204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# arm msec        204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# arm sec         204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# --------------------------------------------------------------------------------------
-# Total           204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-#
-# Timer issue operations
-# ----------------------
-#
-# OPERATION       MIN     MAX   STDDEV   MEDIAN     MEAN  MSEC/TOTAL_MSEC  #NR/#TOTAL_NR
-#              (nsec)  (nsec)   (nsec)   (nsec)   (nsec)           (msec)
-# issue tspec     204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# issue msec      204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# --------------------------------------------------------------------------------------
-# Total           204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-#
-#
-# All operations
-# --------------
-#
-# OPERATION       MIN     MAX   STDDEV   MEDIAN     MEAN  MSEC/TOTAL_MSEC  #NR/#TOTAL_NR
-#              (nsec)  (nsec)   (nsec)   (nsec)   (nsec)           (msec)
-# arm             204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# cancel          204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# issue           204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# run             204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
-# --------------------------------------------------------------------------------------
-# Total           204   16180  189.260  592.000  593.628    22.119/28.768    37260/74671
-#                                                                  76.00%            49%
+        self._begin_section("Arm statistics")
+        self._add_row("arm tspec", parser.arm_tspec_stats, all_stats)
+        self._add_row("arm msec", parser.arm_msec_stats, all_stats)
+        self._add_row("arm sec", parser.arm_sec_stats, all_stats)
+        self._end_section_with_total(parser.arm_stats, all_stats)
+
+        self._begin_section("Issue statistics")
+        self._add_row("issue (tspec)", parser.issue_tspec_stats, all_stats)
+        self._add_row("issue (msec)", parser.issue_msec_stats, all_stats)
+        self._end_section_with_total(parser.issue_stats, all_stats)
+
+        self._begin_section("Expiry statistics")
+        self._add_row("duration", parser.expire_stats, all_stats)
+        self.add_row("latency",
+                     "{:.3f}".format(parser.expire_latency_stats.min),
+                     "{:.3f}".format(parser.expire_latency_stats.max),
+                     "{:.3f}".format(parser.expire_latency_stats.stdev),
+                     "{:.3f}".format(parser.expire_latency_stats.median),
+                     "{:.3f}".format(parser.expire_latency_stats.mean),
+                     "",
+                     "")
+        self._end_section()
+
+        self._begin_section("Overall statistics")
+        self._add_row("arm", parser.arm_stats, all_stats)
+        self._add_row("cancel", parser.cancel_stats, all_stats)
+        self._add_row("issue", parser.issue_stats, all_stats)
+        self._add_row("run", parser.run_stats, all_stats)
+        self._end_final_section(all_stats)
+
+    def _add_row(self,
+                 oper_name:  str,
+                 oper_stats: etuxTimerTraceStat,
+                 all_stats:  etuxTimerTraceStat,
+                 style: Style or None = None) -> None:
+        self.add_row(oper_name,
+                     "{:.3f}".format(oper_stats.min),
+                     "{:.3f}".format(oper_stats.max),
+                     "{:.3f}".format(oper_stats.stdev),
+                     "{:.3f}".format(oper_stats.median),
+                     "{:.3f}".format(oper_stats.mean),
+                     "{:.3f}({:6.2f})".format(oper_stats.sum / 1000.0,
+                                              oper_stats.sum * 100.0 /
+                                              all_stats.sum),
+                     "{}({:6.2f})".format(oper_stats.count,
+                                          oper_stats.count * 100.0 /
+                                          all_stats.count),
+                     style = style)
+
+    def _begin_section(self, sect_name: str) -> None:
+        self.add_row(sect_name, style = Style(italic = True), end_section = True)
+
+    def _end_section(self) -> None:
+        self.add_row()
+
+    def _end_section_with_total(self,
+                     oper_stats: etuxTimerTraceStat,
+                     all_stats:  etuxTimerTraceStat) -> None:
+        self._add_row("Total",
+                      oper_stats,
+                      all_stats,
+                      style = Style(bold = True))
+        self.add_row()
+
+    def _end_final_section(self, all_stats: etuxTimerTraceStat) -> None:
+        self.add_row("Total",
+                     "",
+                     "",
+                     "",
+                     "",
+                     "",
+                     Padding("{:.3f}".format(all_stats.sum / 1000.0),
+                             (0, 8, 0, 0)),
+                     Padding(str(all_stats.count), (0, 8, 0, 0)),
+                     style = Style(bold = True))
 
 
+class etuxTimerTraceAttrDesc:
+    def __init__(self, member: _StructureFieldClassMemberConst) -> None:
+        self._member = member
+
+    def __lt__(self, obj):
+        return self.name < obj.name
+
+    def __gt__(self, obj):
+        return self.name > obj.name
+
+    def __le__(self, obj):
+        return self.name <= obj.name
+
+    def __ge__(self, obj):
+        return self.name >= obj.name
+
+    def __eq__(self, obj):
+        return self.name == obj.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def name(self) -> str:
+        return self._member.name
+
+    @property
+    def kind(self) -> str:
+        return self._member.field_class.__class__._NAME.lower()
+
+
+class etuxTimerTraceDesc:
+    def __init__(self, event_class: _EventClassConst) -> None:
+        self._event_class = event_class
+        self._attrs = set()
+
+        # The `payload_field_class` property of an event class returns a
+        # `bt2._StructureFieldClassConst` object. This object offers a
+        # mapping interface, where keys are attribute names and values are
+        # `bt2._StructureFieldClassMemberConst` objects.
+        for attr in event_class.payload_field_class.values():
+            self._attrs.add(etuxTimerTraceAttrDesc(attr))
+
+    def __lt__(self, obj):
+        return self.name < obj.name
+
+    def __gt__(self, obj):
+        return self.name > obj.name
+
+    def __le__(self, obj):
+        return self.name <= obj.name
+
+    def __ge__(self, obj):
+        return self.name >= obj.name
+
+    def __eq__(self, obj):
+        return self.name == obj.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def name(self) -> str:
+        return self._event_class.name
+
+    @property
+    def attrs(self) -> set[etuxTimerTraceAttrDesc]:
+        return self._attrs
 
 
 class etuxTimerTraceScanner:
     def __init__(self, path: str) -> None:
-        self._iter = bt2.TraceCollectionMessageIterator(path)
+        self._path = path
 
     def parse(self, parser: etuxTimerTraceParser) -> None:
-        for msg in self._iter:
+        iter = bt2.TraceCollectionMessageIterator(self._path)
+        for msg in iter:
             if type(msg) is not bt2._EventMessageConst:
                     continue
 
             parser.parse(msg)
 
+    def probe(self) -> set[etuxTimerTraceDesc]:
+        evts = set()
+
+        # Get the message iterator's first stream beginning message.
+        iter = bt2.TraceCollectionMessageIterator(self._path)
+        for msg in iter:
+            # `bt2._StreamBeginningMessageConst` is the Python type of a stream
+            # beginning message.
+            if type(msg) is bt2._StreamBeginningMessageConst:
+                break
+
+        # Retrieve class of beginning message stream.
+        scls = msg.stream.cls
+
+        # The stream class object offers a mapping interface (like a read-only
+        # `dict`), where keys are event class IDs and values are
+        # `bt2._EventClassConst` objects.
+        for ecls in scls.values():
+            evts.add(etuxTimerTraceDesc(ecls))
+
+        return evts
+
+
+class etuxTimerTraceDescReport(Columns):
+    def __init__(self, scanner: etuxTimerTraceScanner) -> None:
+        super().__init__(column_first = True, padding = (0, 2), align = 'left')
+        for trc in scanner.probe():
+            txt = Text()
+            txt.append('{}\n'.format(trc.name), style = 'bold')
+            for attr in trc.attrs:
+                txt.append("+-- {}".format(attr.name))
+                txt.append(" ({})\n".format(attr.kind), style = 'italic')
+            self.add_renderable(txt)
+
 
 scanner = etuxTimerTraceScanner(sys.argv[1])
 parser = etuxTimerTraceParser()
 scanner.parse(parser)
-parser.show()
 
 Console().print(etuxTimerTraceReport(parser))
+Console().print(etuxTimerTraceDescReport(scanner))
 
-## Get the message iterator's first stream beginning message.
-#for msg in iter:
-#    # `bt2._StreamBeginningMessageConst` is the Python type of a stream
-#    # beginning message.
-#    if type(msg) is bt2._StreamBeginningMessageConst:
-#        break
-#
-## A stream beginning message holds a stream.
-#stream = msg.stream
-#
-## Get the stream's class.
-#stream_class = stream.cls
-#
-## The stream class object offers a mapping interface (like a read-only
-## `dict`), where keys are event class IDs and values are
-## `bt2._EventClassConst` objects.
-#for event_class in stream_class.values():
-#    print('{}:'.format(event_class.name))
-#
-#    # The `payload_field_class` property of an event class returns a
-#    # `bt2._StructureFieldClassConst` object. This object offers a
-#    # mapping interface, where keys are member names and values are
-#    # `bt2._StructureFieldClassMemberConst` objects.
-#    for member in event_class.payload_field_class.values():
-#        fmt = '  {}: `{}.{}`'
-#        print(fmt.format(member.name, bt2.__name__,
-#                         member.field_class.__class__.__name__))
