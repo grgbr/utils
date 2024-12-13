@@ -9,6 +9,7 @@
 
 import os
 import sys
+import pprint
 
 arg0 = os.path.basename(sys.argv[0])
 
@@ -108,6 +109,29 @@ class etuxTimerTraceStat:
             self._sum = sum(self._data)
         return self._sum
 
+
+#class etuxTimerTraceContext:
+#    def __init__(self) -> None:
+#        self._props = {
+#            'cpu_id':   set(),
+#            'procname': set(),
+#            'vpid':     set(),
+#            'vtid':     set(),
+#            'vuid':     set(),
+#            'veuid':    set(),
+#            'vsuid':    set(),
+#            'vgid':     set(),
+#            'vegid':    set(),
+#            'vsgid':    set(),
+#            'vuid':     set()
+#        }
+#    
+#    def update(self, message: bt2EventMessageConst) -> None:
+#        if 'cpu_id' in message.event.packet.context_field:
+#        for v in message.event.common_context_field.keys():
+#        #    print(v)
+#        #pprint.pprint(message.event.packet.context_field.keys())
+        
 
 class etuxTimerTraceElapseBase:
     def __init__(self) -> None:
@@ -422,6 +446,15 @@ class etuxTimerTraceDesc:
         self._event_class = event_class
         self._attrs = set()
 
+        stream_class = event_class.stream_class
+        
+        for attr in stream_class.packet_context_field_class.values():
+            self._attrs.add(etuxTimerTraceAttrDesc(attr))
+        for attr in stream_class.event_common_context_field_class.values():
+            self._attrs.add(etuxTimerTraceAttrDesc(attr))
+        for attr in stream_class.user_attributes.values():
+            self._attrs.add(etuxTimerTraceAttrDesc(attr))
+
         # The `payload_field_class` property of an event class returns a
         # `bt2._StructureFieldClassConst` object. This object offers a
         # mapping interface, where keys are attribute names and values are
@@ -506,13 +539,10 @@ class etuxTimerTraceScanner:
                 if type(msg) is bt2StreamBeginningMessageConst:
                     break
 
-            # Retrieve class of beginning message stream.
-            scls = msg.stream.cls
-
-            # The stream class object offers a mapping interface (like a
-            # read-only `dict`), where keys are event class IDs and values are
-            # `bt2._EventClassConst` objects.
-            for ecls in scls.values():
+            # Retrieve class of beginning message stream which offers
+            # a mapping interface (like a read-only `dict`), where keys are
+            # event class IDs and values are `bt2._EventClassConst` objects.
+            for ecls in msg.stream.cls.values():
                 evts.add(etuxTimerTraceDesc(ecls))
         except Exception as e:
             raise Exception("'{}': trace discovery failed: "
@@ -695,7 +725,7 @@ class etuxTimerTraceReport(etuxTimerTraceTable):
 class etuxTimerTraceDescReport(etuxTimerTraceTable):
     def __init__(self, scanner: etuxTimerTraceScanner) -> None:
         super().__init__(etuxTimerTraceTableColumn(header = 'NAME'),
-                etuxTimerTraceTableColumn(header = 'TYPE'))
+                         etuxTimerTraceTableColumn(header = 'TYPE'))
         descs = list(sorted(scanner.desc()))
         self._fill_desc(descs[0], (0, 0))
         for d in descs[1:]:
