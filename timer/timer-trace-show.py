@@ -9,7 +9,6 @@
 
 import os
 import sys
-import pprint
 
 arg0 = os.path.basename(sys.argv[0])
 
@@ -20,8 +19,10 @@ try:
     from bt2.field_class import _StructureFieldClassMemberConst as bt2StructureFieldClassMemberConst
     from bt2.event_class import _EventClassConst as bt2EventClassConst
     from bt2.message import _EventMessageConst as bt2EventMessageConst
+    from bt2.message import _MessageConst as bt2MessageConst
     from bt2.message import _StreamBeginningMessageConst as bt2StreamBeginningMessageConst
-    import collections
+    from ordered_set import OrderedSet
+    from collections import OrderedDict
     import logging
     import statistics as stats
     from rich.table import Table, Column
@@ -35,6 +36,143 @@ except Exception as e:
     print("{}: Python module import failed: {}.".format(arg0, e),
           file=sys.stderr)
     exit(1)
+
+
+class etuxTraceAttrDesc:
+    def __init__(self, member: bt2StructureFieldClassMemberConst) -> None:
+        self._member = member
+
+    def __lt__(self, obj):
+        return self.name < obj.name
+
+    def __gt__(self, obj):
+        return self.name > obj.name
+
+    def __le__(self, obj):
+        return self.name <= obj.name
+
+    def __ge__(self, obj):
+        return self.name >= obj.name
+
+    def __eq__(self, obj):
+        return self.name == obj.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def name(self) -> str:
+        return self._member.name
+
+    @property
+    def kind(self) -> str:
+        return self._member.field_class.__class__._NAME.lower()
+
+
+class etuxTraceDesc:
+    def __init__(self, event_class: bt2EventClassConst) -> None:
+        self._name = event_class.name
+        self._attrs = OrderedSet()
+
+        stream_class = event_class.stream_class
+        
+        for attr in stream_class.packet_context_field_class.values():
+            self._attrs.add(etuxTraceAttrDesc(attr))
+
+        for attr in stream_class.event_common_context_field_class.values():
+            self._attrs.add(etuxTraceAttrDesc(attr))
+
+        for attr in stream_class.user_attributes.values():
+            self._attrs.add(etuxTraceAttrDesc(attr))
+
+        for attr in event_class.payload_field_class.values():
+            self._attrs.add(etuxTraceAttrDesc(attr))
+
+    def __lt__(self, obj):
+        return self.name < obj.name
+
+    def __gt__(self, obj):
+        return self.name > obj.name
+
+    def __le__(self, obj):
+        return self.name <= obj.name
+
+    def __ge__(self, obj):
+        return self.name >= obj.name
+
+    def __eq__(self, obj):
+        return self.name == obj.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def attrs(self) -> OrderedSet[etuxTraceAttrDesc]:
+        return self._attrs
+
+
+class etuxTracePacketSet(set):
+    KEY = None
+    
+    def account(self, message: bt2EventMessageConst) -> None:
+        assert self.KEY is not None
+        fields = message.event.packet.context_field
+        if self.KEY in fields:
+            self.add(fields[self.KEY])
+
+
+class etuxTraceCpuidSet(etuxTracePacketSet):
+    KEY = 'cpu_id'
+
+
+class etuxTraceCommonSet(set):
+    KEY = None
+    
+    def account(self, message: bt2EventMessageConst) -> None:
+        assert self.KEY is not None
+        fields = message.event.common_context_field
+        if self.KEY in fields:
+            self.add(fields[self.KEY])
+
+
+class etuxTraceProcnameSet(etuxTraceCommonSet):
+    KEY = 'procname'
+
+
+class etuxTraceVpidSet(etuxTraceCommonSet):
+    KEY = 'vpid'
+    
+
+class etuxTraceVtidSet(etuxTraceCommonSet):
+    KEY = 'vtid'
+    
+
+class etuxTraceVuidSet(etuxTraceCommonSet):
+    KEY = 'vuid'
+    
+
+class etuxTraceVeuidSet(etuxTraceCommonSet):
+    KEY = 'veuid'
+    
+
+class etuxTraceVsuidSet(etuxTraceCommonSet):
+    KEY = 'vsuid'
+    
+
+class etuxTraceVgidSet(etuxTraceCommonSet):
+    KEY = 'vgid'
+    
+
+class etuxTraceVegidSet(etuxTraceCommonSet):
+    KEY = 'vegid'
+    
+
+class etuxTraceVsgidSet(etuxTraceCommonSet):
+    KEY = 'vsgid'
 
 
 class etuxTimerTraceStat:
@@ -110,28 +248,232 @@ class etuxTimerTraceStat:
         return self._sum
 
 
-#class etuxTimerTraceContext:
-#    def __init__(self) -> None:
-#        self._props = {
-#            'cpu_id':   set(),
-#            'procname': set(),
-#            'vpid':     set(),
-#            'vtid':     set(),
-#            'vuid':     set(),
-#            'veuid':    set(),
-#            'vsuid':    set(),
-#            'vgid':     set(),
-#            'vegid':    set(),
-#            'vsgid':    set(),
-#            'vuid':     set()
-#        }
-#    
-#    def update(self, message: bt2EventMessageConst) -> None:
-#        if 'cpu_id' in message.event.packet.context_field:
-#        for v in message.event.common_context_field.keys():
-#        #    print(v)
-#        #pprint.pprint(message.event.packet.context_field.keys())
+class etuxTracePublisher:
+    def on_msg(self, message: bt2MessageConst) -> None:
+        raise NotImplementedError()
+
+
+class etuxTraceScanner(etuxTracePublisher):
+    def __init__(self) -> None:
+        super().__init__()
+        self._sets = OrderedDict((
+            (etuxTraceCpuidSet.KEY,    etuxTraceCpuidSet()),
+            (etuxTraceProcnameSet.KEY, etuxTraceProcnameSet()),
+            (etuxTraceVpidSet.KEY,     etuxTraceVpidSet()),
+            (etuxTraceVtidSet.KEY,     etuxTraceVtidSet()),
+            (etuxTraceVuidSet.KEY,     etuxTraceVuidSet()),
+            (etuxTraceVeuidSet.KEY,    etuxTraceVeuidSet()),
+            (etuxTraceVsuidSet.KEY,    etuxTraceVsuidSet()),
+            (etuxTraceVgidSet.KEY,     etuxTraceVgidSet()),
+            (etuxTraceVegidSet.KEY,    etuxTraceVegidSet()),
+            (etuxTraceVsgidSet.KEY,    etuxTraceVsgidSet())
+        ))
+    
+    @property
+    def cpu_set(self) -> etuxTraceCpuidSet:
+        return self._sets[etuxTraceCpuidSet.KEY]
         
+    @property
+    def proc_set(self) -> etuxTraceProcnameSet:
+        return self._sets[etuxTraceProcnameSet.KEY]
+    
+    @property
+    def pid_set(self) -> etuxTraceVpidSet:
+        return self._sets[etuxTraceVpidSet.KEY]
+
+    @property
+    def tid_set(self) -> etuxTraceVtidSet:
+        return self._sets[etuxTraceVtidSet.KEY]
+
+    @property
+    def uid_set(self) -> etuxTraceVuidSet:
+        return self._sets[etuxTraceVuidSet.KEY]
+
+    @property
+    def euid_set(self) -> etuxTraceVeuidSet:
+        return self._sets[etuxTraceVeuidSet.KEY]
+
+    @property
+    def suid_set(self) -> etuxTraceVsuidSet:
+        return self._sets[etuxTraceVsuidSet.KEY]
+
+    @property
+    def gid_set(self) -> etuxTraceVgidSet:
+        return self._sets[etuxTraceVgidSet.KEY]
+
+    @property
+    def egid_set(self) -> etuxTraceVegidSet:
+        return self._sets[etuxTraceVegidSet.KEY]
+
+    @property
+    def sgid_set(self) -> etuxTraceVsgidSet:
+        return self._sets[etuxTraceVsgidSet.KEY]
+
+    def on_msg(self, message: bt2MessageConst) -> None:
+        for s in self._sets.values():
+            s.account(message)
+
+
+class etuxTraceLoader:
+    def __init__(self, path: str) -> None:
+        self._path = path
+        self._count = -1
+        self._events = None
+
+    def _iter(self) -> bt2TraceCollectionMessageIterator:
+        try:
+            iter = bt2TraceCollectionMessageIterator(self._path)
+        except Exception as e:
+            raise Exception("trace iteration failed: {}".format(e))
+        return iter
+
+    @property
+    def count(self) -> int:
+        if self._count < 0:
+            self._count = 0
+            iter = self._iter()
+            try:
+                for msg in iter:
+                    self._count += 1
+            except Exception as e:
+                raise Exception("'{}': counting traces failed: "
+                                "{}".format(self._path, e))
+        return self._count
+
+    @property
+    def descs(self) -> OrderedSet[etuxTraceDesc]:
+        if self._events is None:
+            self._events = OrderedSet()
+
+            # Get the message iterator's first stream beginning message.
+            iter = self._iter()
+            try:
+                for msg in iter:
+                    # `bt2._StreamBeginningMessageConst` is the Python type of a
+                    # stream beginning message.
+                    if type(msg) is bt2StreamBeginningMessageConst:
+                        break
+
+                # Retrieve class of beginning message stream which offers
+                # a mapping interface (like a read-only `dict`), where keys are
+                # event class IDs and values are `bt2._EventClassConst` objects.
+                for ecls in msg.stream.cls.values():
+                    self._events.add(etuxTraceDesc(ecls))
+            except Exception as e:
+                raise Exception("'{}': trace discovery failed: "
+                                "{}".format(self._path, e))
+        return self._events
+
+    def run(self, scanners: OrderedSet[etuxTracePublisher]) -> None:
+        iter = self._iter()
+        try:
+            for msg in iter:
+                for scan in scanners:
+                    scan.on_msg(msg)
+        except Exception as e:
+            raise Exception("'{}': parsing failed: {}".format(self._path, e))
+
+
+class etuxTraceSingleton(type):
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = \
+                super(etuxTraceSingleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class etuxTraceConsole(Console, metaclass = etuxTraceSingleton):
+    def __init__(self) -> None:
+        super().__init__(legacy_windows = True, no_color = True)
+
+
+class eTuxTraceProgress(etuxTracePublisher):
+    def __init__(self) -> None:
+        self._bar = Progress(auto_refresh = False,
+                             transient = True,
+                             console = etuxTraceConsole())
+        self._step = 1
+
+    def start(self, total: int) -> None:
+        self._tid = self._bar.add_task("Loading traces", total = total)
+        self._step = int(total / 100)
+        self._bar.start()
+
+    def stop(self) -> None:
+        self._bar.stop()
+
+    def on_msg(self, message: bt2MessageConst) -> None:
+        self._bar.advance(self._tid)
+        task = self._bar.tasks[self._tid]
+        if task.completed % self._step == 0:
+            self._bar.refresh()
+
+
+class etuxTraceTableColumn(Column):
+    def __init__(self,
+                 header: str = '',
+                 justify: Literal['default',
+                                  'left',
+                                  'center',
+                                  'right',
+                                  'full'] = 'left') -> None:
+        super().__init__(header = header,
+                         footer = '',
+                         justify = justify,
+                         no_wrap = True)
+
+
+class etuxTraceTable(Table):
+    _box = Box(
+        """\
+    
+    
+    
+    
+ -- 
+    
+    
+    
+""",
+            ascii = True
+    )
+
+    def __init__(self, *columns: Column, show_header: bool = True) -> None:
+        self._cons = etuxTraceConsole()
+        super().__init__(*columns,
+                         box = self._box,
+                         show_header = show_header,
+                         show_edge = False,
+                         pad_edge = False)
+
+    def show(self) -> None:
+        self._cons.print(self)
+
+
+class etuxTraceDescReport(etuxTraceTable):
+    def __init__(self, loader: etuxTraceLoader) -> None:
+        super().__init__(etuxTraceTableColumn(header = 'NAME'),
+                         etuxTraceTableColumn(header = 'TYPE'))
+        descs = list(loader.descs)
+        self._fill_desc(descs[0], (0, 0))
+        for d in descs[1:]:
+            self._fill_desc(d, (1, 0, 0, 0))
+
+    def _fill_desc(self,
+                   desc:    etuxTraceDesc,
+                   padding: PaddingDimensions) -> None:
+            self.add_row(Padding(desc.name, padding),
+                         style = Style(bold = True),
+                         end_section = True)
+            if len(desc.attrs) > 0:
+                for attr in desc.attrs:
+                    self.add_row(attr.name,
+                                 Text(attr.kind, style = Style(italic = True)))
+            else:
+                    self.add_row('none',
+                                 Text('NA', style = Style(italic = True)))
+
 
 class etuxTimerTraceElapseBase:
     def __init__(self) -> None:
@@ -150,7 +492,31 @@ class etuxTimerTraceElapseBase:
             list(map(lambda nsec: nsec / 1000.0, self._elapsed)))
 
 
-class etuxTimerTraceKeyedElapse(etuxTimerTraceElapseBase):
+class etuxTimerTraceElapse(etuxTimerTraceElapseBase):
+    def __init__(self) -> None:
+        super().__init__()
+        self._enter = -1
+
+    def begin(self, message: bt2EventMessageConst) -> None:
+        if self._enter >= 0:
+            warnmsg = "ignoring previous '{}' trace: " \
+                      "duplicate enter / missed exit event"
+            logging.warning(warnmsg.format(message.event.name))
+
+        self._enter = message.default_clock_snapshot.ns_from_origin
+
+    def end(self, message: bt2EventMessageConst) -> None:
+        if self._enter < 0:
+            warnmsg = "skipping unexpected '{}' trace: enter event missed"
+            logging.warning(warnmsg.format(message.event.name))
+            return
+
+        self._elapsed.append(message.default_clock_snapshot.ns_from_origin -
+                             self._enter)
+        self._enter = -1
+
+
+class etuxTimerTraceElapseKeyed(etuxTimerTraceElapseBase):
     def __init__(self) -> None:
         super().__init__()
         self._timers = dict()
@@ -185,31 +551,7 @@ class etuxTimerTraceKeyedElapse(etuxTimerTraceElapseBase):
         self._timers.pop(timer_addr)
 
 
-class etuxTimerTraceElapse(etuxTimerTraceElapseBase):
-    def __init__(self) -> None:
-        super().__init__()
-        self._enter = -1
-
-    def begin(self, message: bt2EventMessageConst) -> None:
-        if self._enter >= 0:
-            warnmsg = "ignoring previous '{}' trace: " \
-                      "duplicate enter / missed exit event"
-            logging.warning(warnmsg.format(message.event.name))
-
-        self._enter = message.default_clock_snapshot.ns_from_origin
-
-    def end(self, message: bt2EventMessageConst) -> None:
-        if self._enter < 0:
-            warnmsg = "skipping unexpected '{}' trace: enter event missed"
-            logging.warning(warnmsg.format(message.event.name))
-            return
-
-        self._elapsed.append(message.default_clock_snapshot.ns_from_origin -
-                             self._enter)
-        self._enter = -1
-
-
-class etuxTimerTraceExpireElapse(etuxTimerTraceKeyedElapse):
+class etuxTimerTraceElapseExpire(etuxTimerTraceElapseKeyed):
     def __init__(self) -> None:
         super().__init__()
         self._latency = list()
@@ -245,7 +587,7 @@ class etuxTimerTraceExpireElapse(etuxTimerTraceKeyedElapse):
 
 
 class etuxTimerTraceRunElapse(etuxTimerTraceElapse):
-    def __init__(self, expire: etuxTimerTraceExpireElapse):
+    def __init__(self, expire: etuxTimerTraceElapseExpire):
         super().__init__()
         self._expire = expire
         self._expire_mark = -1
@@ -266,15 +608,17 @@ class etuxTimerTraceRunElapse(etuxTimerTraceElapse):
         self._enter = -1
 
 
-class etuxTimerTraceParser:
+class etuxTimerTraceScanner(etuxTraceScanner):
     def __init__(self) -> None:
-        self._arm_tspec_parser = etuxTimerTraceKeyedElapse()
-        self._arm_msec_parser = etuxTimerTraceKeyedElapse()
-        self._arm_sec_parser = etuxTimerTraceKeyedElapse()
-        self._cancel_parser = etuxTimerTraceKeyedElapse()
+        super().__init__()
+        
+        self._arm_tspec_parser = etuxTimerTraceElapseKeyed()
+        self._arm_msec_parser = etuxTimerTraceElapseKeyed()
+        self._arm_sec_parser = etuxTimerTraceElapseKeyed()
+        self._cancel_parser = etuxTimerTraceElapseKeyed()
         self._issue_tspec_parser = etuxTimerTraceElapse()
         self._issue_msec_parser = etuxTimerTraceElapse()
-        self._expire_parser = etuxTimerTraceExpireElapse()
+        self._expire_parser = etuxTimerTraceElapseExpire()
         self._run_parser = etuxTimerTraceRunElapse(self._expire_parser)
 
         self._arm_tspec_stats = None
@@ -290,7 +634,12 @@ class etuxTimerTraceParser:
         self._expire_latency_stats = None
         self._total_stats = None
 
-    def parse(self, message: bt2EventMessageConst) -> None:
+    def on_msg(self, message: bt2MessageConst) -> None:
+        if type(message) is not bt2EventMessageConst:
+            return
+
+        super().on_msg(message)
+        
         name = message.event.name
         if name == 'etux_timer:arm_tspec_enter_trcevt':
             self._arm_tspec_parser.begin(message)
@@ -410,276 +759,79 @@ class etuxTimerTraceParser:
         return self._total_stats
 
 
-class etuxTimerTraceAttrDesc:
-    def __init__(self, member: bt2StructureFieldClassMemberConst) -> None:
-        self._member = member
-
-    def __lt__(self, obj):
-        return self.name < obj.name
-
-    def __gt__(self, obj):
-        return self.name > obj.name
-
-    def __le__(self, obj):
-        return self.name <= obj.name
-
-    def __ge__(self, obj):
-        return self.name >= obj.name
-
-    def __eq__(self, obj):
-        return self.name == obj.name
-
-    def __hash__(self):
-        return hash(self.name)
-
-    @property
-    def name(self) -> str:
-        return self._member.name
-
-    @property
-    def kind(self) -> str:
-        return self._member.field_class.__class__._NAME.lower()
-
-
-class etuxTimerTraceDesc:
-    def __init__(self, event_class: bt2EventClassConst) -> None:
-        self._event_class = event_class
-        self._attrs = set()
-
-        stream_class = event_class.stream_class
-        
-        for attr in stream_class.packet_context_field_class.values():
-            self._attrs.add(etuxTimerTraceAttrDesc(attr))
-        for attr in stream_class.event_common_context_field_class.values():
-            self._attrs.add(etuxTimerTraceAttrDesc(attr))
-        for attr in stream_class.user_attributes.values():
-            self._attrs.add(etuxTimerTraceAttrDesc(attr))
-
-        # The `payload_field_class` property of an event class returns a
-        # `bt2._StructureFieldClassConst` object. This object offers a
-        # mapping interface, where keys are attribute names and values are
-        # `bt2._StructureFieldClassMemberConst` objects.
-        for attr in event_class.payload_field_class.values():
-            self._attrs.add(etuxTimerTraceAttrDesc(attr))
-
-    def __lt__(self, obj):
-        return self.name < obj.name
-
-    def __gt__(self, obj):
-        return self.name > obj.name
-
-    def __le__(self, obj):
-        return self.name <= obj.name
-
-    def __ge__(self, obj):
-        return self.name >= obj.name
-
-    def __eq__(self, obj):
-        return self.name == obj.name
-
-    def __hash__(self):
-        return hash(self.name)
-
-    @property
-    def name(self) -> str:
-        return self._event_class.name
-
-    @property
-    def attrs(self) -> set[etuxTimerTraceAttrDesc]:
-        return self._attrs
-
-
-class etuxTimerTraceScanner:
-    def __init__(self, path: str) -> None:
-        self._path = path
-        self._count = -1
-
-    def _iter(self) -> bt2TraceCollectionMessageIterator:
-        try:
-            iter = bt2TraceCollectionMessageIterator(self._path)
-        except Exception as e:
-            raise Exception("trace iteration failed: {}".format(e))
-        return iter
-
-    @property
-    def count(self) -> int:
-        if self._count < 0:
-            self._count = 0
-            iter = self._iter()
-            try:
-                for msg in iter:
-                    self._count += 1
-            except Exception as e:
-                raise Exception("'{}': counting traces failed: "
-                                "{}".format(self._path, e))
-        return self._count
-
-    def parse(self, parser: etuxTimerTraceParser, observer = None) -> None:
-        iter = self._iter()
-        try:
-            for msg in iter:
-                if observer is not None:
-                    observer.update()
-                if type(msg) is not bt2EventMessageConst:
-                        continue
-
-                parser.parse(msg)
-        except Exception as e:
-            raise Exception("'{}': parsing failed: {}".format(self._path, e))
-
-    def desc(self) -> set[etuxTimerTraceDesc]:
-        evts = set()
-
-        # Get the message iterator's first stream beginning message.
-        iter = self._iter()
-        try:
-            for msg in iter:
-                # `bt2._StreamBeginningMessageConst` is the Python type of a
-                # stream beginning message.
-                if type(msg) is bt2StreamBeginningMessageConst:
-                    break
-
-            # Retrieve class of beginning message stream which offers
-            # a mapping interface (like a read-only `dict`), where keys are
-            # event class IDs and values are `bt2._EventClassConst` objects.
-            for ecls in msg.stream.cls.values():
-                evts.add(etuxTimerTraceDesc(ecls))
-        except Exception as e:
-            raise Exception("'{}': trace discovery failed: "
-                            "{}".format(self._path, e))
-
-        return evts
-
-
-class Singleton(type):
-    _instances = {}
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args,
-                                                                 **kwargs)
-        return cls._instances[cls]
-
-
-class etuxTimerTraceConsole(Console, metaclass = Singleton):
-    def __init__(self) -> None:
-        super().__init__(legacy_windows = True, no_color = True)
-
-
-class eTuxTimerTraceProgress(Progress):
-    def __init__(self) -> None:
-        super().__init__(auto_refresh = False,
-                         transient = True,
-                         console = etuxTimerTraceConsole())
-        self._step = 1
-
-    def start(self, total: int) -> None:
-        self._tid = self.add_task("Loading traces", total = total)
-        self._step = int(total / 100)
-        super().start()
-
-    def update(self) -> None:
-        super().advance(self._tid)
-        task = self.tasks[self._tid]
-        if task.completed % self._step == 0:
-            self.refresh()
-
-
-class etuxTimerTraceTableColumn(Column):
-    def __init__(self,
-                 header: str = '',
-                 justify: Literal['default',
-                                  'left',
-                                  'center',
-                                  'right',
-                                  'full'] = 'left') -> None:
-        super().__init__(header = header,
-                         footer = '',
-                         justify = justify,
-                         no_wrap = True)
-
-
-class etuxTimerTraceTable(Table):
-    _box = Box(
-        """\
-    
-    
-    
-    
- -- 
-    
-    
-    
-""",
-            ascii = True
-    )
-
-    def __init__(self, *columns: Column) -> None:
-        self._cons = etuxTimerTraceConsole()
-        super().__init__(*columns,
-                         box = self._box,
-                         show_header = True,
-                         show_edge = False,
-                         pad_edge = False)
-
-    def show(self) -> None:
-        self._cons.print(self)
-
-
-class etuxTimerTraceReport(etuxTimerTraceTable):
-    def __init__(self, parser: etuxTimerTraceParser) -> None:
+class etuxTimerTraceReport(etuxTraceTable):
+    def __init__(self, scanner: etuxTimerTraceScanner) -> None:
         super().__init__(
-            etuxTimerTraceTableColumn(header = 'OPERATION\n'),
-            etuxTimerTraceTableColumn(header = 'MIN\nusec',
-                                      justify = 'right'),
-            etuxTimerTraceTableColumn(header = 'MAX\nusec',
-                                      justify = 'right'),
-            etuxTimerTraceTableColumn(header = 'STDDEV\nusec',
-                                      justify = 'right'),
-            etuxTimerTraceTableColumn(header = 'MEDIAN\nusec',
-                                      justify = 'right'),
-            etuxTimerTraceTableColumn(header = 'MEAN\nusec',
-                                      justify = 'right'),
-            etuxTimerTraceTableColumn(header = 'DURATION( RATIO)\nmsec(     %)',
-                                      justify = 'right'),
-            etuxTimerTraceTableColumn(header = '#NR( RATIO)\n    (     %)',
-                                      justify = 'right'))
-        all_stats = parser.total_stats
+            etuxTraceTableColumn(header = 'OPERATION\n'),
+            etuxTraceTableColumn(header = 'MIN\nusec', justify = 'right'),
+            etuxTraceTableColumn(header = 'MAX\nusec', justify = 'right'),
+            etuxTraceTableColumn(header = 'STDDEV\nusec', justify = 'right'),
+            etuxTraceTableColumn(header = 'MEDIAN\nusec', justify = 'right'),
+            etuxTraceTableColumn(header = 'MEAN\nusec', justify = 'right'),
+            etuxTraceTableColumn(header = 'DURATION( RATIO)\nmsec(     %)',
+                                 justify = 'right'),
+            etuxTraceTableColumn(header = '#NR( RATIO)\n    (     %)',
+                                 justify = 'right'))
+        all_stats = scanner.total_stats
 
-        self._begin_section("Arm statistics")
-        self._add_row("arm tspec", parser.arm_tspec_stats, all_stats)
-        self._add_row("arm msec", parser.arm_msec_stats, all_stats)
-        self._add_row("arm sec", parser.arm_sec_stats, all_stats)
-        self._end_section_with_total(parser.arm_stats, all_stats)
+        self._begin_section("Arm statistics", 0)
+        self._add_timer_stat_row("arm tspec",
+                                 scanner.arm_tspec_stats,
+                                 all_stats)
+        self._add_timer_stat_row("arm msec",
+                                 scanner.arm_msec_stats,
+                                 all_stats)
+        self._add_timer_stat_row("arm sec",
+                                 scanner.arm_sec_stats,
+                                 all_stats)
+        self._add_timer_subtotal_row(scanner.arm_stats,
+                                     all_stats)
 
-        self._begin_section("Issue statistics")
-        self._add_row("issue (tspec)", parser.issue_tspec_stats, all_stats)
-        self._add_row("issue (msec)", parser.issue_msec_stats, all_stats)
-        self._end_section_with_total(parser.issue_stats, all_stats)
+        self._begin_section("Issue statistics", 1)
+        self._add_timer_stat_row("issue (tspec)",
+                                 scanner.issue_tspec_stats,
+                                 all_stats)
+        self._add_timer_stat_row("issue (msec)",
+                                 scanner.issue_msec_stats,
+                                 all_stats)
+        self._add_timer_subtotal_row(scanner.issue_stats,
+                                     all_stats)
 
-        self._begin_section("Expiry statistics")
-        self._add_row("expire", parser.expire_stats, all_stats)
+        self._begin_section("Expiry statistics", 1)
+        self._add_timer_stat_row("expire", scanner.expire_stats, all_stats)
         self.add_row("latency",
-                     "{:.3f}".format(parser.expire_latency_stats.min),
-                     "{:.3f}".format(parser.expire_latency_stats.max),
-                     "{:.3f}".format(parser.expire_latency_stats.stdev),
-                     "{:.3f}".format(parser.expire_latency_stats.median),
-                     "{:.3f}".format(parser.expire_latency_stats.mean),
+                     "{:.3f}".format(scanner.expire_latency_stats.min),
+                     "{:.3f}".format(scanner.expire_latency_stats.max),
+                     "{:.3f}".format(scanner.expire_latency_stats.stdev),
+                     "{:.3f}".format(scanner.expire_latency_stats.median),
+                     "{:.3f}".format(scanner.expire_latency_stats.mean),
                      "",
                      "")
-        self._end_section()
 
-        self._begin_section("Overall statistics")
-        self._add_row("arm", parser.arm_stats, all_stats)
-        self._add_row("cancel", parser.cancel_stats, all_stats)
-        self._add_row("issue", parser.issue_stats, all_stats)
-        self._add_row("run", parser.run_stats, all_stats)
-        self._end_final_section(all_stats)
+        self._begin_section("Overall statistics", 1)
+        self._add_timer_stat_row("arm", scanner.arm_stats, all_stats)
+        self._add_timer_stat_row("cancel", scanner.cancel_stats, all_stats)
+        self._add_timer_stat_row("issue", scanner.issue_stats, all_stats)
+        self._add_timer_stat_row("run", scanner.run_stats, all_stats)
+        self._add_timer_total_row(all_stats)
 
-    def _add_row(self,
-                 oper_name:  str,
-                 oper_stats: etuxTimerTraceStat,
-                 all_stats:  etuxTimerTraceStat,
-                 style: Optional[Style] = None) -> None:
+        self._begin_section("Runtime statistics", 1)
+        self._add_runtime_row('CPU', scanner.cpu_set)
+        self._add_runtime_row('Process', scanner.pid_set)
+        self._add_runtime_row('Thread', scanner.tid_set)
+
+    def _begin_section(self, sect_name: str, pad_top: int) -> None:
+        assert pad_top >= 0
+        
+        self.add_row(Padding(sect_name, (pad_top, 0, 0, 0)),
+                     style = Style(italic = True),
+                     end_section = True)
+
+    def _add_timer_stat_row(self,
+                            oper_name:  str,
+                            oper_stats: etuxTimerTraceStat,
+                            all_stats:  etuxTimerTraceStat,
+                            style: Optional[Style] = None) -> None:
         self.add_row(oper_name,
                      "{:.3f}".format(oper_stats.min),
                      "{:.3f}".format(oper_stats.max),
@@ -694,22 +846,15 @@ class etuxTimerTraceReport(etuxTimerTraceTable):
                                           all_stats.count),
                      style = style)
 
-    def _begin_section(self, sect_name: str) -> None:
-        self.add_row(sect_name, style = Style(italic = True), end_section = True)
+    def _add_timer_subtotal_row(self,
+                          oper_stats: etuxTimerTraceStat,
+                          all_stats:  etuxTimerTraceStat) -> None:
+        self._add_timer_stat_row("Total",
+                                 oper_stats,
+                                 all_stats,
+                                 style = Style(bold = True))
 
-    def _end_section(self) -> None:
-        self.add_row()
-
-    def _end_section_with_total(self,
-                                oper_stats: etuxTimerTraceStat,
-                                all_stats:  etuxTimerTraceStat) -> None:
-        self._add_row("Total",
-                      oper_stats,
-                      all_stats,
-                      style = Style(bold = True))
-        self.add_row()
-
-    def _end_final_section(self, all_stats: etuxTimerTraceStat) -> None:
+    def _add_timer_total_row(self, all_stats: etuxTimerTraceStat) -> None:
         self.add_row("Total",
                      "",
                      "",
@@ -721,29 +866,15 @@ class etuxTimerTraceReport(etuxTimerTraceTable):
                      Padding(str(all_stats.count), (0, 8, 0, 0)),
                      style = Style(bold = True))
 
-
-class etuxTimerTraceDescReport(etuxTimerTraceTable):
-    def __init__(self, scanner: etuxTimerTraceScanner) -> None:
-        super().__init__(etuxTimerTraceTableColumn(header = 'NAME'),
-                         etuxTimerTraceTableColumn(header = 'TYPE'))
-        descs = list(sorted(scanner.desc()))
-        self._fill_desc(descs[0], (0, 0))
-        for d in descs[1:]:
-            self._fill_desc(d, (1, 0, 0, 0))
-
-    def _fill_desc(self,
-                   desc:    etuxTimerTraceDesc,
-                   padding: PaddingDimensions) -> None:
-            self.add_row(Padding(desc.name, padding),
-                         style = Style(bold = True),
-                         end_section = True)
-            if len(desc.attrs) > 0:
-                for attr in desc.attrs:
-                    self.add_row(attr.name,
-                                 Text(attr.kind, style = Style(italic = True)))
-            else:
-                    self.add_row('none',
-                                 Text('NA', style = Style(italic = True)))
+    def _add_runtime_row(self, label: str, scan_set: set) -> None:
+        self.add_row(label,
+                     '',
+                     '',
+                     '',
+                     '',
+                     '',
+                     '',
+                     Padding(str(len(scan_set)), (0, 8, 0, 0)))
 
 
 def etux_timer_trace_check_path(path: str) -> str:
@@ -783,7 +914,7 @@ def main():
                           help = 'List trace event types found into trace '
                                  'directory')
 
-    progbar = None
+    prog = None
 
     try:
         args = main_parser.parse_args()
@@ -791,27 +922,27 @@ def main():
         assert isinstance(loglvl, int)
         logging.basicConfig(format="%(message)s.", level=loglvl)
 
-        scanner = etuxTimerTraceScanner(args.path)
+        loader = etuxTraceLoader(args.path)
 
         if args.cmd == 'stat':
-            trc_parser = etuxTimerTraceParser()
-            progbar = eTuxTimerTraceProgress()
-            progbar.start(scanner.count)
-            scanner.parse(trc_parser, progbar)
-            progbar.stop()
-            report = etuxTimerTraceReport(trc_parser)
+            scan = etuxTimerTraceScanner()
+            prog = eTuxTraceProgress()
+            prog.start(loader.count)
+            loader.run(OrderedSet((scan, prog)))
+            prog.stop()
+            report = etuxTimerTraceReport(scan)
         elif args.cmd == 'list':
-            report = etuxTimerTraceDescReport(scanner)
+            report = etuxTraceDescReport(loader)
         report.show()
     except KeyboardInterrupt:
-        if progbar is not None:
-            progbar.stop()
+        if prog is not None:
+            prog.stop()
         print("{}: Interrupted!".format(arg0, file=sys.stderr))
         sys.exit(1)
     except Exception as e:
-        if progbar is not None:
-            progbar.stop()
-        #raise e
+        if prog is not None:
+            prog.stop()
+        raise e
         print("{}: {}.".format(arg0, e), file=sys.stderr)
         sys.exit(1)
 
