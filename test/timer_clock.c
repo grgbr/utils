@@ -4,7 +4,12 @@
 #include <stdbool.h>
 #include <string.h>
 
-static bool            etuxpt_timer_clock_on;
+/*
+ * For some reason, when built with Link-Time Optimization (LTO), some
+ * `etuxpt_timer_clock_on' variable accesses get optimized out...
+ * Use volatile keyword to enforce GCC to generate load/store instructions...
+ */
+static volatile bool   etuxpt_timer_clock_on;
 static struct timespec etuxpt_now;
 
 extern int __clock_gettime(clockid_t, struct timespec *);
@@ -46,7 +51,11 @@ etuxpt_timer_clock_expect(const struct timespec * __restrict expected)
 	}
 	else
 		etuxpt_timer_clock_on = false;
+
+	//asm volatile("": : :"memory");
 }
+
+#if defined(CONFIG_ETUX_TRACE)
 
 static
 uint64_t
@@ -136,3 +145,5 @@ etuxpt_timer_setup_lttng_clock(void)
 
 	return 0;
 }
+
+#endif /* defined(CONFIG_ETUX_TRACE) */

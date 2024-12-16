@@ -89,6 +89,15 @@ utils-timer-list-ptest-cflags    := $(test-cflags)
 utils-timer-list-ptest-ldflags   := $(ptest-ldflags) -letux_timer_list
 utils-timer-list-ptest-pkgconf   := $(test-pkgconf)
 
+checkbins                        += $(call kconf_enabled, \
+                                           ETUX_TIMER_HWHEEL, \
+                                           utils-timer-hwheel-ptest)
+utils-timer-hwheel-ptest-objs    := hwheel/timer_ptest.o
+utils-timer-hwheel-ptest-lots    := timer_clock.o
+utils-timer-hwheel-ptest-cflags  := $(test-cflags)
+utils-timer-hwheel-ptest-ldflags := $(ptest-ldflags) -letux_timer_hwheel
+utils-timer-hwheel-ptest-pkgconf := $(test-pkgconf)
+
 endif # ($(CONFIG_ETUX_PTEST),y)
 
 # ex: filetype=make :

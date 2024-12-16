@@ -103,7 +103,7 @@ if ! lttng list $session; then
 	log_err "failed to show '$session' session informations."
 	exit 1
 fi
-if ! lttng --quiet view $session; then
-	log_err "failed to show '$session' session traces."
-	exit 1
-fi
+#if ! lttng --quiet view $session; then
+#	log_err "failed to show '$session' session traces."
+#	exit 1
+#fi

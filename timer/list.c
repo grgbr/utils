@@ -22,7 +22,7 @@ etux_timer_arm(struct etux_timer * __restrict timer)
 		stroll_dlist_remove(&timer->node);
 
 	timer->tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
-	etux_timer_insert(&etux_timer_the_list, timer);
+	etux_timer_insert_inorder(&etux_timer_the_list, timer);
 	timer->state = ETUX_TIMER_PEND_STAT;
 }
 

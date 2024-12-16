@@ -47,7 +47,8 @@
  * accounting for sorted eternal timer list).
  */
 #define ETUX_TIMER_HWHEEL_TICKS_NR \
-	(INT64_C(1) << (ETUX_TIMER_HWHEEL_SLOT_BITS * ETUX_TIMER_HWHEEL_LEVELS_NR))
+	(INT64_C(1) << (ETUX_TIMER_HWHEEL_SLOT_BITS * \
+	                ETUX_TIMER_HWHEEL_LEVELS_NR))
 
 struct etux_timer_hwheel {
 	unsigned int             count;
@@ -159,7 +160,7 @@ etux_timer_hwheel_enroll(struct etux_timer_hwheel * __restrict hwheel,
 #endif /* ETUX_TIMER_HWHEEL_LEVELS_NR == 5 */
 
 	default:
-		etux_timer_insert(&hwheel->eternal, timer);
+		etux_timer_insert_inorder(&hwheel->eternal, timer);
 		return;
 	}
 
@@ -183,7 +184,7 @@ etux_timer_hwheel_enroll(struct etux_timer_hwheel * __restrict hwheel,
 		stroll_dlist_insert(&hwheel->slots[lvl][slot], &timer->node);
 	}
 	else
-		etux_timer_insert(&hwheel->eternal, timer);
+		etux_timer_insert_inorder(&hwheel->eternal, timer);
 #endif
 }
 

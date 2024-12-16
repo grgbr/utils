@@ -262,8 +262,8 @@ etux_timer_tick_cmp(const struct stroll_dlist_node * __restrict first,
 
 __utils_nonull(1, 2) __utils_nothrow
 void
-etux_timer_insert(struct stroll_dlist_node * __restrict list,
-                  struct etux_timer * __restrict        timer)
+etux_timer_insert_inorder(struct stroll_dlist_node * __restrict list,
+                          struct etux_timer * __restrict        timer)
 {
 	stroll_dlist_insert_inorder_back(list,
 	                                 &timer->node,
