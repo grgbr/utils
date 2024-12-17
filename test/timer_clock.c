@@ -51,8 +51,6 @@ etuxpt_timer_clock_expect(const struct timespec * __restrict expected)
 	}
 	else
 		etuxpt_timer_clock_on = false;
-
-	//asm volatile("": : :"memory");
 }
 
 #if defined(CONFIG_ETUX_TRACE)

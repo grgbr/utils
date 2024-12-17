@@ -36,51 +36,6 @@
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 /******************************************************************************
- * Timer tick handling
- ******************************************************************************/
-
-/*
- * Timer ticks sub second precision bits.
- *
- * Configure the tick period to 1/(2^ETUX_TIMER_TICK_SUBSEC_BITS) second.
- *
- * The table below gives tick sub second precision according to allowed
- * ETUX_TIMER_TICK_SUBSEC_BITS values:
- *
- *     ETUX_TIMER_TICK_SUBSEC_BITS     Tick period  Tick frequency
- *                                  (milliseconds)         (Hertz)
- *                               0     1000.000000               1
- *                               1      500.000000               2
- *                               2      250.000000               4
- *                               3      125.000000               8
- *                               4       62.500000              16
- *                               5       31.250000              32
- *                               6       15.625000              64
- *                               7        7.812500             128
- *                               8        3.906250             256
- *                               9        1.953125             512
- *
- * Watch out!
- * The tick period MUST be a divisor of 1000000000 nanoseconds so that we can
- * perform power of 2 arithmetics (see etux_timer_tick_from_tspec_lower(),
- * etux_timer_tick_from_tspec_upper() and etux_timer_tspec_from_tick()).
- * This is the reason why ETUX_TIMER_TICK_SUBSEC_BITS MUST be < 10.
- */
-#define ETUX_TIMER_TICK_SUBSEC_BITS \
-	STROLL_CONCAT(CONFIG_ETUX_TIMER_SUBSEC_BITS, U)
-#if (ETUX_TIMER_TICK_SUBSEC_BITS < 0) || (ETUX_TIMER_TICK_SUBSEC_BITS > 9)
-#error Invalid tick sub second precision bits.
-#endif
-
-/* Period of a tick in nanoseconds */
-#define ETUX_TIMER_TICK_NSEC \
-	(INT64_C(1000000000) >> ETUX_TIMER_TICK_SUBSEC_BITS)
-
-/* Tick frequency, i.e., number of ticks per second. */
-#define ETUX_TIMER_TICKS_PER_SEC \
-	(1UL << ETUX_TIMER_TICK_SUBSEC_BITS)
-
-/******************************************************************************
  * Timer handling
  ******************************************************************************/
 
