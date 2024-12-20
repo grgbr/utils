@@ -18,12 +18,20 @@ etux_timer_arm(struct etux_timer * __restrict timer)
 	etux_timer_assert_timer_intern(timer);
 	etux_timer_assert_intern(timer->expire);
 
-	if (timer->state == ETUX_TIMER_PEND_STAT)
-		stroll_dlist_remove(&timer->node);
+	int64_t tick;
 
-	timer->tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
-	etux_timer_insert_inorder(&etux_timer_the_list, timer);
+	tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
+
+	if (timer->state == ETUX_TIMER_PEND_STAT) {
+		if (timer->tick == tick)
+			return;
+
+		stroll_dlist_remove(&timer->node);
+	}
+
 	timer->state = ETUX_TIMER_PEND_STAT;
+	timer->tick = tick;
+	etux_timer_insert_inorder(&etux_timer_the_list, timer);
 }
 
 void

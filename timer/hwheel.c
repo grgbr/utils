@@ -99,6 +99,41 @@ etux_timer_hwheel_enroll(struct etux_timer_hwheel * __restrict hwheel,
 	etux_timer_assert_intern(hwheel);
 	etux_timer_assert_intern(timer);
 	etux_timer_assert_intern(timer->expire);
+	etux_timer_assert_intern(tmout < ETUX_TIMER_HWHEEL_TICKS_NR);
+
+	int64_t      tmout = stroll_max(timer->tick, hwheel->tick) -
+	                     hwheel->tick;
+
+	etux_timer_assert_intern(tmout >= 0);
+	if (tmout < ETUX_TIMER_HWHEEL_TICKS_NR) {
+		unsigned int lvl;
+		unsigned int slot;
+
+#define ETUX_TIMER_HWHEEL_TMOUT_MIN(_level) \
+	(INT64_C(1) << ((_level) * ETUX_TIMER_HWHEEL_SLOT_BITS))
+
+		for (lvl = 0; lvl < ETUX_TIMER_HWHEEL_LEVELS_NR; lvl++) {
+			if (tmout < ETUX_TIMER_HWHEEL_TMOUT_MIN(lvl + 1))
+				break;
+		}
+
+		etux_timer_assert_intern(lvl < ETUX_TIMER_HWHEEL_LEVELS_NR);
+		slot = (timer->tick >> (lvl * ETUX_TIMER_HWHEEL_SLOT_BITS)) &
+		       ETUX_TIMER_HWHEEL_SLOT_MASK;
+		stroll_dlist_insert(&hwheel->slots[lvl][slot], &timer->node);
+	}
+	else
+		etux_timer_insert_inorder(&hwheel->eternal, timer);
+}
+
+static __utils_nonull(1, 2) __utils_nothrow
+void
+etux_timer_hwheel_enroll(struct etux_timer_hwheel * __restrict hwheel,
+                         struct etux_timer * __restrict        timer)
+{
+	etux_timer_assert_intern(hwheel);
+	etux_timer_assert_intern(timer);
+	etux_timer_assert_intern(timer->expire);
 
 	int64_t      tmout = stroll_max(timer->tick, hwheel->tick) -
 	                     hwheel->tick;
@@ -333,9 +368,27 @@ etux_timer_hwheel_cascade(struct etux_timer_hwheel * __restrict hwheel)
 			return;
 	}
 
+#if 0
 #warning TODO: optimise the case of eternal cascading, i.e., stop when delay to timer->tick >= ETUX_TIMER_HWHEEL_TICKS_NR ?
 	etux_timer_assert_intern(lvl == ETUX_TIMER_HWHEEL_LEVELS_NR);
 	etux_timer_hwheel_cascade_timers(hwheel, &hwheel->eternal);
+#else
+	etux_timer_assert_intern(lvl == ETUX_TIMER_HWHEEL_LEVELS_NR);
+	while (!stroll_dlist_empty(&hwheel->eternal)) {
+		struct etux_timer * tmr;
+		int64_t             tmout;
+
+		tmr = etux_timer_lead_timer(&hwheel->eternal);
+		tmout = stroll_max(tmr->tick, hwheel->tick) - hwheel->tick;
+
+		etux_timer_assert_intern(tmout >= 0);
+		if (tmout >= ETUX_TIMER_HWHEEL_TICKS_NR)
+			break;
+
+		stroll_dlist_remove(&tmr->node);
+		etux_timer_hwheel_enroll(&etux_timer_the_hwheel, tmr);
+	}
+#endif
 }
 
 /*

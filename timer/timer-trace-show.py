@@ -904,6 +904,7 @@ def main():
     main_parser = ArgumentParser(description = 'eTux timer performance '
                                                'reporting tool')
     cmd_parser = main_parser.add_subparsers(dest = 'cmd',
+                                            required = True,
                                             metavar = 'COMMAND')
     cmd_parser.add_parser('stat',
                           parents = [common_parser],
@@ -942,7 +943,7 @@ def main():
     except Exception as e:
         if prog is not None:
             prog.stop()
-        raise e
+        #raise e
         print("{}: {}.".format(arg0, e), file=sys.stderr)
         sys.exit(1)
 
