@@ -167,16 +167,6 @@ etux_timer_insert_inorder(struct stroll_dlist_node * __restrict list,
                           struct etux_timer * __restrict        timer)
 	__utils_nonull(1, 2) __utils_nothrow __leaf __export_intern;
 
-static inline __utils_nonull(1) __utils_nothrow
-void
-etux_timer_dismiss(struct etux_timer * __restrict timer)
-{
-	etux_timer_assert_timer_intern(timer);
-
-	stroll_dlist_remove(&timer->node);
-	timer->state = ETUX_TIMER_IDLE_STAT;
-}
-
 extern int64_t
 etux_timer_issue_tick(void)
 	__utils_nothrow __warn_result __leaf __export_intern;

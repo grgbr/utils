@@ -83,8 +83,10 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 
 	etux_timer_cancel_trace_enter(timer);
 
-	if (timer->state == ETUX_TIMER_PEND_STAT)
-		etux_timer_dismiss(timer);
+	if (timer->state == ETUX_TIMER_PEND_STAT) {
+		timer->state = ETUX_TIMER_IDLE_STAT;
+		stroll_dlist_remove(&timer->node);
+	}
 
 	etux_timer_cancel_trace_exit(timer);
 }

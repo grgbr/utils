@@ -60,15 +60,35 @@ struct etux_timer_hwheel {
 
 static struct etux_timer_hwheel etux_timer_the_hwheel;
 
+static __utils_nonull(1) __utils_nothrow __warn_result
+int64_t
+etux_timer_hwheel_load_tick(struct timespec * __restrict now)
+{
+	etux_timer_assert_intern(now);
+
+	utime_monotonic_now(now);
+
+	return etux_timer_tick_from_tspec_lower_clamp(now);
+}
+
 static __utils_nothrow __warn_result
 int64_t
 etux_timer_hwheel_tick(void)
 {
 	struct timespec now;
 
-	utime_monotonic_now(&now);
+	return etux_timer_hwheel_load_tick(&now);
+}
 
-	return etux_timer_tick_from_tspec_lower_clamp(&now);
+static __utils_nothrow
+void
+etux_timer_hwheel_refresh_tick(const struct timespec * __restrict now)
+{
+	if (now)
+		etux_timer_the_hwheel.tick =
+			etux_timer_tick_from_tspec_lower_clamp(now);
+	else
+		etux_timer_the_hwheel.tick = etux_timer_hwheel_tick();
 }
 
 static __utils_nonull(1, 2) __utils_nothrow
@@ -107,36 +127,95 @@ etux_timer_hwheel_enroll(struct etux_timer_hwheel * __restrict hwheel,
 
 static __utils_nonull(1) __utils_nothrow
 void
-etux_timer_arm(struct etux_timer * __restrict timer)
+etux_timer_hwheel_insert(struct etux_timer * __restrict     timer,
+                         const struct timespec * __restrict now)
+{
+	etux_timer_assert_timer_intern(timer);
+	etux_timer_assert_intern(timer->expire);
+	etux_timer_assert_intern(timer->state == ETUX_TIMER_IDLE_STAT);
+
+	int64_t tick;
+
+	tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
+
+	if (!etux_timer_the_hwheel.count++)
+		etux_timer_hwheel_refresh_tick(now);
+	etux_timer_the_hwheel.issue = stroll_min(tick,
+	                                         etux_timer_the_hwheel.issue);
+
+	timer->state = ETUX_TIMER_PEND_STAT;
+	timer->tick = tick;
+	etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_timer_hwheel_adjust(struct etux_timer * __restrict     timer,
+                         const struct timespec * __restrict now)
+{
+	etux_timer_assert_timer_intern(timer);
+	etux_timer_assert_intern(timer->expire);
+	etux_timer_assert_intern(timer->state == ETUX_TIMER_PEND_STAT);
+	etux_timer_assert_intern(etux_timer_the_hwheel.count);
+
+	int64_t tick;
+
+	tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
+	if (timer->tick == tick)
+		return;
+
+	stroll_dlist_remove(&timer->node);
+	if (timer->tick == etux_timer_the_hwheel.issue)
+		etux_timer_the_hwheel.issue = etux_timer_the_hwheel.tick;
+	etux_timer_the_hwheel.issue = stroll_min(tick,
+	                                         etux_timer_the_hwheel.issue);
+	if (etux_timer_the_hwheel.count == 1)
+		etux_timer_hwheel_refresh_tick(now);
+
+	timer->tick = tick;
+	etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_timer_hwheel_resched(struct etux_timer * __restrict timer)
+{
+	etux_timer_assert_timer_intern(timer);
+	etux_timer_assert_intern(timer->expire);
+	etux_timer_assert_intern(timer->state == ETUX_TIMER_RUN_STAT);
+	etux_timer_assert_intern(etux_timer_the_hwheel.count);
+	etux_timer_assert_intern(etux_timer_the_hwheel.issue <=
+	                         etux_timer_the_hwheel.tick);
+
+	timer->state = ETUX_TIMER_PEND_STAT;
+	timer->tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
+	etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_timer_hwheel_arm(struct etux_timer * __restrict     timer,
+                      const struct timespec * __restrict now)
 {
 	etux_timer_assert_timer_intern(timer);
 	etux_timer_assert_intern(timer->expire);
 
 	switch (timer->state) {
 	case ETUX_TIMER_IDLE_STAT:
-		etux_timer_the_hwheel.count++;
+		etux_timer_hwheel_insert(timer, now);
 		break;
 
 	case ETUX_TIMER_PEND_STAT:
-		stroll_dlist_remove(&timer->node);
+		etux_timer_hwheel_adjust(timer, now);
 		break;
 
 	case ETUX_TIMER_RUN_STAT:
+		etux_timer_hwheel_resched(timer);
 		break;
 
 	default:
 		etux_timer_assert_intern(0);
 	}
-
-	timer->tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
-
-#warning TODO: set etux_timer_the_hwheel.issue if etux_timer_the_hwheel.count == 0 ?
-	etux_timer_the_hwheel.issue = stroll_min(timer->tick,
-	                                         etux_timer_the_hwheel.issue);
-
-	etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
-
-	timer->state = ETUX_TIMER_PEND_STAT;
 }
 
 void
@@ -149,104 +228,11 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 
 	etux_timer_arm_tspec_trace_enter(timer, tspec);
 
-	if (!etux_timer_the_hwheel.count) {
-		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
-
-		struct timespec now;
-
-		utime_monotonic_now(&now);
-		etux_timer_the_hwheel.tick =
-			etux_timer_tick_from_tspec_lower_clamp(&now);
-	}
-
 	timer->tspec = *tspec;
-
-	etux_timer_arm(timer);
-
-	etux_timer_arm_tspec_trace_exit(timer);
-}
-
-#if 0
-void
-_etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
-                      const struct timespec * __restrict now,
-                      const struct timespec * __restrict tspec)
-{
-	etux_timer_assert_timer_api(timer);
-	etux_timer_assert_api(timer->expire);
-	utime_assert_tspec_api(tspec);
-
-	etux_timer_arm_tspec_trace_enter(timer, tspec);
-
-	switch (timer->state) {
-	case ETUX_TIMER_IDLE_STAT:
-		/* Add */
-		if (!etux_timer_the_hwheel.count++)
-			etux_timer_the_hwheel.tick =
-				etux_timer_tick_from_tspec_lower_clamp(now);
-
-		tick = etux_timer_tick_from_tspec_upper_clamp(tspec);
-
-		timer->state = ETUX_TIMER_PEND_STAT;
-		timer->tick = tick
-		timer->tspec = *tspec;
-		etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
-
-		etux_timer_the_hwheel.issue =
-			stroll_min(tick, etux_timer_the_hwheel.issue);
-
-		break;
-
-	case ETUX_TIMER_PEND_STAT:
-		/* Modify */
-		etux_timer_assert_intern(etux_timer_the_hwheel.count);
-
-		tick = etux_timer_tick_from_tspec_upper_clamp(tspec);
-		if (timer->tick == tick)
-			break;
-
-		etux_timer_assert_intern(timer->tick >=
-		                         etux_timer_the_hwheel.issue);
-		stroll_dlist_remove(&timer->node);
-		if (timer->tick == etux_timer_the_hwheel.issue)
-			etux_timer_the_hwheel.issue =
-				etux_timer_the_hwheel.tick;
-
-		if (etux_timer_the_hwheel.count == 1)
-			etux_timer_the_hwheel.tick =
-				etux_timer_tick_from_tspec_lower_clamp(now);
-
-		timer->tick = tick;
-		timer->tspec = *tspec;
-		etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
-
-		etux_timer_the_hwheel.issue =
-			stroll_min(tick, etux_timer_the_hwheel.issue);
-
-		break;
-
-	case ETUX_TIMER_RUN_STAT:
-		/* ?? */
-		etux_timer_assert_intern(etux_timer_the_hwheel.count);
-		etux_timer_assert_intern(etux_timer_the_hwheel.issue <=
-		                         etux_timer_the_hwheel.tick);
-
-		tick = etux_timer_tick_from_tspec_upper_clamp(tspec);
-
-		timer->state = ETUX_TIMER_PEND_STAT;
-		timer->tick = tick;
-		timer->tspec = *tspec;
-		etux_timer_hwheel_enroll(&etux_timer_the_hwheel, timer);
-
-		break;
-
-	default:
-		etux_timer_assert_intern(0);
-	}
+	etux_timer_hwheel_arm(timer, NULL);
 
 	etux_timer_arm_tspec_trace_exit(timer);
 }
-#endif
 
 void
 etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
@@ -255,19 +241,15 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(msec >= 0);
 
+	struct timespec now;
+
 	etux_timer_arm_msec_trace_enter(timer, msec);
 
-	utime_monotonic_now(&timer->tspec);
-	if (!etux_timer_the_hwheel.count) {
-		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
+	utime_monotonic_now(&now);
 
-		etux_timer_the_hwheel.tick =
-			etux_timer_tick_from_tspec_lower_clamp(&timer->tspec);
-	}
-
+	timer->tspec = now;
 	utime_tspec_add_msec_clamp(&timer->tspec, msec);
-
-	etux_timer_arm(timer);
+	etux_timer_hwheel_arm(timer, &now);
 
 	etux_timer_arm_msec_trace_exit(timer);
 }
@@ -279,19 +261,15 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	etux_timer_assert_api(timer->expire);
 	etux_timer_assert_api(sec >= 0);
 
+	struct timespec now;
+
 	etux_timer_arm_sec_trace_enter(timer, sec);
 
-	utime_monotonic_now(&timer->tspec);
-	if (!etux_timer_the_hwheel.count) {
-		etux_timer_assert_api(timer->state != ETUX_TIMER_PEND_STAT);
+	utime_monotonic_now(&now);
 
-		etux_timer_the_hwheel.tick =
-			etux_timer_tick_from_tspec_lower_clamp(&timer->tspec);
-	}
-
+	timer->tspec = now;
 	utime_tspec_add_sec_clamp(&timer->tspec, sec);
-
-	etux_timer_arm(timer);
+	etux_timer_hwheel_arm(timer, &now);
 
 	etux_timer_arm_sec_trace_exit(timer);
 }
@@ -304,10 +282,8 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 	etux_timer_cancel_trace_enter(timer);
 
 	if (timer->state == ETUX_TIMER_PEND_STAT) {
-		etux_timer_assert_intern(timer->tick >=
-		                         etux_timer_the_hwheel.issue);
-
-		etux_timer_dismiss(timer);
+		timer->state = ETUX_TIMER_IDLE_STAT;
+		stroll_dlist_remove(&timer->node);
 
 		if (timer->tick == etux_timer_the_hwheel.issue)
 			etux_timer_the_hwheel.issue =
@@ -325,12 +301,16 @@ void
 etux_timer_hwheel_cascade_timers(struct etux_timer_hwheel * __restrict hwheel,
                                  struct stroll_dlist_node * __restrict timers)
 {
-#warning TODO: move list to local head and use foreach safe to enroll without individual removal ?
-	while (!stroll_dlist_empty(timers)) {
-		struct etux_timer * tmr = etux_timer_lead_timer(timers);
+	if (!stroll_dlist_empty(timers)) {
+		struct stroll_dlist_node head = STROLL_DLIST_INIT(head);
+		struct etux_timer *      tmr;
+		struct etux_timer *      tmp;
 
-		stroll_dlist_remove(&tmr->node);
-		etux_timer_hwheel_enroll(hwheel, tmr);
+		stroll_dlist_splice_after(&head,
+		                          stroll_dlist_next(timers),
+		                          stroll_dlist_prev(timers));
+		stroll_dlist_foreach_entry_safe(&head, tmr, node, tmp)
+			etux_timer_hwheel_enroll(hwheel, tmr);
 	}
 }
 
@@ -349,15 +329,11 @@ etux_timer_hwheel_cascade(struct etux_timer_hwheel * __restrict hwheel)
 		etux_timer_hwheel_cascade_timers(hwheel,
 		                                 &hwheel->slots[lvl][slot]);
 
-		/* TODO: unlikely ? */
 		if (slot)
 			return;
 	}
 
-	/*
-	 * TODO: optimise the case of eternal cascading, i.e., stop when delay
-	 * to timer->tick >= ETUX_TIMER_HWHEEL_TICKS_NR ?
-	 */
+#warning TODO: optimise the case of eternal cascading, i.e., stop when delay to timer->tick >= ETUX_TIMER_HWHEEL_TICKS_NR ?
 	etux_timer_assert_intern(lvl == ETUX_TIMER_HWHEEL_LEVELS_NR);
 	etux_timer_hwheel_cascade_timers(hwheel, &hwheel->eternal);
 }
@@ -508,8 +484,7 @@ etux_timer_run(void)
 
 	etux_timer_run_trace_enter();
 
-	utime_monotonic_now(&now);
-	tick = etux_timer_tick_from_tspec_lower_clamp(&now);
+	tick = etux_timer_hwheel_load_tick(&now);
 	while (tick >= etux_timer_the_hwheel.tick) {
 		unsigned int               slot;
 		struct stroll_dlist_node * expired;
@@ -522,7 +497,6 @@ etux_timer_run(void)
 		slot = etux_timer_the_hwheel.tick & ETUX_TIMER_HWHEEL_SLOT_MASK;
 		expired = &etux_timer_the_hwheel.slots[0][slot];
 
-		/* TODO: unlikely ? */
 		if (!slot)
 			etux_timer_hwheel_cascade(&etux_timer_the_hwheel);
 
@@ -547,8 +521,7 @@ etux_timer_run(void)
 			}
 		}
 
-		utime_monotonic_now(&now);
-		tick = etux_timer_tick_from_tspec_lower_clamp(&now);
+		tick = etux_timer_hwheel_load_tick(&now);
 	}
 
 out:
