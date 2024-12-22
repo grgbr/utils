@@ -71,6 +71,14 @@ utils-timer-list-utest-ldflags   := $(utest-ldflags) -letux_timer_list
 utils-timer-list-utest-pkgconf   := $(test-pkgconf) libcute
 
 checkbins                        += $(call kconf_enabled, \
+                                           ETUX_TIMER_HEAP, \
+                                           utils-timer-heap-utest)
+utils-timer-heap-utest-objs      := heap/timer_utest.o
+utils-timer-heap-utest-cflags    := $(test-cflags)
+utils-timer-heap-utest-ldflags   := $(utest-ldflags) -letux_timer_heap
+utils-timer-heap-utest-pkgconf   := $(test-pkgconf) libcute
+
+checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HWHEEL, \
                                            utils-timer-hwheel-utest)
 utils-timer-hwheel-utest-objs    := hwheel/timer_utest.o
@@ -88,6 +96,15 @@ utils-timer-list-ptest-lots      := timer_clock.o
 utils-timer-list-ptest-cflags    := $(test-cflags)
 utils-timer-list-ptest-ldflags   := $(ptest-ldflags) -letux_timer_list
 utils-timer-list-ptest-pkgconf   := $(test-pkgconf)
+
+checkbins                        += $(call kconf_enabled, \
+                                           ETUX_TIMER_HEAP, \
+                                           utils-timer-heap-ptest)
+utils-timer-heap-ptest-objs      := heap/timer_ptest.o
+utils-timer-heap-ptest-lots      := timer_clock.o
+utils-timer-heap-ptest-cflags    := $(test-cflags)
+utils-timer-heap-ptest-ldflags   := $(ptest-ldflags) -letux_timer_heap
+utils-timer-heap-ptest-pkgconf   := $(test-pkgconf)
 
 checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HWHEEL, \

@@ -26,7 +26,7 @@
 #define etux_timer_assert_timer_intern(_timer) \
 	etux_timer_assert_intern(_timer); \
 	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_PEND_STAT) || \
-	                         (!stroll_dlist_empty(&(_timer)->node) && \
+	                         (!stroll_dlist_empty(&(_timer)->list) && \
 	                          (_timer)->expire)); \
 	etux_timer_assert_intern(((_timer)->state != ETUX_TIMER_RUN_STAT) || \
 	                         (_timer)->expire)
@@ -141,20 +141,27 @@ etux_timer_tick_from_tspec_upper_clamp(const struct timespec * __restrict tspec)
 	return (tick >= 0) ? tick : ETUX_TIMER_TICK_MAX;
 }
 
+extern int64_t
+etux_timer_tick_load(struct timespec * __restrict now)
+	__utils_nonull(1)
+	__utils_nothrow
+	__warn_result
+	__export_intern;
+
 /******************************************************************************
  * Timer generic logic
  ******************************************************************************/
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __returns_nonull
 struct etux_timer *
-etux_timer_lead_timer(const struct stroll_dlist_node * __restrict head)
+etux_timer_list_lead_timer(const struct stroll_dlist_node * __restrict head)
 {
 	etux_timer_assert_intern(head);
 	etux_timer_assert_intern(!stroll_dlist_empty(head));
 
 	struct etux_timer * tmr = stroll_dlist_entry(stroll_dlist_next(head),
 	                                             struct etux_timer,
-	                                             node);
+	                                             list);
 
 	etux_timer_assert_timer_intern(tmr);
 	etux_timer_assert_intern(tmr->expire);

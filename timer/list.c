@@ -11,9 +11,47 @@
 static struct stroll_dlist_node etux_timer_the_list =
 	STROLL_DLIST_INIT(etux_timer_the_list);
 
+static __utils_nonull(1, 2) __utils_nothrow
+void
+etux_timer_list_insert(struct stroll_dlist_node * __restrict nodes,
+                       struct etux_timer * __restrict        timer,
+                       int64_t                               tick)
+
+{
+	etux_timer_assert_intern(nodes);
+	etux_timer_assert_timer_intern(timer);
+	etux_timer_assert_intern(timer->expire);
+	etux_timer_assert_intern(tick >= 0);
+	etux_timer_assert_intern(tick <= ETUX_TIMER_TICK_MAX);
+
+	timer->tick = tick;
+	etux_timer_insert_inorder(nodes, timer);
+}
+
+static __utils_nonull(1, 2) __utils_nothrow
+void
+etux_timer_list_adjust(struct stroll_dlist_node * __restrict nodes,
+                       struct etux_timer * __restrict        timer,
+                       int64_t                               tick)
+
+{
+	etux_timer_assert_intern(nodes);
+	etux_timer_assert_timer_intern(timer);
+	etux_timer_assert_intern(timer->expire);
+	etux_timer_assert_intern(tick >= 0);
+	etux_timer_assert_intern(tick <= ETUX_TIMER_TICK_MAX);
+
+	if (timer->tick == tick)
+		return;
+
+	stroll_dlist_remove(&timer->list);
+	etux_timer_list_insert(nodes, timer, tick);
+}
+
 static __utils_nonull(1) __utils_nothrow
 void
-etux_timer_arm(struct etux_timer * __restrict timer)
+etux_timer_list_arm(struct stroll_dlist_node * __restrict nodes,
+                    struct etux_timer * __restrict        timer)
 {
 	etux_timer_assert_timer_intern(timer);
 	etux_timer_assert_intern(timer->expire);
@@ -22,16 +60,24 @@ etux_timer_arm(struct etux_timer * __restrict timer)
 
 	tick = etux_timer_tick_from_tspec_upper_clamp(&timer->tspec);
 
-	if (timer->state == ETUX_TIMER_PEND_STAT) {
-		if (timer->tick == tick)
-			return;
+	switch (timer->state) {
+	case ETUX_TIMER_IDLE_STAT:
+		timer->state = ETUX_TIMER_PEND_STAT;
+		etux_timer_list_insert(nodes, timer, tick);
+		break;
 
-		stroll_dlist_remove(&timer->node);
+STROLL_IGNORE_WARN("-Wimplicit-fallthrough")
+	case ETUX_TIMER_RUN_STAT:
+		timer->state = ETUX_TIMER_PEND_STAT;
+STROLL_RESTORE_WARN
+
+	case ETUX_TIMER_PEND_STAT:
+		etux_timer_list_adjust(nodes, timer, tick);
+		break;
+
+	default:
+		etux_timer_assert_intern(0);
 	}
-
-	timer->state = ETUX_TIMER_PEND_STAT;
-	timer->tick = tick;
-	etux_timer_insert_inorder(&etux_timer_the_list, timer);
 }
 
 void
@@ -45,7 +91,7 @@ etux_timer_arm_tspec(struct etux_timer * __restrict     timer,
 	etux_timer_arm_tspec_trace_enter(timer, tspec);
 
 	timer->tspec = *tspec;
-	etux_timer_arm(timer);
+	etux_timer_list_arm(&etux_timer_the_list, timer);
 
 	etux_timer_arm_tspec_trace_exit(timer);
 }
@@ -62,7 +108,7 @@ etux_timer_arm_msec(struct etux_timer * __restrict timer, int msec)
 	utime_monotonic_now(&timer->tspec);
 	utime_tspec_add_msec_clamp(&timer->tspec, msec);
 
-	etux_timer_arm(timer);
+	etux_timer_list_arm(&etux_timer_the_list, timer);
 
 	etux_timer_arm_msec_trace_exit(timer);
 }
@@ -79,7 +125,7 @@ etux_timer_arm_sec(struct etux_timer * __restrict timer, int sec)
 	utime_monotonic_now(&timer->tspec);
 	utime_tspec_add_sec_clamp(&timer->tspec, sec);
 
-	etux_timer_arm(timer);
+	etux_timer_list_arm(&etux_timer_the_list, timer);
 
 	etux_timer_arm_sec_trace_exit(timer);
 }
@@ -93,7 +139,7 @@ etux_timer_cancel(struct etux_timer * __restrict timer)
 
 	if (timer->state == ETUX_TIMER_PEND_STAT) {
 		timer->state = ETUX_TIMER_IDLE_STAT;
-		stroll_dlist_remove(&timer->node);
+		stroll_dlist_remove(&timer->list);
 	}
 
 	etux_timer_cancel_trace_exit(timer);
@@ -103,7 +149,7 @@ int64_t
 etux_timer_issue_tick(void)
 {
 	if (!stroll_dlist_empty(&etux_timer_the_list))
-		return etux_timer_lead_timer(&etux_timer_the_list)->tick;
+		return etux_timer_list_lead_timer(&etux_timer_the_list)->tick;
 	else
 		return (int64_t)-ENOENT;
 }
@@ -119,23 +165,23 @@ etux_timer_run(void)
 	while (!stroll_dlist_empty(&etux_timer_the_list)) {
 		struct etux_timer * tmr;
 
-		tmr = etux_timer_lead_timer(&etux_timer_the_list);
+		tmr = etux_timer_list_lead_timer(&etux_timer_the_list);
 		if (tick < tmr->tick) {
-			utime_monotonic_now(&now);
-			tick = etux_timer_tick_from_tspec_lower_clamp(&now);
+			tick = etux_timer_tick_load(&now);
 			if (tick < tmr->tick)
 				goto out;
 		}
 
 		tmr->state = ETUX_TIMER_RUN_STAT;
-		stroll_dlist_remove(&tmr->node);
 
 		etux_timer_expire_trace_enter(tmr, &now, tick);
 		tmr->expire(tmr);
 		etux_timer_expire_trace_exit(tmr);
 
-		if (tmr->state == ETUX_TIMER_RUN_STAT)
+		if (tmr->state == ETUX_TIMER_RUN_STAT) {
 			tmr->state = ETUX_TIMER_IDLE_STAT;
+			stroll_dlist_remove(&tmr->list);
+		}
 	}
 
 out:

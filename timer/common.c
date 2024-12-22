@@ -229,17 +229,27 @@ etux_timer_tick_from_msec_upper(int msec)
 
 #endif
 
+int64_t
+etux_timer_tick_load(struct timespec * __restrict now)
+{
+	etux_timer_assert_intern(now);
+
+	utime_monotonic_now(now);
+
+	return etux_timer_tick_from_tspec_lower_clamp(now);
+}
+
 /******************************************************************************
  * Timer generic logic
  ******************************************************************************/
 
 static inline __utils_nonull(1) __utils_const __utils_nothrow __returns_nonull
 struct etux_timer *
-etux_timer_timer_from_node(const struct stroll_dlist_node * __restrict node)
+etux_timer_from_list_node(const struct stroll_dlist_node * __restrict node)
 {
 	etux_timer_assert_intern(node);
 
-	return stroll_dlist_entry(node, struct etux_timer, node);
+	return stroll_dlist_entry(node, struct etux_timer, list);
 }
 
 static __utils_nonull(1, 2) __utils_pure __utils_nothrow __warn_result
@@ -251,8 +261,8 @@ etux_timer_tick_cmp(const struct stroll_dlist_node * __restrict first,
 	etux_timer_assert_intern(first);
 	etux_timer_assert_intern(second);
 
-	const struct etux_timer * fst = etux_timer_timer_from_node(first);
-	const struct etux_timer * snd = etux_timer_timer_from_node(second);
+	const struct etux_timer * fst = etux_timer_from_list_node(first);
+	const struct etux_timer * snd = etux_timer_from_list_node(second);
 
 	etux_timer_assert_intern(fst->tick >= 0);
 	etux_timer_assert_intern(snd->tick >= 0);
@@ -266,7 +276,7 @@ etux_timer_insert_inorder(struct stroll_dlist_node * __restrict list,
                           struct etux_timer * __restrict        timer)
 {
 	stroll_dlist_insert_inorder_back(list,
-	                                 &timer->node,
+	                                 &timer->list,
 	                                 etux_timer_tick_cmp,
 	                                 NULL);
 }

@@ -56,6 +56,7 @@ static/builtin.a-objs    += $(call kconf_enabled,ETUX_TRACE,static/trace.o)
 static/builtin.a-cflags  := $(common-cflags)
 static/builtin.a-pkgconf := $(common-pkgconf)
 
+# Doubly linked list based implementation.
 solibs                          := $(call kconf_enabled, \
                                           ETUX_TIMER_LIST, \
                                           libetux_timer_list.so)
@@ -64,7 +65,7 @@ libetux_timer_list.so-cflags    := $(shared-common-cflags)
 libetux_timer_list.so-ldflags   := $(shared-common-ldflags) \
                                    -l:shared/builtin.a \
                                    -Wl,-soname,libetux_timer_list.so
-libetux_timer_list.so-pkgconf    = $(common-pkgconf)
+libetux_timer_list.so-pkgconf   := $(common-pkgconf)
 
 arlibs                          := $(call kconf_enabled, \
                                           ETUX_TIMER_LIST, \
@@ -73,6 +74,27 @@ libetux_timer_list.a-objs       := static/list.o
 libetux_timer_list.a-lots       := static/common.o static/trace.o
 libetux_timer_list.a-cflags     := $(common-cflags)
 libetux_timer_list.a-pkgconf     = $(common-pkgconf)
+
+# Heap based implementation.
+solibs                          += $(call kconf_enabled, \
+                                          ETUX_TIMER_HEAP, \
+                                          libetux_timer_heap.so)
+libetux_timer_heap.so-objs      := shared/heap.o
+libetux_timer_heap.so-cflags    := $(shared-common-cflags)
+libetux_timer_heap.so-ldflags   := $(shared-common-ldflags) \
+                                   -l:shared/builtin.a \
+                                   -Wl,-soname,libetux_timer_heap.so
+libetux_timer_heap.so-pkgconf   := $(common-pkgconf)
+
+arlibs                          += $(call kconf_enabled, \
+                                          ETUX_TIMER_HEAP, \
+                                          libetux_timer_heap.a)
+libetux_timer_heap.a-objs       := static/heap.o
+libetux_timer_heap.a-lots       := static/common.o static/trace.o
+libetux_timer_heap.a-cflags     := $(common-cflags)
+libetux_timer_heap.a-pkgconf    := $(common-pkgconf)
+
+# Hierarchical timing wheel based implementation.
 
 solibs                          += $(call kconf_enabled, \
                                           ETUX_TIMER_HWHEEL, \
@@ -90,6 +112,6 @@ arlibs                          += $(call kconf_enabled, \
 libetux_timer_hwheel.a-objs     := static/hwheel.o
 libetux_timer_hwheel.a-lots     := static/common.o static/trace.o
 libetux_timer_hwheel.a-cflags   := $(common-cflags)
-libetux_timer_hwheel.a-pkgconf   = $(common-pkgconf)
+libetux_timer_hwheel.a-pkgconf  := $(common-pkgconf)
 
 # ex: filetype=make :

@@ -110,6 +110,13 @@ config ETUX_TIMER_LIST
 	  Build eTux library with a simple ordered timer list algorithm
 	  support.
 
+config ETUX_TIMER_HEAP
+	bool "Heap timer list"
+	depends on ETUX_TIMER
+	default y
+	help
+	  Build eTux library with a heap based timer algorithm support.
+
 config ETUX_TIMER_HWHEEL
 	bool "Hierarchical timer wheel"
 	depends on ETUX_TIMER

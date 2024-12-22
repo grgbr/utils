@@ -21,6 +21,9 @@
 
 #include <utils/time.h>
 #include <stroll/dlist.h>
+#if defined(CONFIG_ETUX_TIMER_HEAP)
+#include <stroll/pprheap.h>
+#endif /* defined(CONFIG_ETUX_TIMER_HEAP) */
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
@@ -50,25 +53,28 @@ enum etux_timer_state {
 };
 
 struct etux_timer {
-	enum etux_timer_state    state;
-	struct stroll_dlist_node node;
-	int64_t                  tick;
-	struct timespec          tspec;
-	etux_timer_expire_fn *   expire;
+	enum etux_timer_state              state;
+	union {
+		struct stroll_dlist_node   list;
+#if defined(CONFIG_ETUX_TIMER_HEAP)
+		struct stroll_pprheap_node heap;
+#endif /* defined(CONFIG_ETUX_TIMER_HEAP) */
+	};
+	int64_t                            tick;
+	struct timespec                    tspec;
+	etux_timer_expire_fn *             expire;
 };
 
 #define ETUX_TIMER_INIT(_timer, _expire) \
 	{ \
 		.state  = ETUX_TIMER_IDLE_STAT, \
-		.node   = STROLL_DLIST_INIT((_timer).node), \
 		.expire = _expire \
 	}
 
 #define etux_timer_assert_timer_api(_timer) \
 	etux_timer_assert_api(_timer); \
 	etux_timer_assert_api(((_timer)->state != ETUX_TIMER_PEND_STAT) || \
-	                      (!stroll_dlist_empty(&(_timer)->node) && \
-	                       (_timer)->expire)); \
+	                      (_timer)->expire); \
 	etux_timer_assert_api(((_timer)->state != ETUX_TIMER_RUN_STAT) || \
 	                      (_timer)->expire)
 
@@ -126,7 +132,6 @@ etux_timer_init(struct etux_timer * __restrict timer,
 	etux_timer_assert_api(timer);
 
 	timer->state = ETUX_TIMER_IDLE_STAT;
-	stroll_dlist_init(&timer->node);
 	timer->expire = expire;
 }
 

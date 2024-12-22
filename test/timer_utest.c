@@ -37,8 +37,7 @@ etuxut_timer_expire(struct etux_timer * __restrict timer __unused)
 
 CUTE_TEST(etuxut_timer_is_armed_assert)
 {
-	struct etux_timer tmr = ETUX_TIMER_INIT(tmr, NULL);
-	bool              armed __unused;
+	bool armed __unused;
 
 	cute_expect_assertion(armed = etux_timer_is_armed(NULL));
 }
