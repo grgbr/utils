@@ -244,10 +244,9 @@ etux_timer_run(void)
 
 		if (tmr->state == ETUX_TIMER_RUN_STAT) {
 			tmr->state = ETUX_TIMER_IDLE_STAT;
-			stroll_pprheap_base_remove(&etux_timer_the_heap,
-			                           &tmr->heap,
-			                           etux_timer_heap_tick_cmp,
-			                           NULL);
+			stroll_pprheap_base_extract(&etux_timer_the_heap,
+			                            etux_timer_heap_tick_cmp,
+			                            NULL);
 		}
 	}
 
