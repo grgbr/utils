@@ -1,15 +1,11 @@
+#include "ptest.h"
 #include "utils/timer.h"
 #include "timer_clock.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <getopt.h>
 #include <errno.h>
-
-#define etuxpt_err(_format, ...) \
-	fprintf(stderr, \
-	        "%s: " _format, \
-	        program_invocation_short_name, \
-	        ## __VA_ARGS__)
 
 enum etuxpt_timer_kind {
 	ETUXPT_TIMER_ARM_TSPEC_KIND = 0,
@@ -772,28 +768,92 @@ etuxpt_timer_unload_evts(struct etuxpt_timer_event * events, unsigned int nr)
 	free(events);
 }
 
+static void
+etuxpt_timer_usage(FILE * __restrict stdio)
+{
+	fprintf(stdio,
+	        "Usage: %s [OPTIONS] FILE\n"
+	        "where OPTIONS:\n"
+	        "    -p|--prio PRIORITY\n"
+	        "    -h|--help\n"
+	        "with:\n"
+	        "    PRIORITY -- a SCHED_FIFO priority integer\n"
+	        "    FILE     -- pathname to eTux timer event file\n"
+	        "                (generated thanks to `etux-timer-perf').\n",
+	        program_invocation_short_name);
+}
+
 int
 main(int argc, char * const argv[])
 {
 	struct etuxpt_timer_data    data;
 	struct etuxpt_timer_event * events;
-	int                         err;
+	int                         prio = 0;
+	int                         ret;
 
-	err = etuxpt_timer_setup_lttng_clock();
-	if (err) {
-		etuxpt_err("failed to setup LTTng clock: %s (%d).\n",
-		           strerror(-err),
-		           -err);
+	while (true) {
+		int                        opt;
+		static const struct option lopts[] = {
+			{"help",    0, NULL, 'h'},
+			{"prio",    1, NULL, 'p'},
+			{0,         0, 0,    0}
+		};
+
+		opt = getopt_long(argc, argv, "hp:", lopts, NULL);
+		if (opt < 0)
+			/* No more options: go parsing positional arguments. */
+			break;
+
+		switch (opt) {
+		case 'p': /* priority */
+			if (etuxpt_parse_sched_prio(optarg, &prio)) {
+				etuxpt_timer_usage(stderr);
+				return EXIT_FAILURE;
+			}
+
+			break;
+
+		case 'h': /* Help message. */
+			etuxpt_timer_usage(stdout);
+			exit(EXIT_SUCCESS);
+
+		case '?': /* Unknown option. */
+		default:
+			etuxpt_timer_usage(stderr);
+			return EXIT_FAILURE;
+		}
+	}
+
+	/*
+	 * Check positional argument is properly specified on command line. */
+	argc -= optind;
+	if (argc != 1) {
+		etuxpt_err("invalid number of arguments.\n");
+		etuxpt_timer_usage(stderr);
 		return EXIT_FAILURE;
 	}
 
-	events = etuxpt_timer_load_evts(&data, argv[1]);
+	ret = etuxpt_timer_setup_lttng_clock();
+	if (ret) {
+		etuxpt_err("failed to setup LTTng clock: %s (%d).\n",
+		           strerror(-ret),
+		           -ret);
+		return EXIT_FAILURE;
+	}
+
+	events = etuxpt_timer_load_evts(&data, argv[optind]);
 	if (!events)
 		return EXIT_FAILURE;
 
+	if (etuxpt_setup_sched_prio(prio)) {
+		ret = EXIT_FAILURE;
+		goto unload;
+	}
+
 	etuxpt_timer_run_evts(events, data.nr);
 
+unload:
 	etuxpt_timer_unload_evts(events, data.nr);
 
-	return EXIT_SUCCESS;
+	return ret;
 }
