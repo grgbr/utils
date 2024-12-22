@@ -54,7 +54,8 @@ struct etux_timer_hwheel {
 	unsigned int             count;
 	int64_t                  tick;
 	int64_t                  issue;
-	struct stroll_dlist_node slots[ETUX_TIMER_HWHEEL_LEVELS_NR][ETUX_TIMER_HWHEEL_SLOTS_PER_WHEEL];
+	struct stroll_dlist_node slots[ETUX_TIMER_HWHEEL_LEVELS_NR]
+	                              [ETUX_TIMER_HWHEEL_SLOTS_PER_WHEEL];
 	struct stroll_dlist_node eternal;
 };
 

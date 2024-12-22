@@ -120,73 +120,6 @@ etux_timer_tick_from_tspec_upper(const struct timespec * __restrict tspec)
 #error Unexpected time_t bit width value (can only be 32 or 64-bit) !
 #endif
 
-#warning REMOVE ME if not needed...
-#if 0
-static __utils_const __utils_nothrow __warn_result
-int
-etux_timer_msec_from_tick_lower(int64_t tick)
-{
-	etux_timer_assert_api(tick >= 0);
-	etux_timer_assert_api(tick <= ETUX_TIMER_TICK_MAX);
-
-	int msec;
-	int nsec = (int)((tick & ETUX_TIMER_TICK_SUBSEC_MASK) * ETUX_TIMER_TICK_NSEC);
-
-	if (!__builtin_mul_overflow((int64_t)tick >> ETUX_TIMER_TICK_SUBSEC_BITS,
-	                            1000,
-	                            &msec) &&
-	    !__builtin_sadd_overflow(msec, nsec / 1000000, &msec))
-		return msec;
-
-	return -ERANGE;
-}
-
-static __utils_const __utils_nothrow __warn_result
-int
-etux_timer_msec_from_tick_lower_clamp(int64_t tick)
-{
-	etux_timer_assert_api(tick >= 0);
-	etux_timer_assert_api(tick <= ETUX_TIMER_TICK_MAX);
-
-	int msec = etux_timer_msec_from_tick_lower(tick);
-
-	return (msec >= 0) ? msec : INT_MAX;
-}
-
-static __utils_const __utils_nothrow __warn_result
-int
-etux_timer_msec_from_tick_upper(int64_t tick)
-{
-	etux_timer_assert_api(tick >= 0);
-	etux_timer_assert_api(tick <= ETUX_TIMER_TICK_MAX);
-
-	int msec;
-	int nsec = (int)((tick & ETUX_TIMER_TICK_SUBSEC_MASK) *
-	                 ETUX_TIMER_TICK_NSEC);
-
-	if (!__builtin_mul_overflow((int64_t)
-	                            tick >> ETUX_TIMER_TICK_SUBSEC_BITS,
-	                            1000,
-	                            &msec) &&
-	    !__builtin_sadd_overflow(msec, (nsec + 999999) / 1000000, &msec))
-		return msec;
-
-	return -ERANGE;
-}
-
-static __utils_const __utils_nothrow __warn_result
-int
-etux_timer_msec_from_tick_upper_clamp(int64_t tick)
-{
-	etux_timer_assert_api(tick >= 0);
-	etux_timer_assert_api(tick <= ETUX_TIMER_TICK_MAX);
-
-	int msec = etux_timer_msec_from_tick_upper(tick);
-
-	return (msec >= 0) ? msec : INT_MAX;
-}
-#endif
-
 static __utils_const __utils_nothrow __warn_result
 struct timespec
 etux_timer_tspec_from_tick(int64_t tick)
@@ -204,30 +137,6 @@ etux_timer_tspec_from_tick(int64_t tick)
 
 	return tspec;
 }
-
-#warning REMOVE ME if not needed...
-#if 0
-
-static inline __utils_const __utils_nothrow __warn_result
-int64_t
-etux_timer_tick_from_msec_lower(int msec)
-{
-	etux_timer_assert_api(msec >= 0);
-
-	return ((int64_t)msec << ETUX_TIMER_TICK_SUBSEC_BITS) / INT64_C(1000);
-}
-
-static inline __utils_const __utils_nothrow __warn_result
-int64_t
-etux_timer_tick_from_msec_upper(int msec)
-{
-	etux_timer_assert_api(msec >= 0);
-
-	return (((int64_t)msec << ETUX_TIMER_TICK_SUBSEC_BITS) + INT64_C(999)) /
-	       INT64_C(1000);
-}
-
-#endif
 
 int64_t
 etux_timer_tick_load(struct timespec * __restrict now)

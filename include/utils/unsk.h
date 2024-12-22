@@ -138,7 +138,7 @@ static inline __utils_nonull(2) __utils_nothrow
 int
 unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
 {
-	if (!bind(fd, (struct sockaddr *)addr, size))
+	if (!bind(fd, (const struct sockaddr *)addr, size))
 		return 0;
 
 	return -errno;
