@@ -55,10 +55,20 @@ if ! lttng --quiet list $session; then
 		log_err "failed to create '$session' session."
 		exit 1
 	fi
+	# Setup record session channel.
+	if ! lttng enable-channel --userspace \
+		                  --discard  \
+		                  --subbuf-size=1M \
+		                  --session=$session \
+		                  $session-channel; then
+		log_err "failed to setup '$session-channel' channel."
+		exit 1
+	fi
 	# Setup context fields to record with tracepoint events
 	if ! lttng --quiet \
 	           add-context --userspace \
 	                       --session=$session \
+	                       --channel=$session-channel \
 	                       $(echo "$fields" | \
 	                         sed 's/\([^[:blank:]]\+\)/--type=\1/g'); then
 		log_err "failed to setup '$session' session context fields."
@@ -66,7 +76,10 @@ if ! lttng --quiet list $session; then
 	fi
 	# Setup tracepoint events and start recording
 	if ! lttng --quiet \
-	           enable-event --userspace --session $session $events; then
+	           enable-event --userspace \
+	                        --session=$session \
+	                        --channel=$session-channel \
+	                        $events; then
 		log_err "failed to enable '$session' session trace events."
 		exit 1
 	fi
