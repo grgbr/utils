@@ -25,7 +25,6 @@ libutils-objects      = $(call kconf_enabled,UTILS_SIGNAL,signal.o) \
 
 solibs                 := libutils.so
 libutils.so-objs        = $(addprefix shared/,$(libutils-objects))
-libutils.so-lots       := ../trace/shared/builtin.a
 shared/thread.o-cflags := -pthread $(shared-common-cflags)
 libutils.so-cflags     := $(shared-common-cflags)
 libutils.so-ldflags    := $(call kconf_enabled,UTILS_THREAD,-pthread) \
@@ -35,7 +34,6 @@ libutils.so-pkgconf    := $(common-pkgconf)
 
 arlibs                 := libutils.a
 libutils.a-objs         = $(addprefix static/,$(libutils-objects))
-libutils.a-lots        := ../trace/static/trace.o
 static/thread.o-cflags := -pthread $(shared-common-cflags)
 libutils.a-cflags      := $(common-cflags)
 libutils.a-pkgconf     := $(common-pkgconf)

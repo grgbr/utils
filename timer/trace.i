@@ -15,25 +15,10 @@
     defined(LTTNG_UST_TRACEPOINT_HEADER_MULTI_READ)
 #define _ETUX_TIMER_TRACE_I
 
+#include "../trace/trace.h"
 #include <lttng/tracepoint.h>
 
-LTTNG_UST_TRACEPOINT_EVENT_CLASS(
-	etux_timer,
-	void_trccls,
-	LTTNG_UST_TP_ARGS(void),
-)
-
-#define ETUX_VOID_TRACEPOINT_EVENT(_provider, _event) \
-	LTTNG_UST_TRACEPOINT_EVENT_INSTANCE( \
-		etux_timer, \
-		void_trccls, \
-		_provider, \
-		_event, \
-		LTTNG_UST_TP_ARGS(void) \
-	)
-
-#define ETUX_TRACE_ENUM_VALUE(_val) \
-	lttng_ust_field_enum_value(STROLL_STRING(_val), _val)
+ETUX_TRACE_VOID_CLASS(etux_timer)
 
 LTTNG_UST_TRACEPOINT_ENUM(
 	etux_timer,
@@ -182,7 +167,7 @@ LTTNG_UST_TRACEPOINT_EVENT_INSTANCE(
 	)
 )
 
-ETUX_VOID_TRACEPOINT_EVENT(etux_timer, issue_tspec_enter_trcevt)
+ETUX_TRACE_VOID_EVENT(etux_timer, issue_tspec_enter_trcevt)
 
 LTTNG_UST_TRACEPOINT_EVENT(
 	etux_timer,
@@ -197,7 +182,7 @@ LTTNG_UST_TRACEPOINT_EVENT(
 	)
 )
 
-ETUX_VOID_TRACEPOINT_EVENT(etux_timer, issue_msec_enter_trcevt)
+ETUX_TRACE_VOID_EVENT(etux_timer, issue_msec_enter_trcevt)
 
 LTTNG_UST_TRACEPOINT_EVENT(
 	etux_timer,
@@ -210,9 +195,9 @@ LTTNG_UST_TRACEPOINT_EVENT(
 	)
 )
 
-ETUX_VOID_TRACEPOINT_EVENT(etux_timer, run_enter_trcevt)
+ETUX_TRACE_VOID_EVENT(etux_timer, run_enter_trcevt)
 
-ETUX_VOID_TRACEPOINT_EVENT(etux_timer, run_exit_trcevt)
+ETUX_TRACE_VOID_EVENT(etux_timer, run_exit_trcevt)
 
 LTTNG_UST_TRACEPOINT_EVENT(
 	etux_timer,

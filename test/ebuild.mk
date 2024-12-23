@@ -30,6 +30,8 @@ ptest-ldflags := \
 	-Wl,-whole-archive $(BUILDDIR)/builtin_ptest.a -Wl,-no-whole-archive \
 	-lutils
 
+ptest-pkgconf := $(common-pkgconf) $(call kconf_enabled, ETUX_TRACE, lttng-ust)
+
 builtins                         := builtin_utest.a
 builtin_utest.a-objs             := utest.o timer_clock.o $(config-obj)
 builtin_utest.a-cflags           := $(common-cflags)
@@ -80,7 +82,7 @@ checkbins                        += $(call kconf_enabled, \
 etux-timer-list-ptest-objs       := list/timer_ptest.o
 etux-timer-list-ptest-cflags     := $(common-cflags)
 etux-timer-list-ptest-ldflags    := $(ptest-ldflags) -letux_timer_list
-etux-timer-list-ptest-pkgconf    := $(common-pkgconf)
+etux-timer-list-ptest-pkgconf    := $(ptest-pkgconf)
 
 checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HEAP, \
@@ -88,7 +90,7 @@ checkbins                        += $(call kconf_enabled, \
 etux-timer-heap-ptest-objs       := heap/timer_ptest.o
 etux-timer-heap-ptest-cflags     := $(common-cflags)
 etux-timer-heap-ptest-ldflags    := $(ptest-ldflags) -letux_timer_heap
-etux-timer-heap-ptest-pkgconf    := $(common-pkgconf)
+etux-timer-heap-ptest-pkgconf    := $(ptest-pkgconf)
 
 checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HWHEEL, \
@@ -96,7 +98,7 @@ checkbins                        += $(call kconf_enabled, \
 etux-timer-hwheel-ptest-objs     := hwheel/timer_ptest.o
 etux-timer-hwheel-ptest-cflags   := $(common-cflags)
 etux-timer-hwheel-ptest-ldflags  := $(ptest-ldflags) -letux_timer_hwheel
-etux-timer-hwheel-ptest-pkgconf  := $(common-pkgconf)
+etux-timer-hwheel-ptest-pkgconf  := $(ptest-pkgconf)
 
 endif # ($(CONFIG_ETUX_PTEST),y)
 

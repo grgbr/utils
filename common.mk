@@ -42,7 +42,7 @@ ifneq ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
 common-ldflags        := $(filter-out -DNDEBUG,$(common-ldflags))
 endif # ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
 
-common-pkgconf        := libstroll $(call kconf_enabled,ETUX_TRACE,lttng-ust)
+common-pkgconf        := libstroll
 
 shared-common-cflags  := $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
 
