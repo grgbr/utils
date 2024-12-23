@@ -30,6 +30,11 @@ headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
 
 subdirs   := src
 
+ifeq ($(CONFIG_ETUX_TRACE),y)
+subdirs   += trace
+src-deps  := trace
+endif # ($(CONFIG_ETUX_TRACE),y)
+
 ifeq ($(CONFIG_UTILS_UTEST),y)
 subdirs   += test
 test-deps := src

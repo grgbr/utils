@@ -5,75 +5,41 @@
 # Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
 ################################################################################
 
-common-cflags        := -Wall \
-                        -Wextra \
-                        -Wformat=2 \
-                        -Wconversion \
-                        -Wundef \
-                        -Wshadow \
-                        -Wcast-qual \
-                        -Wcast-align \
-                        -Wmissing-declarations \
-                        -D_GNU_SOURCE \
-                        -I ../include \
-                        $(EXTRA_CFLAGS) \
-                        $(call kconf_enabled,UTILS_THREAD,-pthread)
-
-ifeq ($(CONFIG_UTILS_UTEST)$(CONFIG_UTILS_ASSERT_API),yy)
-# When unit testsuite is required to be built, make sure to enable ELF semantic
-# interposition.
-# This allows unit test programs to override the stroll_assert_fail() using
-# their own definitions based on CUTe's expectations to validate assertions.
-#
-# See http://maskray.me/blog/2021-05-09-fno-semantic-interposition for more
-# informations about semantic interposition.
-common-cflags        := $(common-cflags) -fsemantic-interposition
-endif # ($(CONFIG_UTILS_UTEST)$(CONFIG_UTILS_ASSERT_API),yy)
-
-common-ldflags       := $(common-cflags) $(EXTRA_LDFLAGS) \
-                        -Wl,-z,start-stop-visibility=hidden
-
-ifneq ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
-common-cflags        := $(filter-out -DNDEBUG,$(common-cflags))
-common-ldflags       := $(filter-out -DNDEBUG,$(common-ldflags))
-endif # ($(filter y,$(CONFIG_UTILS_ASSERT_API) $(CONFIG_UTILS_ASSERT_INTERN)),)
+include ../common.mk
 
 ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
-solibs               := libutils.so
-libutils.so-objs     += $(call kconf_enabled,UTILS_SIGNAL,shared/signal.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_THREAD,shared/thread.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_TIME,shared/time.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_PATH,shared/path.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_FD,shared/fd.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_FILE,shared/file.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_DIR,shared/dir.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_STR,shared/string.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_POLL,shared/poll.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_UNSK,shared/unsk.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_MQUEUE,shared/mqueue.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_NET,shared/net.o)
-libutils.so-objs     += $(call kconf_enabled,UTILS_PWD,shared/pwd.o)
-libutils.so-cflags   := $(filter-out -fpie -fPIE,$(common-cflags)) -fpic
-libutils.so-ldflags  := $(filter-out -pie -fpie -fPIE,$(common-ldflags)) \
-                        -shared -Bsymbolic -fpic -Wl,-soname,libutils.so
-libutils.so-pkgconf  := libstroll
 
-arlibs               := libutils.a
-libutils.a-objs      += $(call kconf_enabled,UTILS_SIGNAL,static/signal.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_THREAD,static/thread.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_TIME,static/time.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_PATH,static/path.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_FD,static/fd.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_FILE,static/file.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_DIR,static/dir.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_STR,static/string.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_POLL,static/poll.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_UNSK,static/unsk.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_MQUEUE,static/mqueue.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_NET,static/net.o)
-libutils.a-objs      += $(call kconf_enabled,UTILS_PWD,static/pwd.o)
-libutils.a-cflags    := $(common-cflags)
-libutils.a-pkgconf   := libstroll
+libutils-objects      = $(call kconf_enabled,UTILS_SIGNAL,signal.o) \
+                        $(call kconf_enabled,UTILS_THREAD,thread.o) \
+                        $(call kconf_enabled,UTILS_TIME,time.o) \
+                        $(call kconf_enabled,UTILS_PATH,path.o) \
+                        $(call kconf_enabled,UTILS_FD,fd.o) \
+                        $(call kconf_enabled,UTILS_FILE,file.o) \
+                        $(call kconf_enabled,UTILS_DIR,dir.o) \
+                        $(call kconf_enabled,UTILS_STR,string.o) \
+                        $(call kconf_enabled,UTILS_POLL,poll.o) \
+                        $(call kconf_enabled,UTILS_UNSK,unsk.o) \
+                        $(call kconf_enabled,UTILS_MQUEUE,mqueue.o) \
+                        $(call kconf_enabled,UTILS_NET,net.o) \
+                        $(call kconf_enabled,UTILS_PWD,pwd.o)
+
+solibs                 := libutils.so
+libutils.so-objs        = $(addprefix shared/,$(libutils-objects))
+libutils.so-lots       := ../trace/shared/builtin.a
+shared/thread.o-cflags := -pthread $(shared-common-cflags)
+libutils.so-cflags     := $(shared-common-cflags)
+libutils.so-ldflags    := $(call kconf_enabled,UTILS_THREAD,-pthread) \
+                          $(shared-common-ldflags) \
+                          -Wl,-soname,libutils.so
+libutils.so-pkgconf    := $(common-pkgconf)
+
+arlibs                 := libutils.a
+libutils.a-objs         = $(addprefix static/,$(libutils-objects))
+libutils.a-lots        := ../trace/static/trace.o
+static/thread.o-cflags := -pthread $(shared-common-cflags)
+libutils.a-cflags      := $(common-cflags)
+libutils.a-pkgconf     := $(common-pkgconf)
+
 endif # ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 
 # ex: filetype=make :
