@@ -1,6 +1,7 @@
 #include "ptest.h"
 #include "utils/timer.h"
 #include "timer_clock.h"
+#include "trace_clock.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -124,23 +125,6 @@ static
 void
 etuxpt_timer_expire(struct etux_timer * timer __unused)
 {
-#if 0
-	struct timespec             now;
-	struct timespec             diff;
-	const struct timespec *     exp;
-
-	utime_monotonic_now(&now);
-
-	diff = now;
-	exp = etux_timer_expiry_tspec(timer);
-	if (utime_tspec_sub(&diff, exp) < 0)
-		assert(0);
-
-	printf("<%ld.%09ld> expire=%ld.%09ld latency=%ld.%09ld\n",
-	       now.tv_sec, now.tv_nsec,
-	       exp->tv_sec, exp->tv_nsec,
-	       diff.tv_sec, diff.tv_nsec);
-#endif
 }
 
 static
@@ -833,9 +817,9 @@ main(int argc, char * const argv[])
 		return EXIT_FAILURE;
 	}
 
-	ret = etuxpt_timer_setup_lttng_clock();
+	ret = etuxpt_timer_setup_trace_clock();
 	if (ret) {
-		etuxpt_err("failed to setup LTTng clock: %s (%d).\n",
+		etuxpt_err("failed to setup trace clock: %s (%d).\n",
 		           strerror(-ret),
 		           -ret);
 		return EXIT_FAILURE;

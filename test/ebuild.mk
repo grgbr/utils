@@ -30,7 +30,7 @@ ptest-ldflags := \
 	-Wl,-whole-archive $(BUILDDIR)/builtin_ptest.a -Wl,-no-whole-archive \
 	-lutils
 
-ptest-pkgconf := $(common-pkgconf) $(call kconf_enabled, ETUX_TRACE, lttng-ust)
+ptest-pkgconf := $(common-pkgconf) $(call kconf_enabled,ETUX_TRACE,lttng-ust)
 
 builtins                         := builtin_utest.a
 builtin_utest.a-objs             := utest.o timer_clock.o $(config-obj)
@@ -49,7 +49,8 @@ checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_LIST, \
                                            etux-timer-list-utest)
 etux-timer-list-utest-objs       := list/timer_utest.o
-etux-timer-list-utest-cflags     := $(common-cflags)
+etux-timer-list-utest-cflags     := $(common-cflags) \
+                                    -DETUX_TIMER_UTEST="\"eTux Timer List\""
 etux-timer-list-utest-ldflags    := $(utest-ldflags) -letux_timer_list
 etux-timer-list-utest-pkgconf    := $(common-pkgconf) libcute
 
@@ -57,7 +58,8 @@ checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HEAP, \
                                            etux-timer-heap-utest)
 etux-timer-heap-utest-objs       := heap/timer_utest.o
-etux-timer-heap-utest-cflags     := $(common-cflags)
+etux-timer-heap-utest-cflags     := $(common-cflags) \
+                                    -DETUX_TIMER_UTEST="\"eTux Timer Heap\""
 etux-timer-heap-utest-ldflags    := $(utest-ldflags) -letux_timer_heap
 etux-timer-heap-utest-pkgconf    := $(common-pkgconf) libcute
 
@@ -65,7 +67,8 @@ checkbins                        += $(call kconf_enabled, \
                                            ETUX_TIMER_HWHEEL, \
                                            etux-timer-hwheel-utest)
 etux-timer-hwheel-utest-objs     := hwheel/timer_utest.o
-etux-timer-hwheel-utest-cflags   := $(common-cflags)
+etux-timer-hwheel-utest-cflags   := $(common-cflags) \
+                                    -DETUX_TIMER_UTEST="\"eTux Timer Hwheel\""
 etux-timer-hwheel-utest-ldflags  := $(utest-ldflags) -letux_timer_hwheel
 etux-timer-hwheel-utest-pkgconf  := $(common-pkgconf) libcute
 
@@ -73,6 +76,9 @@ ifeq ($(CONFIG_ETUX_PTEST),y)
 
 builtins                         += builtin_ptest.a
 builtin_ptest.a-objs             := ptest.o $(config-obj)
+builtin_ptest.a-objs             += $(call kconf_enabled, \
+                                           ETUX_TRACE, \
+                                           trace_clock.o)
 builtin_ptest.a-lots             := timer_clock.o
 builtin_ptest.a-cflags           := $(common-cflags)
 

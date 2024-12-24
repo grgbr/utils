@@ -754,4 +754,4 @@ CUTE_SUITE_STATIC(etuxut_timer_suite,
                   CUTE_NULL_TEARDOWN,
                   CUTE_DFLT_TMOUT);
 
-CUTE_MAIN(etuxut_timer_suite, "eTux timer", UTILS_VERSION_STRING)
+CUTE_MAIN(etuxut_timer_suite, ETUX_TIMER_UTEST, UTILS_VERSION_STRING)
