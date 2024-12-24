@@ -131,8 +131,8 @@ etux_timer_tspec_from_tick(int64_t tick)
 		/* seconds = number of ticks / number of ticks per second */
 		.tv_sec = (time_t)(tick >> ETUX_TIMER_TICK_SUBSEC_BITS),
 		/* nanoseconds = number of sub second ticks * tick period */
-		.tv_nsec = (tick & ETUX_TIMER_TICK_SUBSEC_MASK) *
-		           ETUX_TIMER_TICK_NSEC
+		.tv_nsec = (long)((tick & ETUX_TIMER_TICK_SUBSEC_MASK) *
+		                  ETUX_TIMER_TICK_NSEC)
 	};
 
 	return tspec;
