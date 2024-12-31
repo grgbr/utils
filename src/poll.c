@@ -18,6 +18,7 @@ upoll_apply(const struct upoll * __restrict poller,
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
 	upoll_assert_api(fd >= 0);
 	upoll_assert_api(worker->user);
 	upoll_assert_api(!(worker->user &
@@ -55,6 +56,7 @@ upoll_register(const struct upoll * __restrict  poller,
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
 	upoll_assert_api(fd >= 0);
 	upoll_assert_api(events);
 	upoll_assert_api(!(events &
@@ -85,24 +87,21 @@ upoll_register(const struct upoll * __restrict  poller,
 	return 0;
 }
 
-static __utils_nonull(1, 2)
 int
-upoll_process_dispatch(const struct upoll *                  poller,
-                       const struct epoll_event * __restrict events,
-                       unsigned int                          nr)
+upoll_dispatch(const struct upoll * poller, unsigned int nr)
 {
 	upoll_assert_api(poller);
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
-	upoll_assert_api(events);
+	upoll_assert_intern(poller->events);
 	upoll_assert_api(nr);
 	upoll_assert_api(nr <= poller->nr);
 
 	unsigned int e;
 
 	for (e = 0; e < nr; e++) {
-		const struct epoll_event * evt = &events[e];
+		const struct epoll_event * evt = &poller->events[e];
 		struct upoll_worker *      wk = evt->data.ptr;
 		int                        ret;
 
@@ -120,17 +119,17 @@ upoll_process_dispatch(const struct upoll *                  poller,
 }
 
 int
-upoll_process(const struct upoll * poller, int tmout)
+upoll_wait(const struct upoll * __restrict poller, int tmout)
 {
 	upoll_assert_api(poller);
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
 
-	int                ret;
-	struct epoll_event evts[poller->nr];
+	int ret;
 
-	ret = epoll_wait(poller->fd, evts, (int)poller->nr, tmout);
+	ret = epoll_wait(poller->fd, poller->events, (int)poller->nr, tmout);
 	if (ret < 0) {
 		upoll_assert_intern(errno != EBADF);
 		upoll_assert_intern(errno != EFAULT);
@@ -142,57 +141,25 @@ upoll_process(const struct upoll * poller, int tmout)
 	if (!ret && (tmout >= 0))
 		return -ETIME;
 
-	return upoll_process_dispatch(poller, evts, (unsigned int)ret);
+	return ret;
 }
-
-#if defined(CONFIG_UTILS_TIMER)
-
-#include "utils/timer.h"
 
 int
-upoll_process_with_timers(const struct upoll * poller)
+upoll_process(const struct upoll * poller, int tmout)
 {
 	upoll_assert_api(poller);
-	upoll_assert_intern(poller->fd >= 0);
-	upoll_assert_intern(poller->nr > 0);
-	upoll_assert_intern(poller->nr <= INT_MAX);
 
-	int                ret;
-	int                tmout;
-	struct epoll_event evts[poller->nr];
+	int ret;
 
-	tmout = (int)utimer_issue_msec();
+	ret = upoll_wait(poller, tmout);
+	if (ret < 0)
+		return ret;
+	else if (!ret && (tmout >= 0))
+		return -ETIME;
 
-	ret = epoll_wait(poller->fd, evts, (int)poller->nr, tmout);
-	if (!ret) {
-		/* Timer(s) expired before any activity. */
-		upoll_assert_intern(tmout >= 0);
-		utimer_run();
-
-		return 0;
-	}
-
-	if (!tmout)
-		/*
-		 * Always run timer list if zero timeout was computed, i.e.,
-		 * when it contains at leas one timer that has passed its expiry
-		 * date.
-		 */
-		utimer_run();
-
-	if (ret < 0) {
-		upoll_assert_intern(errno != EBADF);
-		upoll_assert_intern(errno != EFAULT);
-		upoll_assert_intern(errno != EINVAL);
-
-		return -errno;
-	}
-
-	/* Activity has been detected before a timer expired. */
-	return upoll_process_dispatch(poller, evts, (unsigned int)ret);
+	/* Activity has been detected before timeout expiration. */
+	return upoll_dispatch(poller, (unsigned int)ret);
 }
-
-#endif /* defined(CONFIG_UTILS_TIMER) */
 
 int
 upoll_open(struct upoll * __restrict poller, unsigned int nr)
@@ -203,16 +170,19 @@ upoll_open(struct upoll * __restrict poller, unsigned int nr)
 
 	int fd;
 
+	poller->events = malloc(nr * sizeof(poller->events[0]));
+	if (!poller->events)
+		return -ENOMEM;
+
 	fd = epoll_create1(EPOLL_CLOEXEC);
 	if (fd < 0) {
 		upoll_assert_intern(errno != EINVAL);
-
+		free(poller->events);
 		return -errno;
 	}
 
 	poller->fd = fd;
 	poller->nr = nr;
-
 	return 0;
 }
 
@@ -223,13 +193,15 @@ upoll_close(const struct upoll * __restrict poller)
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
 
 	int err __unused;
 
 	err = ufd_close(poller->fd);
-
 	upoll_assert_intern(err != -ENOSPC);
 	upoll_assert_intern(err != -EDQUOT);
+
+	free(poller->events);
 
 	return;
 }

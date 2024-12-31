@@ -15,7 +15,7 @@ headers             += $(call kconf_enabled,UTILS_ATOMIC,utils/atomic.h)
 headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
 headers             += $(call kconf_enabled,UTILS_TIME,utils/time.h)
-headers             += $(call kconf_enabled,UTILS_TIMER,utils/timer.h)
+headers             += $(call kconf_enabled,ETUX_TIMER,utils/timer.h)
 headers             += $(call kconf_enabled,UTILS_PATH,utils/path.h)
 headers             += $(call kconf_enabled,UTILS_FD,utils/fd.h)
 headers             += $(call kconf_enabled,UTILS_PIPE,utils/pipe.h)
@@ -91,6 +91,25 @@ endef
 pkgconfigs                 += $(call kconf_enabled,ETUX_TIMER_LIST, \
                                 libetux_timer_list.pc)
 libetux_timer_list.pc-tmpl := libetux_timer_list_pkgconf_tmpl
+
+define libetux_timer_heap_pkgconf_tmpl
+prefix=$(PREFIX)
+exec_prefix=$${prefix}
+libdir=$${exec_prefix}/lib
+includedir=$${prefix}/include
+
+Name: libetux_timer_heap
+Description: eTux timer heap library
+Version: $(VERSION)
+Requires: libutils libstroll
+Cflags: -I$${includedir}
+Libs: -L$${libdir} \
+      -Wl,--push-state,--as-needed -letux_timer_heap -Wl,--pop-state
+endef
+
+pkgconfigs                 += $(call kconf_enabled,ETUX_TIMER_HEAP, \
+                                libetux_timer_heap.pc)
+libetux_timer_heap.pc-tmpl := libetux_timer_heap_pkgconf_tmpl
 
 define libetux_timer_hwheel_pkgconf_tmpl
 prefix=$(PREFIX)

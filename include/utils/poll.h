@@ -91,8 +91,9 @@ upoll_disable_watch(struct upoll_worker * __restrict worker, uint32_t events)
 }
 
 struct upoll {
-	unsigned int nr;
-	int          fd;
+	unsigned int         nr;
+	int                  fd;
+	struct epoll_event * events;
 };
 
 static inline __utils_nonull(1) __utils_nothrow __utils_pure
@@ -103,6 +104,7 @@ upoll_get_fd(const struct upoll * __restrict poller)
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
 
 	return poller->fd;
 }
@@ -130,6 +132,7 @@ upoll_unregister(const struct upoll * __restrict poller, int fd)
 	upoll_assert_intern(poller->fd >= 0);
 	upoll_assert_intern(poller->nr > 0);
 	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
 	upoll_assert_api(fd >= 0);
 
 	/*
@@ -145,21 +148,28 @@ static inline __utils_nonull(1) __utils_nothrow
 void
 upoll_unregister(const struct upoll * __restrict poller, int fd)
 {
+	upoll_assert_api(poller);
+	upoll_assert_intern(poller->fd >= 0);
+	upoll_assert_intern(poller->nr > 0);
+	upoll_assert_intern(poller->nr <= INT_MAX);
+	upoll_assert_intern(poller->events);
+
 	epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL);
 }
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 extern int
-upoll_process(const struct upoll * poller, int tmout)
+upoll_dispatch(const struct upoll * poller, unsigned int nr)
 	__utils_nonull(1);
 
-#if defined(CONFIG_UTILS_TIMER)
+extern int
+upoll_wait(const struct upoll * __restrict poller, int tmout)
+	__utils_nonull(1);
 
 extern int
-upoll_process_with_timers(const struct upoll * poller) __utils_nonull(1);
-
-#endif /* defined(CONFIG_UTILS_TIMER) */
+upoll_process(const struct upoll * poller, int tmout)
+	__utils_nonull(1);
 
 extern int
 upoll_open(struct upoll * __restrict poller, unsigned int nr)
