@@ -40,15 +40,15 @@ extern int
 upwd_parse_uid(const char * __restrict string, uid_t * __restrict uid)
 	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
+extern ssize_t
+upwd_validate_login_name(const char * __restrict name)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 ssize_t
 upwd_validate_user_name(const char * __restrict name)
 {
-	/*
-	 * TODO: validate string content.
-	 * Should match something like following regexp: [a-z][-a-z0-9]*
-	 */
-	return ustr_parse(name, LOGIN_NAME_MAX);
+	return upwd_validate_login_name(name);
 }
 
 extern const struct passwd *
@@ -70,11 +70,7 @@ static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 ssize_t
 upwd_validate_group_name(const char * __restrict name)
 {
-	/*
-	 * TODO: validate string content.
-	 * Should match something like following regexp: [a-z][-a-z0-9]*
-	 */
-	return ustr_parse(name, LOGIN_NAME_MAX);
+	return upwd_validate_login_name(name);
 }
 
 extern const struct group *

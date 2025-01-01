@@ -75,6 +75,22 @@ upwd_normalize_errno(void)
 	}
 }
 
+ssize_t
+upwd_validate_login_name(const char * __restrict name)
+{
+	/*
+	 * TODO: validate string content.
+	 * Should match something like following regexp: [a-z][-a-z0-9]*
+	 */
+	ssize_t sz;
+
+	sz = ustr_parse(name, LOGIN_NAME_MAX);
+	if (sz > 0)
+		return sz;
+
+	return sz ? sz : -ENODATA;
+}
+
 const struct passwd *
 upwd_get_user_byid(uid_t uid)
 {
