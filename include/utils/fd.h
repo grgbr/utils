@@ -287,8 +287,8 @@ static inline __utils_nonull(2)
 int
 ufd_open_at(int dir, const char * __restrict path, int flags)
 {
-	ufd_assert_api(dir >= 0);
 	ufd_assert_api(upath_validate_path_name(path) > 0);
+	ufd_assert_api((path[0] == '/') || (dir >= 0) || (dir == AT_FDCWD));
 	ufd_assert_api(!((flags & O_DIRECTORY) &&
 	                 (flags & (O_WRONLY | O_RDWR))));
 	/* O_TMPFILE requires the (creation) mode argument. */

@@ -61,18 +61,24 @@ static inline __utils_nonull(1)
 int
 udir_open(const char * __restrict path, int flags)
 {
-	udir_assert_api(upath_validate_path_name(path) > 0);
 	udir_assert_api(!(flags & (O_WRONLY | O_RDWR)));
+	udir_assert_api(!(flags & O_TRUNC));
+	udir_assert_api(!(flags & O_TMPFILE));
 
-	int fd;
+	return ufd_open(path, flags | O_RDONLY | O_NOCTTY | O_DIRECTORY);
+}
 
-	fd = ufd_open(path, flags | O_RDONLY | O_NOCTTY | O_DIRECTORY);
-	if (fd >= 0)
-		return fd;
+static inline __utils_nonull(2)
+int
+udir_open_at(int dir, const char * __restrict path, int flags)
+{
+	udir_assert_api(!(flags & (O_WRONLY | O_RDWR)));
+	udir_assert_api(!(flags & O_TRUNC));
+	udir_assert_api(!(flags & O_TMPFILE));
 
-	udir_assert_api(fd != -EOPNOTSUPP);
-
-	return fd;
+	return ufd_open_at(dir,
+	                   path,
+	                   flags | O_RDONLY | O_NOCTTY | O_DIRECTORY);
 }
 
 extern int
