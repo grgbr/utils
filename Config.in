@@ -162,6 +162,14 @@ config UTILS_DIR
 	help
 	  Build utils library POSIX filesystem directory wrappers.
 
+config ETUX_FSTREE
+	bool "Filesystem tree"
+	default y
+	select UTILS_FD
+	help
+	  Build utils library with support for POSIX filesystem directory tree
+	  iterator and scanner.
+
 config UTILS_STR
 	bool "String utilities"
 	select UTILS_PROVIDES_LIBS

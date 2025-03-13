@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 #
 # This file is part of Utils.
-# Copyright (C) 2017-2024 Grégor Boirie <gregor.boirie@free.fr>
+# Copyright (C) 2017-2025 Grégor Boirie <gregor.boirie@free.fr>
 ################################################################################
 
 include ../common.mk
@@ -16,6 +16,7 @@ libutils-objects      = $(call kconf_enabled,UTILS_SIGNAL,signal.o) \
                         $(call kconf_enabled,UTILS_FD,fd.o) \
                         $(call kconf_enabled,UTILS_FILE,file.o) \
                         $(call kconf_enabled,UTILS_DIR,dir.o) \
+                        $(call kconf_enabled,ETUX_FSTREE,fstree.o) \
                         $(call kconf_enabled,UTILS_STR,string.o) \
                         $(call kconf_enabled,UTILS_POLL,poll.o) \
                         $(call kconf_enabled,UTILS_UNSK,unsk.o) \

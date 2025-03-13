@@ -110,6 +110,30 @@ ufd_fstat(int fd, struct stat * __restrict st)
 	return -errno;
 }
 
+static inline __utils_nonull(2, 3) __utils_nothrow
+int
+ufd_fstat_at(int                      fd,
+             const char * __restrict  path,
+             struct stat * __restrict st,
+             int                      flags)
+{
+	ufd_assert_api(upath_validate_path_name(path) > 0);
+	ufd_assert_api((path[0] == '/') || (fd >= 0) || (fd == AT_FDCWD));
+	ufd_assert_api(st);
+	ufd_assert_api(!(flags & ~(AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW)));
+
+	if (!fstatat(fd, path, st, flags))
+		return 0;
+
+	ufd_assert_api(errno != EBADF);
+	ufd_assert_api(errno != EFAULT);
+	ufd_assert_api(errno != ENAMETOOLONG);
+	ufd_assert_api(errno != EOVERFLOW);
+	ufd_assert_api(errno != EINVAL);
+
+	return -errno;
+}
+
 static inline __utils_nothrow
 off_t
 ufd_lseek(int fd, off_t off, int whence)
