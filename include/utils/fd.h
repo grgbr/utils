@@ -106,6 +106,7 @@ ufd_fstat(int fd, struct stat * __restrict st)
 
 	ufd_assert_api(errno != EBADF);
 	ufd_assert_api(errno != EFAULT);
+	ufd_assert_intern(errno != EOVERFLOW);
 
 	return -errno;
 }
@@ -126,9 +127,9 @@ ufd_fstat_at(int                      fd,
 		return 0;
 
 	ufd_assert_api(errno != EBADF);
-	ufd_assert_api(errno != EFAULT);
-	ufd_assert_api(errno != ENAMETOOLONG);
-	ufd_assert_api(errno != EOVERFLOW);
+	ufd_assert_intern(errno != EFAULT);
+	ufd_assert_intern(errno != ENAMETOOLONG);
+	ufd_assert_intern(errno != EOVERFLOW);
 	ufd_assert_api(errno != EINVAL);
 
 	return -errno;
@@ -152,7 +153,7 @@ ufd_lseek(int fd, off_t off, int whence)
 		return ret;
 
 	ufd_assert_api(errno != EBADF);
-	ufd_assert_api(errno != EOVERFLOW);
+	ufd_assert_intern(errno != EOVERFLOW);
 	ufd_assert_api(errno != ESPIPE);
 
 	return ret;
@@ -300,6 +301,7 @@ ufd_open(const char * __restrict path, int flags)
 
 	ufd_assert_intern(errno != EFAULT);
 	ufd_assert_intern(errno != ENAMETOOLONG);
+	ufd_assert_intern(errno != EOVERFLOW);
 
 	return -errno;
 }
@@ -329,6 +331,7 @@ ufd_open_at(int dir, const char * __restrict path, int flags)
 	ufd_assert_api(errno != EBADF);
 	ufd_assert_intern(errno != EFAULT);
 	ufd_assert_intern(errno != ENAMETOOLONG);
+	ufd_assert_intern(errno != EOVERFLOW);
 
 	return -errno;
 }
