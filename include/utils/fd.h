@@ -52,7 +52,7 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
 
-static inline __utils_nothrow
+static inline __utils_nothrow __warn_result
 unsigned int
 ufd_max_nr(void)
 {
@@ -79,7 +79,7 @@ ufd_fchown(int fd, uid_t owner, gid_t group)
 	return -errno;
 }
 
-static inline __utils_nothrow
+static inline __utils_nothrow __warn_result
 int
 ufd_fchmod(int fd, mode_t mode)
 {
@@ -94,7 +94,7 @@ ufd_fchmod(int fd, mode_t mode)
 	return -errno;
 }
 
-static inline __utils_nonull(2) __utils_nothrow
+static inline __utils_nonull(2) __utils_nothrow __warn_result
 int 
 ufd_fstat(int fd, struct stat * __restrict st)
 {
@@ -111,7 +111,7 @@ ufd_fstat(int fd, struct stat * __restrict st)
 	return -errno;
 }
 
-static inline __utils_nonull(2, 3) __utils_nothrow
+static inline __utils_nonull(2, 3) __utils_nothrow __warn_result
 int
 ufd_fstat_at(int                      fd,
              const char * __restrict  path,
@@ -135,7 +135,7 @@ ufd_fstat_at(int                      fd,
 	return -errno;
 }
 
-static inline __utils_nothrow
+static inline __utils_nothrow __warn_result
 off_t
 ufd_lseek(int fd, off_t off, int whence)
 {
@@ -258,7 +258,7 @@ ufd_writev(int fd, const struct iovec * __restrict vectors, unsigned int count)
 	return -errno;
 }
 
-static inline __utils_nothrow
+static inline __utils_nothrow __warn_result
 int
 ufd_dup2(int old_fd, int new_fd)
 {
@@ -281,7 +281,7 @@ ufd_dup2(int old_fd, int new_fd)
 	return -errno;
 }
 
-static inline __utils_nonull(1)
+static inline __utils_nonull(1) __warn_result
 int
 ufd_open(const char * __restrict path, int flags)
 {
@@ -307,9 +307,10 @@ ufd_open(const char * __restrict path, int flags)
 }
 
 extern int
-ufd_nointr_open(const char * __restrict path, int flags) __utils_nonull(1);
+ufd_nointr_open(const char * __restrict path, int flags)
+	__utils_nonull(1) __warn_result;
 
-static inline __utils_nonull(2)
+static inline __utils_nonull(2) __warn_result
 int
 ufd_open_at(int dir, const char * __restrict path, int flags)
 {
@@ -338,7 +339,7 @@ ufd_open_at(int dir, const char * __restrict path, int flags)
 
 extern int
 ufd_nointr_open_at(int dir, const char * __restrict path, int flags)
-	__utils_nonull(2);
+	__utils_nonull(2) __warn_result;
 
 static inline
 int

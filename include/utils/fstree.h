@@ -24,46 +24,55 @@
 struct etux_fstree_iter;
 
 extern const char *
-etux_fstree_iter_path(const struct etux_fstree_iter * __restrict iter) \
-	__utils_nonull(1) \
-	__utils_pure \
-	__utils_nothrow \
-	__returns_nonull \
+etux_fstree_iter_path(const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1)
+	__utils_pure
+	__utils_nothrow
+	__leaf
+	__returns_nonull
 	__warn_result;
 
 struct etux_fstree_entry;
 
 extern bool
 etux_fstree_entry_isdot(const struct etux_fstree_entry * __restrict entry,
-                        const struct etux_fstree_iter * __restrict  iter);
-
-extern const struct stat *
-etux_fstree_entry_stat(struct etux_fstree_entry * __restrict      entry,
-                       const struct etux_fstree_iter * __restrict iter);
+                        const struct etux_fstree_iter * __restrict  iter)
+	__utils_nonull(1, 2) __utils_pure __utils_nothrow __leaf __warn_result;
 
 extern int
 etux_fstree_entry_type(struct etux_fstree_entry * __restrict      entry,
-                       const struct etux_fstree_iter * __restrict iter);
+                       const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
+
+extern const struct stat *
+etux_fstree_entry_stat(struct etux_fstree_entry * __restrict      entry,
+                       const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
 extern const char *
 etux_fstree_entry_name(const struct etux_fstree_entry * __restrict entry,
                        const struct etux_fstree_iter * __restrict  iter)
-	__utils_nonull(1, 2) \
-	__utils_pure \
-	__utils_nothrow \
-	__returns_nonull \
+	__utils_nonull(1, 2)
+	__utils_pure
+	__utils_nothrow
+	__leaf
+	__returns_nonull
 	__warn_result;
 
 extern const char *
 etux_fstree_entry_path(struct etux_fstree_entry * __restrict      entry,
-                       const struct etux_fstree_iter * __restrict iter);
+                       const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
+
 
 extern const char *
 etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
-                        const struct etux_fstree_iter * __restrict iter);
+                        const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1, 2) __warn_result;
 
 extern unsigned int
-etux_fstree_depth(const struct etux_fstree_iter * __restrict iter);
+etux_fstree_depth(const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 enum etux_fstree_event {
 	/* etux_fstree_iter() and etux_fstree_scan() events */
@@ -114,12 +123,14 @@ extern int
 etux_fstree_iter(const char * __restrict path,
                  int                     options,
                  etux_fstree_handle_fn * handle,
-                 void *                  data);
+                 void *                  data)
+	__utils_nonull(3) __warn_result;
 
 extern int
 etux_fstree_scan(const char * __restrict path,
                  int                     options,
                  etux_fstree_handle_fn * handle,
-                 void *                  data);
+                 void *                  data)
+	__utils_nonull(3) __warn_result;
 
 #endif /* _UTILS_FSTREE_H */
