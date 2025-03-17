@@ -6,6 +6,7 @@
  ******************************************************************************/
 
 #include "utils/fstree.h"
+#include <stroll/array.h>
 #include <dirent.h>
 
 #if !defined(_DIRENT_HAVE_D_TYPE)
@@ -181,8 +182,9 @@ etux_fstree_validate_dirent(const struct dirent * __restrict           dirent,
 }
 
 bool
-etux_fstree_entry_isdot(const struct etux_fstree_entry * __restrict entry,
-                        const struct etux_fstree_iter * __restrict  iter)
+etux_fstree_entry_isdot(
+	const struct etux_fstree_entry * __restrict entry,
+	const struct etux_fstree_iter * __restrict  iter __unused)
 {
 	etux_fstree_assert_entry_api(entry, iter);
 
@@ -329,8 +331,9 @@ etux_fstree_entry_type(struct etux_fstree_entry * __restrict      entry,
 }
 
 const char *
-etux_fstree_entry_name(const struct etux_fstree_entry * __restrict entry,
-                       const struct etux_fstree_iter * __restrict  iter)
+etux_fstree_entry_name(
+	const struct etux_fstree_entry * __restrict entry,
+	const struct etux_fstree_iter * __restrict  iter __unused)
 {
 	etux_fstree_assert_entry_api(entry, iter);
 
@@ -440,76 +443,6 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
 	return entry->slink;
 }
 
-unsigned int
-etux_fstree_depth(const struct etux_fstree_iter * __restrict iter)
-{
-	etux_fstree_assert_iter_api(iter);
-
-	return iter->depth;
-}
-
-static __utils_nothrow __warn_result
-struct etux_fstree_entry *
-etux_fstree_alloc_entry(void)
-{
-	return (struct etux_fstree_entry *)
-	       malloc(sizeof(struct etux_fstree_entry));
-}
-
-static __utils_nonull(1) __utils_nothrow
-void
-etux_fstree_init_entry(struct etux_fstree_entry * __restrict entry)
-{
-	etux_fstree_assert_intern(entry);
-
-	entry->flags = 0;
-	entry->path = NULL;
-	entry->slink = NULL;
-}
-
-static __utils_nothrow __warn_result
-struct etux_fstree_entry *
-etux_fstree_create_entry(void)
-{
-	struct etux_fstree_entry * ent;
-
-	ent = etux_fstree_alloc_entry();
-	if (!ent)
-		return NULL;
-
-	etux_fstree_init_entry(ent);
-
-	return ent;
-}
-
-static __utils_nonull(1) __utils_nothrow
-void
-etux_fstree_free_entry(struct etux_fstree_entry * entry)
-{
-	free(entry);
-}
-
-static __utils_nonull(1) __utils_nothrow
-void
-etux_fstree_fini_entry(struct etux_fstree_entry * __restrict entry)
-{
-	etux_fstree_assert_intern(entry);
-
-	free(entry->path);
-	free(entry->slink);
-}
-
-static __utils_nonull(1) __utils_nothrow
-void
-etux_fstree_destroy_entry(struct etux_fstree_entry * entry)
-{
-	etux_fstree_assert_intern(entry);
-
-	etux_fstree_fini_entry(entry);
-
-	etux_fstree_free_entry(entry);
-}
-
 /*
  * When symlinks must be followed, retrieve properties about the current
  * directory entry that is pointed to by a symlink.
@@ -594,6 +527,76 @@ etux_fstree_load_entry(const struct etux_fstree_iter * __restrict iter,
 	return 0;
 }
 
+static __utils_nothrow __warn_result
+struct etux_fstree_entry *
+etux_fstree_alloc_entry(void)
+{
+	return (struct etux_fstree_entry *)
+	       malloc(sizeof(struct etux_fstree_entry));
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_fstree_init_entry(struct etux_fstree_entry * __restrict entry)
+{
+	etux_fstree_assert_intern(entry);
+
+	entry->flags = 0;
+	entry->path = NULL;
+	entry->slink = NULL;
+}
+
+static __utils_nothrow __warn_result
+struct etux_fstree_entry *
+etux_fstree_create_entry(void)
+{
+	struct etux_fstree_entry * ent;
+
+	ent = etux_fstree_alloc_entry();
+	if (!ent)
+		return NULL;
+
+	etux_fstree_init_entry(ent);
+
+	return ent;
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_fstree_free_entry(struct etux_fstree_entry * entry)
+{
+	free(entry);
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_fstree_fini_entry(struct etux_fstree_entry * __restrict entry)
+{
+	etux_fstree_assert_intern(entry);
+
+	free(entry->path);
+	free(entry->slink);
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_fstree_destroy_entry(struct etux_fstree_entry * entry)
+{
+	etux_fstree_assert_intern(entry);
+
+	etux_fstree_fini_entry(entry);
+
+	etux_fstree_free_entry(entry);
+}
+
+unsigned int
+etux_fstree_iter_depth(const struct etux_fstree_iter * __restrict iter)
+{
+	etux_fstree_assert_iter_api(iter);
+
+	return iter->depth;
+}
+
 const char *
 etux_fstree_iter_path(const struct etux_fstree_iter * __restrict iter)
 {
@@ -635,9 +638,9 @@ etux_fstree_iter_next(struct etux_fstree_iter * __restrict  iter,
 	return -ENOENT;
 }
 
-static __utils_nonull(1, 2) __warn_result
+static __utils_nonull(1) __warn_result
 int
-etux_fstree_init_iter(struct etux_fstree_iter * __restrict iter,
+etux_fstree_iter_init(struct etux_fstree_iter * __restrict iter,
                       const char * __restrict              path,
                       int                                  options)
 {
@@ -685,7 +688,7 @@ etux_fstree_init_iter(struct etux_fstree_iter * __restrict iter,
 
 static __utils_nonull(1)
 void
-etux_fstree_fini_iter(struct etux_fstree_iter * __restrict iter)
+etux_fstree_iter_fini(struct etux_fstree_iter * __restrict iter)
 {
 	etux_fstree_assert_iter_intern(iter);
 
@@ -695,6 +698,72 @@ etux_fstree_fini_iter(struct etux_fstree_iter * __restrict iter)
 	etux_fstree_assert_api(!err);
 
 	free(iter->path);
+}
+
+static __utils_nonull(1, 2, 3) __warn_result
+int
+etux_fstree_proceed_next(struct etux_fstree_iter * __restrict iter,
+                         const struct dirent ** __restrict    dirent,
+                         etux_fstree_handle_fn *              handle,
+                         void *                               data)
+{
+	etux_fstree_assert_iter_intern(iter);
+	etux_fstree_assert_intern(dirent);
+	etux_fstree_assert_intern(handle);
+
+	int ret;
+
+	ret = etux_fstree_iter_next(iter, dirent);
+	etux_fstree_assert_intern(ret <= 0);
+	if (!ret)
+		/* Current directory iteration succeded. */
+		return ETUX_FSTREE_CONT_CMD;
+	else if (ret == -ENOENT)
+		/* End of current directory iteration. */
+		return ETUX_FSTREE_STOP_CMD;
+
+	/* An unrecoverable error happened. */
+
+	if (ret != -ENOMEM)
+		handle(NULL, iter, ETUX_FSTREE_NEXT_ERR_EVT, ret, data);
+
+	/*
+	 * Inform the caller of the nature of failure and tell it to abort
+	 * iteration process.
+	 */
+	return ret;
+}
+
+static __utils_nonull(1, 2, 3, 4) __warn_result
+int
+etux_fstree_process_entry(const struct etux_fstree_iter * __restrict iter,
+                          struct etux_fstree_entry * __restrict      entry,
+                          const struct dirent * __restrict           dirent,
+                          etux_fstree_handle_fn *                    handle,
+                          void *                                     data)
+{
+	etux_fstree_assert_iter_intern(iter);
+	etux_fstree_assert_intern(entry);
+	etux_fstree_assert_intern(dirent);
+	etux_fstree_assert_intern(handle);
+
+	int ret;
+
+	/* Load and validate current directory entry content. */
+	ret = etux_fstree_load_entry(iter, entry, dirent);
+	etux_fstree_assert_intern(ret <= 0);
+	if (!ret)
+		/* Entry has been properly loaded. */
+		ret = handle(entry, iter, ETUX_FSTREE_ENT_EVT, 0, data);
+	else if (ret != -ENOMEM)
+		/* An error happened while loading entry. */
+		ret = handle(entry, iter, ETUX_FSTREE_LOAD_ERR_EVT, ret, data);
+
+	etux_fstree_assert_api((ret < 0) ||
+	                       (ret == ETUX_FSTREE_CONT_CMD) ||
+	                       (ret == ETUX_FSTREE_STOP_CMD));
+
+	return ret;
 }
 
 int
@@ -707,68 +776,355 @@ etux_fstree_iter(const char * __restrict path,
 	                       !path[0] ||
 	                       upath_validate_path_name(path) > 0);
 	etux_fstree_assert_api(!(options & ~ETUX_FSTREE_FOLLOW_OPT));
+	etux_fstree_assert_api(handle);
 
 	struct etux_fstree_iter  iter;
 	int                      ret;
 	struct etux_fstree_entry ent;
-	enum etux_fstree_cmd     cmd;
 
-	ret = etux_fstree_init_iter(&iter, path, options);
+	ret = etux_fstree_iter_init(&iter, path, options);
 	if (ret)
 		return ret;
 
 	etux_fstree_init_entry(&ent);
 
-	do {
+	while (true) {
 		const struct dirent * dent;
 
-		/* Advance to next directory entry. */
-		ret = etux_fstree_iter_next(&iter, &dent);
-		etux_fstree_assert_intern(ret <= 0);
-		if (!ret) {
-			/* Load and validate curent directory entry content. */
-			ret = etux_fstree_load_entry(&iter, &ent, dent);
-			if (!ret)
-				/* Entry has been properly loaded. */
-				cmd = handle(&ent,
-				             &iter,
-				             ETUX_FSTREE_ENT_EVT,
-				             &ret,
-				             data);
-			else if (ret != -ENOMEM)
-				/* An error happened while loading entry. */
-				cmd = handle(&ent,
-				             &iter,
-				             ETUX_FSTREE_LOAD_ERR_EVT,
-				             &ret,
-				             data);
-		}
-		else if (ret != -ENOENT) {
-			/* Current directory iteration failed. */
-			if (ret != -ENOMEM)
-				handle(NULL,
-				       &iter,
-				       ETUX_FSTREE_NEXT_ERR_EVT,
-				       &ret,
-				       data);
-			break;
-		}
-		else
+		ret = etux_fstree_proceed_next(&iter,
+		                               &dent,
+		                               handle,
+		                               data);
+		etux_fstree_assert_intern((ret < 0) ||
+		                          (ret == ETUX_FSTREE_CONT_CMD) ||
+		                          (ret == ETUX_FSTREE_STOP_CMD));
+		if (ret != ETUX_FSTREE_CONT_CMD)
 			break;
 
-		if (ret == -ENOMEM)
-			/* No more memory: unrecoverable error. */
+		ret = etux_fstree_process_entry(&iter,
+		                                &ent,
+		                                dent,
+		                                handle,
+		                                data);
+		etux_fstree_assert_intern((ret < 0) ||
+		                          (ret == ETUX_FSTREE_CONT_CMD) ||
+		                          (ret == ETUX_FSTREE_STOP_CMD));
+		if (ret != ETUX_FSTREE_CONT_CMD)
 			break;
-
-		etux_fstree_assert_api((cmd == ETUX_FSTREE_CONT_CMD) ||
-		                       (cmd == ETUX_FSTREE_STOP_CMD));
-	} while (cmd == ETUX_FSTREE_CONT_CMD);
+	}
 
 	etux_fstree_fini_entry(&ent);
 
-	etux_fstree_fini_iter(&iter);
+	etux_fstree_iter_fini(&iter);
 
-	return (ret == -ENOENT) ? 0 : ret;
+	return (ret >= 0) ? 0 : ret;
+}
+
+/******************************************************************************
+ * Simple filesystem tree iterator with sorting ability.
+ ******************************************************************************/
+
+struct etux_fstree_vect {
+	unsigned int                    cnt;
+	unsigned int                    nr;
+	struct etux_fstree_entry **     ents;
+	etux_fstree_cmp_fn *            cmp;
+	const struct etux_fstree_iter * iter;
+	void *                          data;
+};
+
+#define ETUX_FSTREE_VECT_MIN_NR (8U)
+
+#define etux_fstree_assert_vect_api(_vect) \
+	etux_fstree_assert_api(_vect); \
+	etux_fstree_assert_api((_vect)->nr >= ETUX_FSTREE_VECT_MIN_NR); \
+	etux_fstree_assert_api((_vect)->cnt <= (_vect)->nr); \
+	etux_fstree_assert_api((_vect)->ents); \
+	etux_fstree_assert_api((_vect)->cmp); \
+	etux_fstree_assert_api((_vect)->iter)
+
+#define etux_fstree_assert_vect_intern(_vect) \
+	etux_fstree_assert_intern(_vect); \
+	etux_fstree_assert_intern((_vect)->nr >= ETUX_FSTREE_VECT_MIN_NR); \
+	etux_fstree_assert_intern((_vect)->cnt <= (_vect)->nr); \
+	etux_fstree_assert_intern((_vect)->ents); \
+	etux_fstree_assert_intern((_vect)->cmp); \
+	etux_fstree_assert_intern((_vect)->iter)
+
+#define etux_fstree_vect_foreach(_vect, _indx, _ent) \
+	for ((_indx) = 0, _ent = etux_fstree_vect_get(_vect, _indx); \
+	     (_ent); \
+	     (_indx)++, _ent = etux_fstree_vect_get(_vect, _indx))
+
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+unsigned int
+etux_fstree_vect_count(const struct etux_fstree_vect * __restrict vector)
+{
+	etux_fstree_assert_vect_intern(vector);
+
+	return vector->cnt;
+}
+
+static __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+struct etux_fstree_entry *
+etux_fstree_vect_get(const struct etux_fstree_vect * __restrict vector,
+                     unsigned int                               index)
+{
+	etux_fstree_assert_vect_intern(vector);
+
+	if (index < etux_fstree_vect_count(vector))
+		return vector->ents[index];
+
+	return NULL;
+}
+
+static __utils_nonull(1) __utils_nothrow __warn_result
+int
+etux_fstree_vect_grow(struct etux_fstree_vect * __restrict vector)
+{
+	etux_fstree_assert_vect_intern(vector);
+
+	struct etux_fstree_entry ** ents = vector->ents;
+	unsigned int                nr = 2 * vector->nr;
+
+	ents = realloc(ents, nr * sizeof(*ents));
+	if (!ents)
+		return -ENOMEM;
+
+	vector->ents = ents;
+	vector->nr = nr;
+
+	return 0;
+}
+
+static __utils_nonull(1) __utils_nothrow __warn_result
+int
+etux_fstree_vect_add(struct etux_fstree_vect * __restrict  vector,
+                     struct etux_fstree_entry * __restrict entry)
+{
+	etux_fstree_assert_vect_intern(vector);
+
+	if (vector->cnt == vector->nr) {
+		int err;
+
+		err = etux_fstree_vect_grow(vector);
+		if (err)
+			return -ENOMEM;
+	}
+
+	vector->ents[vector->cnt++] = entry;
+
+	return 0;
+}
+
+static __stroll_nonull(1, 2) __warn_result
+int
+etux_fstree_vect_cmp(const void * __restrict first,
+                     const void * __restrict second,
+                     void *                  data)
+{
+	etux_fstree_assert_intern(first);
+	etux_fstree_assert_intern(second);
+	etux_fstree_assert_intern(data);
+
+	struct etux_fstree_entry *      fst =
+		*(struct etux_fstree_entry * const *)first;
+	struct etux_fstree_entry *      snd =
+		*(struct etux_fstree_entry * const *)second;
+	const struct etux_fstree_vect * vect =
+		(const struct etux_fstree_vect *)data;
+
+	etux_fstree_assert_vect_intern(vect);
+	etux_fstree_assert_entry_intern(fst, vect->iter);
+	etux_fstree_assert_entry_intern(snd, vect->iter);
+
+	return vect->cmp(fst, snd, vect->iter, vect->data);
+}
+
+static __utils_nonull(1) __warn_result
+int
+etux_fstree_vect_sort(struct etux_fstree_vect * __restrict vector)
+{
+	etux_fstree_assert_vect_intern(vector);
+
+	return stroll_array_merge_sort(vector->ents,
+	                               vector->cnt,
+	                               sizeof(vector->ents[0]),
+	                               etux_fstree_vect_cmp,
+	                               vector);
+}
+
+static __utils_nonull(1, 2, 3) __utils_nothrow __warn_result
+int
+etux_fstree_vect_init(struct etux_fstree_vect * __restrict       vector,
+                      const struct etux_fstree_iter * __restrict iter,
+                      etux_fstree_cmp_fn *                       compare,
+                      void *                                     data)
+{
+	etux_fstree_assert_intern(vector);
+	etux_fstree_assert_iter_intern(iter);
+	etux_fstree_assert_intern(compare);
+
+	struct etux_fstree_entry ** ents;
+
+	ents = malloc(ETUX_FSTREE_VECT_MIN_NR * sizeof(*ents));
+	if (!ents)
+		return -ENOMEM;
+
+	vector->cnt = 0;
+	vector->nr = ETUX_FSTREE_VECT_MIN_NR;
+	vector->ents = ents;
+	vector->cmp = compare;
+	vector->iter = iter;
+	vector->data = data;
+
+	return 0;
+}
+
+static __utils_nonull(1) __utils_nothrow
+void
+etux_fstree_vect_fini(struct etux_fstree_vect * __restrict vector)
+{
+	etux_fstree_assert_vect_intern(vector);
+
+	unsigned int               e;
+	struct etux_fstree_entry * ent;
+
+	etux_fstree_vect_foreach(vector, e, ent)
+		etux_fstree_destroy_entry(ent);
+
+	free(vector->ents);
+}
+
+static __utils_nonull(1, 2, 3, 5) __warn_result
+int
+etux_fstree_process_sort_entry(
+	const struct etux_fstree_iter * __restrict iter,
+	struct etux_fstree_vect * __restrict       vector,
+	const struct dirent * __restrict           dirent,
+	etux_fstree_filter_fn *                    filter,
+	etux_fstree_handle_fn *                    handle,
+	void *                                     data)
+{
+	etux_fstree_assert_iter_intern(iter);
+	etux_fstree_assert_vect_intern(vector);
+	etux_fstree_assert_intern(dirent);
+	etux_fstree_assert_intern(handle);
+
+	struct etux_fstree_entry * ent;
+	int                        ret;
+
+	ent = etux_fstree_create_entry();
+	if (!ent)
+		return -ENOMEM;
+
+	/* Load and validate current directory entry content. */
+	ret = etux_fstree_load_entry(iter, ent, dirent);
+	etux_fstree_assert_intern(ret <= 0);
+	if (!ret) {
+		/* Entry has been properly loaded. */
+		if (filter)
+			ret = filter(ent, iter, data);
+
+		if (ret == ETUX_FSTREE_CONT_CMD) {
+			ret = etux_fstree_vect_add(vector, ent);
+			etux_fstree_assert_intern(!ret || (ret == -ENOMEM));
+			if (!ret)
+				return ETUX_FSTREE_CONT_CMD;
+		}
+	}
+	else if (ret != -ENOMEM)
+		/* An error happened while loading entry. */
+		ret = handle(ent, iter, ETUX_FSTREE_LOAD_ERR_EVT, ret, data);
+
+	etux_fstree_assert_api((ret < 0) ||
+	                       (ret == ETUX_FSTREE_CONT_CMD) ||
+	                       (ret == ETUX_FSTREE_STOP_CMD) ||
+	                       (ret == ETUX_FSTREE_SKIP_CMD));
+
+	etux_fstree_destroy_entry(ent);
+
+	return (ret != ETUX_FSTREE_SKIP_CMD) ? ret : ETUX_FSTREE_CONT_CMD;
+}
+
+int
+etux_fstree_iter_sort(const char * __restrict path,
+                      int                     options,
+                      etux_fstree_filter_fn * filter,
+                      etux_fstree_cmp_fn *    compare,
+                      etux_fstree_handle_fn * handle,
+                      void *                  data)
+{
+	etux_fstree_assert_api(!path ||
+	                       !path[0] ||
+	                       upath_validate_path_name(path) > 0);
+	etux_fstree_assert_api(!(options & ~ETUX_FSTREE_FOLLOW_OPT));
+	etux_fstree_assert_api(compare);
+	etux_fstree_assert_api(handle);
+
+	struct etux_fstree_iter    iter;
+	int                        ret;
+	struct etux_fstree_vect    vect;
+	unsigned int               e;
+	struct etux_fstree_entry * ent;
+
+	ret = etux_fstree_iter_init(&iter, path, options);
+	if (ret)
+		return ret;
+
+	ret = etux_fstree_vect_init(&vect, &iter, compare, data);
+	if (ret)
+		goto fini_iter;
+
+	while (true) {
+		const struct dirent * dent;
+
+		ret = etux_fstree_proceed_next(&iter,
+		                               &dent,
+		                               handle,
+		                               data);
+		etux_fstree_assert_intern((ret < 0) ||
+		                          (ret == ETUX_FSTREE_CONT_CMD) ||
+		                          (ret == ETUX_FSTREE_STOP_CMD));
+		if (ret != ETUX_FSTREE_CONT_CMD)
+			break;
+
+		ret = etux_fstree_process_sort_entry(&iter,
+		                                     &vect,
+		                                     dent,
+		                                     filter,
+		                                     handle,
+		                                     data);
+		etux_fstree_assert_intern((ret < 0) ||
+		                          (ret == ETUX_FSTREE_CONT_CMD) ||
+		                          (ret == ETUX_FSTREE_STOP_CMD));
+		if (ret != ETUX_FSTREE_CONT_CMD)
+			break;
+	}
+
+	if (ret < 0)
+		goto fini_vect;
+
+	ret = etux_fstree_vect_sort(&vect);
+	if (ret)
+		goto fini_vect;
+
+	etux_fstree_vect_foreach(&vect, e, ent) {
+		ret = handle(ent, &iter, ETUX_FSTREE_ENT_EVT, 0, data);
+		if (ret)
+			break;
+	}
+
+	etux_fstree_assert_api((ret < 0) ||
+	                       (ret == ETUX_FSTREE_CONT_CMD) ||
+	                       (ret == ETUX_FSTREE_STOP_CMD));
+
+fini_vect:
+	etux_fstree_vect_fini(&vect);
+fini_iter:
+	etux_fstree_iter_fini(&iter);
+
+	return ret;
 }
 
 /******************************************************************************
@@ -834,7 +1190,7 @@ etux_fstree_track_grow(struct etux_fstree_track * __restrict track)
 	return 0;
 }
 
-static __utils_nonull(1) __utils_nothrow __returns_nonull __warn_result
+static __utils_nonull(1) __utils_nothrow __warn_result
 struct etux_fstree_point *
 etux_fstree_track_push(struct etux_fstree_track * __restrict track)
 {
@@ -957,7 +1313,7 @@ etux_fstree_open_dir_at(int fd, const char * __restrict path, int flags)
 
 static __utils_nonull(1, 2) __utils_nothrow __warn_result
 int
-etux_fstree_isxdev_scan_entry(struct etux_fstree_entry * __restrict      entry,
+etux_fstree_scan_isxdev_entry(struct etux_fstree_entry * __restrict      entry,
                               const struct etux_fstree_scan * __restrict scan)
 {
 	etux_fstree_assert_scan_entry_intern(entry, scan);
@@ -976,7 +1332,7 @@ etux_fstree_isxdev_scan_entry(struct etux_fstree_entry * __restrict      entry,
 
 static __utils_nonull(1, 2) __utils_nothrow __warn_result
 int
-etux_fstree_isloop_scan_entry(struct etux_fstree_entry * __restrict      entry,
+etux_fstree_scan_isloop_entry(struct etux_fstree_entry * __restrict      entry,
                               const struct etux_fstree_scan * __restrict scan)
 {
 	etux_fstree_assert_scan_entry_intern(entry, scan);
@@ -1008,7 +1364,7 @@ etux_fstree_isloop_scan_entry(struct etux_fstree_entry * __restrict      entry,
 
 static __utils_nonull(1, 2) __warn_result
 int
-etux_fstree_enter_scan_dir(struct etux_fstree_scan * __restrict  scan,
+etux_fstree_scan_enter_dir(struct etux_fstree_scan * __restrict  scan,
                            struct etux_fstree_entry * __restrict entry)
 {
 	etux_fstree_assert_scan_entry_intern(entry, scan);
@@ -1023,7 +1379,7 @@ etux_fstree_enter_scan_dir(struct etux_fstree_scan * __restrict  scan,
 	if (scan->iter.opts & ETUX_FSTREE_FOLLOW_OPT) {
 		/*
 		 * Ensure that `entry->stat' is loaded so that
-		 * etux_fstree_isloop_scan_entry() may perform cross device
+		 * etux_fstree_scan_isloop_entry() may perform cross device
 		 * check.
 		 */
 		if (!etux_fstree_entry_stat(entry, &scan->iter))
@@ -1061,9 +1417,91 @@ etux_fstree_enter_scan_dir(struct etux_fstree_scan * __restrict  scan,
 	return 0;
 }
 
+static __utils_nonull(1, 2, 3) __warn_result
+int
+etux_fstree_scan_enter_entry(struct etux_fstree_scan * __restrict   scan,
+                             struct etux_fstree_entry ** __restrict entry,
+                             etux_fstree_handle_fn *                handle,
+                             void *                                 data)
+{
+	etux_fstree_assert_intern(entry);
+	etux_fstree_assert_scan_entry_intern(*entry, scan);
+	etux_fstree_assert_intern(handle);
+
+	struct etux_fstree_entry * old = *entry;
+	int                        ret;
+
+	ret = etux_fstree_scan_isloop_entry(old, scan);
+	etux_fstree_assert_intern(ret <= 1);
+	if (!ret) {
+		struct etux_fstree_entry * nevv;
+
+		if (scan->iter.opts & ETUX_FSTREE_PRE_OPT) {
+			/*
+			 * Make sure that the handler really wants to recurse
+			 * into this subdirectory.
+			 */
+			ret = handle(old,
+			             &scan->iter,
+			             ETUX_FSTREE_PRE_EVT,
+			             0,
+			             data);
+			switch (ret) {
+			case ETUX_FSTREE_CONT_CMD:
+				break;
+			case ETUX_FSTREE_SKIP_CMD:
+				return ETUX_FSTREE_CONT_CMD;
+			case ETUX_FSTREE_STOP_CMD:
+				return ETUX_FSTREE_STOP_CMD;
+			default:
+				etux_fstree_assert_api(ret < 0);
+				return ret;
+			}
+		}
+
+		nevv = etux_fstree_create_entry();
+		if (!nevv)
+			return -ENOMEM;
+
+		ret = etux_fstree_scan_enter_dir(scan, old);
+		if (!ret) {
+			/* Entering the child directory succeeded. */
+			scan->iter.depth++;
+			*entry = nevv;
+			return ETUX_FSTREE_CONT_CMD;
+		}
+
+		etux_fstree_free_entry(nevv);
+
+		if (ret != -ENOMEM)
+			/* Entering the child directory failed. */
+			ret = handle(old,
+			             &scan->iter,
+			             ETUX_FSTREE_DIR_ERR_EVT,
+			             ret,
+			             data);
+	}
+	else if (ret == 1)
+			/* Symlink to directory loop detected: don't recurse. */
+			ret = handle(old,
+			             &scan->iter,
+			             ETUX_FSTREE_LOOP_EVT,
+			             0,
+			             data);
+	else if (ret != -ENOMEM)
+			/* Failure while retrieving entry attributes. */
+			ret = handle(old,
+			             &scan->iter,
+			             ETUX_FSTREE_LOAD_ERR_EVT,
+			             ret,
+			             data);
+
+	return ret;
+}
+
 static __utils_nonull(1) __warn_result
 struct etux_fstree_entry *
-udir_scan_exit_dir(struct etux_fstree_scan * __restrict scan)
+etux_fstree_scan_exit_dir(struct etux_fstree_scan * __restrict scan)
 {
 	etux_fstree_assert_scan_intern(scan);
 
@@ -1092,6 +1530,35 @@ udir_scan_exit_dir(struct etux_fstree_scan * __restrict scan)
 		return NULL;
 }
 
+static __utils_nonull(1, 2, 3) __warn_result
+int
+etux_fstree_scan_exit_entry(struct etux_fstree_scan * __restrict   scan,
+                            struct etux_fstree_entry ** __restrict entry,
+                            etux_fstree_handle_fn *                handle,
+                            void *                                 data)
+{
+	etux_fstree_assert_intern(entry);
+	etux_fstree_assert_scan_entry_intern(*entry, scan);
+	etux_fstree_assert_intern(handle);
+
+	struct etux_fstree_entry * ent;
+
+	ent = etux_fstree_scan_exit_dir(scan);
+	if (!ent)
+		return ETUX_FSTREE_STOP_CMD;
+
+	etux_fstree_destroy_entry(*entry);
+	*entry = ent;
+
+	etux_fstree_assert_intern(scan->iter.depth);
+	scan->iter.depth--;
+
+	if (!(scan->iter.opts & ETUX_FSTREE_POST_OPT))
+		return ETUX_FSTREE_CONT_CMD;
+
+	return handle(ent, &scan->iter, ETUX_FSTREE_POST_EVT, 0, data);
+}
+
 /*
  * Load current directory entry then check if it is suitable for recursing down
  * the filesystem tree.
@@ -1104,7 +1571,7 @@ udir_scan_exit_dir(struct etux_fstree_scan * __restrict scan)
  */
 static __utils_nonull(1, 2, 3) __utils_nothrow __warn_result
 int
-etux_fstree_load_scan_entry(const struct etux_fstree_scan * __restrict scan,
+etux_fstree_scan_load_entry(const struct etux_fstree_scan * __restrict scan,
                             struct etux_fstree_entry * __restrict      entry,
                             const struct dirent * __restrict           dirent)
 {
@@ -1128,7 +1595,7 @@ etux_fstree_load_scan_entry(const struct etux_fstree_scan * __restrict scan,
 		return 0;
 
 	if (!(scan->iter.opts & ETUX_FSTREE_XDEV_OPT)) {
-		ret = etux_fstree_isxdev_scan_entry(entry, scan);
+		ret = etux_fstree_scan_isxdev_entry(entry, scan);
 		if (ret < 0)
 			return ret;
 		else if (ret)
@@ -1138,20 +1605,9 @@ etux_fstree_load_scan_entry(const struct etux_fstree_scan * __restrict scan,
 	return 1;
 }
 
-static __utils_nonull(1, 2) __warn_result
+static __utils_nonull(1) __warn_result
 int
-etux_fstree_scan_next(struct etux_fstree_scan * __restrict  scan,
-                      const struct dirent ** __restrict     dirent)
-{
-	etux_fstree_assert_scan_intern(scan);
-	etux_fstree_assert_intern(dirent);
-
-	return etux_fstree_iter_next(&scan->iter, dirent);
-}
-
-static __utils_nonull(1, 2) __warn_result
-int
-etux_fstree_init_scan(struct etux_fstree_scan * __restrict scan,
+etux_fstree_scan_init(struct etux_fstree_scan * __restrict scan,
                       const char * __restrict              path,
                       int                                  options)
 {
@@ -1165,7 +1621,7 @@ etux_fstree_init_scan(struct etux_fstree_scan * __restrict scan,
 	int         fd;
 	struct stat st;
 
-	err = etux_fstree_init_iter(&scan->iter, path, options);
+	err = etux_fstree_iter_init(&scan->iter, path, options);
 	if (err)
 		return err;
 
@@ -1186,14 +1642,14 @@ etux_fstree_init_scan(struct etux_fstree_scan * __restrict scan,
 	return 0;
 
 fini:
-	etux_fstree_fini_iter(&scan->iter);
+	etux_fstree_iter_fini(&scan->iter);
 
 	return err;
 }
 
 static __utils_nonull(1)
 void
-etux_fstree_fini_scan(struct etux_fstree_scan * __restrict scan)
+etux_fstree_scan_fini(struct etux_fstree_scan * __restrict scan)
 {
 	etux_fstree_assert_scan_intern(scan);
 
@@ -1215,137 +1671,61 @@ etux_fstree_fini_scan(struct etux_fstree_scan * __restrict scan)
 
 	etux_fstree_track_fini(&scan->track);
 
-	etux_fstree_fini_iter(&scan->iter);
+	etux_fstree_iter_fini(&scan->iter);
+}
+
+static __utils_nonull(1, 2, 3) __warn_result
+int
+etux_fstree_scan_proceed_next(struct etux_fstree_scan * __restrict scan,
+                              const struct dirent ** __restrict    dirent,
+                              etux_fstree_handle_fn *              handle,
+                              void *                               data)
+{
+	etux_fstree_assert_scan_intern(scan);
+	etux_fstree_assert_intern(dirent);
+	etux_fstree_assert_intern(handle);
+
+	return etux_fstree_proceed_next(&scan->iter, dirent, handle, data);
 }
 
 static __utils_nonull(1, 2, 3, 4) __warn_result
-enum etux_fstree_cmd
-etux_fstree_enter_scan_entry(struct etux_fstree_scan * __restrict   scan,
-                             struct etux_fstree_entry ** __restrict entry,
-                             int * __restrict                       status,
-                             etux_fstree_handle_fn *                handle,
-                             void *                                 data)
+int
+etux_fstree_scan_process_entry(struct etux_fstree_scan * __restrict   scan,
+                               struct etux_fstree_entry ** __restrict entry,
+                               const struct dirent * __restrict       dirent,
+                               etux_fstree_handle_fn *                handle,
+                               void *                                 data)
 {
+	etux_fstree_assert_scan_intern(scan);
 	etux_fstree_assert_intern(entry);
-	etux_fstree_assert_scan_entry_intern(*entry, scan);
-	etux_fstree_assert_intern(status);
-	etux_fstree_assert_intern(*status == 1);
+	etux_fstree_assert_intern(*entry);
+	etux_fstree_assert_intern(dirent);
 	etux_fstree_assert_intern(handle);
 
-	struct etux_fstree_entry * old = *entry;
-	int                        ret;
+	int ret;
 
-	ret = etux_fstree_isloop_scan_entry(old, scan);
-	if (!ret) {
-		struct etux_fstree_entry * nevv;
+	/* Load and validate current directory entry content. */
+	ret = etux_fstree_scan_load_entry(scan, *entry, dirent);
+	etux_fstree_assert_intern(ret <= 1);
+	if (!ret)
+		/* Entry has been properly loaded. */
+		ret = handle(*entry, &scan->iter, ETUX_FSTREE_ENT_EVT, 0, data);
+	else if (ret == 1)
+		/* Recursion required. */
+		ret = etux_fstree_scan_enter_entry(scan, entry, handle, data);
+	else if (ret != -ENOMEM)
+		/* An error happened while loading entry. */
+		ret = handle(*entry,
+		             &scan->iter,
+		             ETUX_FSTREE_LOAD_ERR_EVT,
+		             ret,
+		             data);
 
-		*status = 0;
-		if (scan->iter.opts & ETUX_FSTREE_PRE_OPT) {
-			/*
-			 * Make sure that the handler really wants to recurse
-			 * into this subdirectory.
-			 */
-			switch (handle(old,
-			               &scan->iter,
-			               ETUX_FSTREE_PRE_EVT,
-			               status,
-			               data)) {
-			case ETUX_FSTREE_CONT_CMD:
-				break;
-			case ETUX_FSTREE_SKIP_CMD:
-				return ETUX_FSTREE_CONT_CMD;
-			case ETUX_FSTREE_STOP_CMD:
-				return ETUX_FSTREE_STOP_CMD;
-			default:
-				etux_fstree_assert_api(0);
-			}
-		}
+	etux_fstree_assert_api((ret < 0) ||
+	                       (ret == ETUX_FSTREE_CONT_CMD) ||
+	                       (ret == ETUX_FSTREE_STOP_CMD));
 
-		nevv = etux_fstree_create_entry();
-		if (!nevv) {
-			*status = -ENOMEM;
-			return ETUX_FSTREE_STOP_CMD;
-		}
-
-		ret = etux_fstree_enter_scan_dir(scan, old);
-		if (!ret) {
-			/* Entering the child directory succeeded. */
-			scan->iter.depth++;
-			*entry = nevv;
-			return ETUX_FSTREE_CONT_CMD;
-		}
-
-		etux_fstree_free_entry(nevv);
-
-		*status = ret;
-		if (ret != -ENOMEM)
-			/* Entering the child directory failed. */
-			return handle(old,
-			              &scan->iter,
-			              ETUX_FSTREE_DIR_ERR_EVT,
-			              status,
-			              data);
-		else
-			/* No more memory: unrecoverable error. */
-			return ETUX_FSTREE_STOP_CMD;
-	}
-	else {
-		if (ret == 1) {
-			/* Symlink to directory loop detected: don't recurse. */
-			*status = 0;
-			return handle(old,
-			              &scan->iter,
-			              ETUX_FSTREE_LOOP_EVT,
-			              status,
-			              data);
-		}
-
-		*status = ret;
-		if (ret != -ENOMEM)
-			/* Failure while retrieving entry attributes. */
-			return handle(old,
-			              &scan->iter,
-			              ETUX_FSTREE_LOAD_ERR_EVT,
-			              status,
-			              data);
-		else
-			/* No more memory: unrecoverable error. */
-			return ETUX_FSTREE_STOP_CMD;
-	}
-}
-
-static __utils_nonull(1, 2, 3, 4) __warn_result
-enum etux_fstree_cmd
-etux_fstree_exit_scan_entry(struct etux_fstree_scan * __restrict   scan,
-                            struct etux_fstree_entry ** __restrict entry,
-                            int * __restrict                       status,
-                            etux_fstree_handle_fn *                handle,
-                            void *                                 data)
-{
-	etux_fstree_assert_intern(entry);
-	etux_fstree_assert_scan_entry_intern(*entry, scan);
-	etux_fstree_assert_intern(status);
-	etux_fstree_assert_intern(*status == -ENOENT);
-	etux_fstree_assert_intern(handle);
-
-	struct etux_fstree_entry * ent;
-
-	*status = 0;
-
-	ent = udir_scan_exit_dir(scan);
-	if (!ent)
-		return ETUX_FSTREE_STOP_CMD;
-
-	etux_fstree_destroy_entry(*entry);
-	*entry = ent;
-
-	etux_fstree_assert_intern(scan->iter.depth);
-	scan->iter.depth--;
-
-	if (!(scan->iter.opts & ETUX_FSTREE_POST_OPT))
-		return ETUX_FSTREE_CONT_CMD;
-
-	return handle(ent, &scan->iter, ETUX_FSTREE_POST_EVT, status, data);
+	return ret;
 }
 
 int
@@ -1354,12 +1734,17 @@ etux_fstree_scan(const char * __restrict path,
                  etux_fstree_handle_fn * handle,
                  void *                  data)
 {
+	etux_fstree_assert_api(!path ||
+	                       !path[0] ||
+	                       upath_validate_path_name(path) > 0);
+	etux_fstree_assert_api(!(options & ~ETUX_FSTREE_VALID_OPTS));
+	etux_fstree_assert_api(handle);
+
 	struct etux_fstree_scan    scan;
 	int                        ret;
 	struct etux_fstree_entry * ent;
-	enum etux_fstree_cmd       cmd;
 
-	ret = etux_fstree_init_scan(&scan, path, options);
+	ret = etux_fstree_scan_init(&scan, path, options);
 	if (ret)
 		return ret;
 
@@ -1369,68 +1754,41 @@ etux_fstree_scan(const char * __restrict path,
 		goto fini;
 	}
 
-	do {
+	while (true) {
 		const struct dirent * dent;
 
-		/* Advance to next directory entry. */
-		ret = etux_fstree_scan_next(&scan, &dent);
-		etux_fstree_assert_intern(ret <= 0);
-		if (!ret) {
-			/* Load and validate curent directory entry content. */
-			ret = etux_fstree_load_scan_entry(&scan, ent, dent);
-			if (!ret)
-				/* Entry is not suitable for recursion. */
-				cmd = handle(ent,
-				             &scan.iter,
-				             ETUX_FSTREE_ENT_EVT,
-				             &ret,
-				             data);
-			else if (ret == 1)
-				/* Recursion required. */
-				cmd = etux_fstree_enter_scan_entry(&scan,
-				                                   &ent,
-				                                   &ret,
-				                                   handle,
-				                                   data);
-			else if (ret != -ENOMEM)
-				/* An error happened while loading entry. */
-				cmd = handle(ent,
-				             &scan.iter,
-				             ETUX_FSTREE_LOAD_ERR_EVT,
-				             &ret,
-				             data);
-		}
-		else if (ret != -ENOENT) {
-			/* Current directory iteration failed. */
-			etux_fstree_assert_intern(ret < 0);
-
-			if (ret != -ENOMEM)
-				handle(NULL,
-				       &scan.iter,
-				       ETUX_FSTREE_NEXT_ERR_EVT,
-				       &ret,
-				       data);
-		}
-		else
-			/* End of current directory iteration. */
-			cmd = etux_fstree_exit_scan_entry(&scan,
-			                                  &ent,
-			                                  &ret,
-			                                  handle,
-			                                  data);
-
-		if (ret == -ENOMEM)
-			/* No more memory: unrecoverable error. */
+		ret = etux_fstree_scan_proceed_next(&scan,
+		                                    &dent,
+		                                    handle,
+		                                    data);
+		etux_fstree_assert_intern((ret < 0) ||
+		                          (ret == ETUX_FSTREE_CONT_CMD) ||
+		                          (ret == ETUX_FSTREE_STOP_CMD));
+		if (ret < 0)
 			break;
 
-		etux_fstree_assert_api(cmd >= 0);
-		etux_fstree_assert_api(cmd < ETUX_FSTREE_CMD_NR);
-	} while (cmd == ETUX_FSTREE_CONT_CMD);
+		if (ret == ETUX_FSTREE_CONT_CMD)
+			ret = etux_fstree_scan_process_entry(&scan,
+			                                     &ent,
+			                                     dent,
+			                                     handle,
+			                                     data);
+		else /* ret == ETUX_FSTREE_STOP_CMD */
+			ret = etux_fstree_scan_exit_entry(&scan,
+			                                  &ent,
+			                                  handle,
+			                                  data);
+		etux_fstree_assert_intern((ret < 0) ||
+		                          (ret == ETUX_FSTREE_CONT_CMD) ||
+		                          (ret == ETUX_FSTREE_STOP_CMD));
+		if (ret != ETUX_FSTREE_CONT_CMD)
+			break;
+	}
 
 	etux_fstree_destroy_entry(ent);
 
 fini:
-	etux_fstree_fini_scan(&scan);
+	etux_fstree_scan_fini(&scan);
 
-	return (ret == -ENOENT) ? 0 : ret;
+	return (ret >= 0) ? 0 : ret;
 }
