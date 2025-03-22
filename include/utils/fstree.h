@@ -23,6 +23,10 @@
 
 struct etux_fstree_iter;
 
+extern unsigned int
+etux_fstree_iter_depth(const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
 extern const char *
 etux_fstree_iter_path(const struct etux_fstree_iter * __restrict iter)
 	__utils_nonull(1)
@@ -40,11 +44,43 @@ etux_fstree_entry_isdot(
 	const struct etux_fstree_iter * __restrict  iter __unused)
 	__utils_nonull(1, 2) __utils_pure __utils_nothrow __leaf __warn_result;
 
+/*
+ * Return type of current directory entry.
+ *
+ * Return values:
+ * >= 0     -- the type of entry as defined by <dirent.h> DT_ macros
+ * -EACCES  -- search permission denied for one of the directories in the path
+ *             prefix of entry
+ * -ELOOP   -- too many symbolic links encountered while traversing the entry
+ *             path
+ * -ENOENT  -- a component of entry path does not exist or is a dangling
+ *             symbolic link
+ * -ENOMEM  -- out of memory
+ * -ENOTDIR -- a component of the entry path prefix is not a directory
+ * -ENOTSUP -- unexpected type found for entry
+ */
 extern int
 etux_fstree_entry_type(struct etux_fstree_entry * __restrict      entry,
                        const struct etux_fstree_iter * __restrict iter)
 	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
+/*
+ * Retrieve current directory entry system properties.
+ *
+ * Return values:
+ * >0   -- a pointer to a stat(2) structure.
+ * NULL -- an error occured, errno has been set accordingly
+ *
+ * Possible errno values:
+ * -EACCES  -- search permission denied for one of the directories in the path
+ *             prefix of entry
+ * -ELOOP   -- too many symbolic links encountered while traversing the entry
+ *             path
+ * -ENOENT  -- a component of entry path does not exist or is a dangling
+ *             symbolic link
+ * -ENOMEM  -- out of memory
+ * -ENOTDIR -- a component of the entry path prefix is not a directory
+ */
 extern const struct stat *
 etux_fstree_entry_stat(struct etux_fstree_entry * __restrict      entry,
                        const struct etux_fstree_iter * __restrict iter)
@@ -71,10 +107,6 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
                         const struct etux_fstree_iter * __restrict iter)
 	__utils_nonull(1, 2) __warn_result;
 
-extern unsigned int
-etux_fstree_iter_depth(const struct etux_fstree_iter * __restrict iter)
-	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
-
 enum etux_fstree_event {
 	/* etux_fstree_iter() and etux_fstree_scan() events */
 	ETUX_FSTREE_ENT_EVT,
@@ -89,15 +121,6 @@ enum etux_fstree_event {
 
 	/* End of enumeration marker. */
 	ETUX_FSTREE_EVT_NR
-};
-
-enum etux_fstree_cmd {
-	ETUX_FSTREE_CONT_CMD = 0,
-	ETUX_FSTREE_STOP_CMD = 1,
-	ETUX_FSTREE_SKIP_CMD = 2,
-
-	/* End of enumeration marker. */
-	ETUX_FSTREE_CMD_NR
 };
 
 enum etux_fstree_option {
@@ -124,6 +147,10 @@ typedef int
                              const struct etux_fstree_iter *,
                              void *);
 
+#define ETUX_FSTREE_CONT_CMD (0)
+#define ETUX_FSTREE_STOP_CMD (1)
+#define ETUX_FSTREE_SKIP_CMD (2)
+
 typedef int
         (etux_fstree_handle_fn)(struct etux_fstree_entry *,
                                 const struct etux_fstree_iter *,
@@ -139,7 +166,7 @@ etux_fstree_iter(const char * __restrict path,
 	__utils_nonull(3);
 
 extern int
-etux_fstree_iter_sort(const char * __restrict path,
+etux_fstree_sort_iter(const char * __restrict path,
                       int                     options,
                       etux_fstree_filter_fn * filter,
                       etux_fstree_cmp_fn *    compare,
@@ -153,5 +180,14 @@ etux_fstree_scan(const char * __restrict path,
                  etux_fstree_handle_fn * handle,
                  void *                  data)
 	__utils_nonull(3);
+
+extern int
+etux_fstree_sort_scan(const char * __restrict path,
+                      int                     options,
+                      etux_fstree_filter_fn * filter,
+                      etux_fstree_cmp_fn *    compare,
+                      etux_fstree_handle_fn * handle,
+                      void *                  data)
+	__utils_nonull(4, 5);
 
 #endif /* _UTILS_FSTREE_H */
