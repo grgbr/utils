@@ -902,54 +902,44 @@ etux_fstree_vect_fini(struct etux_fstree_vect * __restrict vector)
 	free(vector->ents);
 }
 
-static __utils_nonull(1) __utils_nothrow
+static __utils_nothrow
 void
-etux_fstree_vect_free(struct stroll_falloc * __restrict    alloc,
-                      struct etux_fstree_vect * __restrict vector)
+etux_fstree_vect_free(struct etux_fstree_vect * __restrict vector)
 {
-	etux_fstree_assert_intern(alloc);
-
-	stroll_falloc_free(alloc, vector);
+	free(vector);
 }
 
-static __utils_nonull(1)
-       __malloc(etux_fstree_vect_free, 2)
+static __malloc(etux_fstree_vect_free, 1)
        __utils_nothrow
        __warn_result
 struct etux_fstree_vect *
-etux_fstree_vect_create(struct stroll_falloc * __restrict alloc)
+etux_fstree_vect_create(void)
 {
-	etux_fstree_assert_intern(alloc);
-
 	struct etux_fstree_vect * vect;
 	int                       err;
 
-	vect = stroll_falloc_alloc(alloc);
-	if (!vect)
-		return NULL;
+	vect = malloc(sizeof(*vect));
 
 	err = etux_fstree_vect_init(vect);
 	if (!err)
 		return vect;
 
-	stroll_falloc_free(alloc, vect);
+	free(vect);
 
 	errno = -err;
 
 	return NULL;
 }
 
-static __utils_nonull(1, 2) __utils_nothrow
+static __utils_nonull(1) __utils_nothrow
 void
-etux_fstree_vect_destroy(struct stroll_falloc * __restrict    alloc,
-                         struct etux_fstree_vect * __restrict vector)
+etux_fstree_vect_destroy(struct etux_fstree_vect * __restrict vector)
 {
-	etux_fstree_assert_intern(alloc);
-	etux_fstree_assert_intern(vector);
+	etux_fstree_vect_assert(vector);
 
 	etux_fstree_vect_fini(vector);
 
-	etux_fstree_vect_free(alloc, vector);
+	etux_fstree_vect_free(vector);
 }
 
 /******************************************************************************
@@ -1145,7 +1135,7 @@ etux_fstree_sort_init(struct etux_fstree_sort * __restrict sort,
 	if (err)
 		return err;
 
-#define ETUX_FSTREE_ENTRY_ALLOC_NR (16U)
+#define ETUX_FSTREE_ENTRY_ALLOC_NR (32U)
 	stroll_falloc_init(&sort->alloc,
 	                   ETUX_FSTREE_ENTRY_ALLOC_NR,
 	                   sizeof(struct etux_fstree_entry));
@@ -1869,7 +1859,6 @@ etux_fstree_scan(const char * __restrict path,
 struct etux_fstree_sort_scan {
 	struct etux_fstree_scan   base;
 	struct etux_fstree_vect * vect;
-	struct stroll_falloc      valloc;
 };
 
 #define etux_fstree_assert_sort_scan(_scan) \
@@ -1899,7 +1888,7 @@ etux_fstree_sort_scan_enter(
 		struct etux_fstree_vect *  nevv;
 		struct etux_fstree_point * pt;
 
-		nevv = etux_fstree_vect_create(&scan->valloc);
+		nevv = etux_fstree_vect_create();
 		if (!nevv)
 			return -ENOMEM;
 
@@ -1921,7 +1910,7 @@ etux_fstree_sort_scan_enter(
 		else {
 			ret = -errno;
 
-			etux_fstree_vect_destroy(&scan->valloc, nevv);
+			etux_fstree_vect_destroy(nevv);
 
 			if (ret != -ENOMEM)
 				/* Entering the child directory failed. */
@@ -1958,7 +1947,7 @@ etux_fstree_sort_scan_exit(
 	if (!pt)
 		return ETUX_FSTREE_STOP_CMD;
 
-	etux_fstree_vect_destroy(&scan->valloc, scan->vect);
+	etux_fstree_vect_destroy(scan->vect);
 
 	ent = etux_fstree_vect_get(pt->vect, pt->idx);
 	etux_fstree_entry_assert_intern(ent, iter);
@@ -2068,11 +2057,7 @@ etux_fstree_sort_scan_init(
 	if (ret)
 		return ret;
 
-#define ETUX_FSTREE_VECT_ALLOC_NR (16U)
-	stroll_falloc_init(&scan->valloc,
-	                   ETUX_FSTREE_VECT_ALLOC_NR,
-	                   sizeof(struct etux_fstree_vect));
-	scan->vect = etux_fstree_vect_create(&scan->valloc);
+	scan->vect = etux_fstree_vect_create();
 	if (!scan->vect) {
 		ret = -ENOMEM;
 		goto fini;
@@ -2090,9 +2075,8 @@ etux_fstree_sort_scan_init(
 	return 0;
 
 destroy:
-	etux_fstree_vect_destroy(&scan->valloc, scan->vect);
+	etux_fstree_vect_destroy(scan->vect);
 fini:
-	stroll_falloc_fini(&scan->valloc);
 	etux_fstree_scan_fini(&scan->base);
 
 	return ret;
@@ -2104,8 +2088,7 @@ etux_fstree_sort_scan_fini(struct etux_fstree_sort_scan * __restrict scan)
 {
 	etux_fstree_assert_sort_scan(scan);
 
-	etux_fstree_vect_destroy(&scan->valloc, scan->vect);
-	stroll_falloc_fini(&scan->valloc);
+	etux_fstree_vect_destroy(scan->vect);
 	etux_fstree_scan_fini(&scan->base);
 }
 
@@ -2128,7 +2111,7 @@ etux_fstree_sort_scan(const char * __restrict path,
 	int                             ret;
 	const struct etux_fstree_contxt ctx = {
 		.cmp  = compare,
-		.iter = etux_fstree_scan_iter(&scan.base),
+		.iter = (const struct etux_fstree_iter *)&scan,
 		.data = data
 	};
 
