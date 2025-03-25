@@ -1,0 +1,235 @@
+.. SPDX-License-Identifier: GPL-3.0-only
+   
+   This file is part of Utils.
+   Copyright (C) 2017-2023 Grégor Boirie <gregor.boirie@free.fr>
+
+.. include:: _cdefs.rst
+
+Overview
+========
+
+What follows here provides a thorough description of how to use Utils_'s
+library.
+
+Basically, Utils_ library is a basic C framework that provides definitions
+usefull to carry out common Linux system tasks in C.
+The library is implemented to run on GNU Linux / glibc platforms only (although
+porting to alternate C library such as `musl libc <https://www.musl-libc.org/>`_
+should not be much of a hassle).
+
+Utils_ library API is organized around the following functional areas which
+you can refer to for further details :
+
+* `Filesystem tree`_,
+* `Timers`_.
+
+Utils_ sources are distributed under the :ref:`GNU Lesser General Public
+License <lgpl>` whereas documentation manuals are distributed under the
+:ref:`GNU General Public License <gpl>`.
+
+.. index:: build configuration, configuration macros
+
+Build configuration
+===================
+
+At :ref:`Build configuration time <workflow-configure-phase>`, multiple build
+options are available to customize final Utils_ build. From client code, you
+may eventually refer to the corresponding C macros listed below:
+
+* :c:macro:`CONFIG_ETUX_FSTREE`
+* :c:macro:`CONFIG_ETUX_PTEST`
+* :c:macro:`CONFIG_ETUX_TIMER_SUBSEC_BITS`
+* :c:macro:`CONFIG_ETUX_TIMER_LIST`
+* :c:macro:`CONFIG_ETUX_TIMER_HEAP`
+* :c:macro:`CONFIG_ETUX_TIMER_HWHEEL`
+* :c:macro:`CONFIG_ETUX_TRACE`
+* :c:macro:`CONFIG_UTILS_ASSERT_API`
+* :c:macro:`CONFIG_UTILS_ASSERT_INTERN`
+* :c:macro:`CONFIG_UTILS_ATOMIC`
+* :c:macro:`CONFIG_UTILS_DIR`
+* :c:macro:`CONFIG_UTILS_FD`
+* :c:macro:`CONFIG_UTILS_FILE`
+* :c:macro:`CONFIG_UTILS_MQUEUE`
+* :c:macro:`CONFIG_UTILS_NET`
+* :c:macro:`CONFIG_UTILS_PATH`
+* :c:macro:`CONFIG_UTILS_PIPE`
+* :c:macro:`CONFIG_UTILS_POLL`
+* :c:macro:`CONFIG_UTILS_POLL_UNSK`
+* :c:macro:`CONFIG_UTILS_PWD`
+* :c:macro:`CONFIG_UTILS_SIGNAL`
+* :c:macro:`CONFIG_UTILS_SIGNAL_FD`
+* :c:macro:`CONFIG_UTILS_STR`
+* :c:macro:`CONFIG_UTILS_TIME`
+* :c:macro:`CONFIG_UTILS_THREAD`
+* :c:macro:`CONFIG_UTILS_UNSK`
+* :c:macro:`CONFIG_UTILS_UTEST`
+  
+.. index:: filesystem
+
+Filesystem tree
+===============
+
+.. todo:: Complete me !!
+
+.. index:: timer, time
+
+Timers
+======
+
+.. todo:: Complete me !!
+
+.. index:: API reference, reference
+
+Reference
+=========
+
+Configuration macros
+--------------------
+
+CONFIG_ETUX_TIMER_HEAP
+**********************
+
+.. doxygendefine:: CONFIG_ETUX_TIMER_HEAP
+
+CONFIG_ETUX_TIMER_HWHEEL
+************************
+
+.. doxygendefine:: CONFIG_ETUX_TIMER_HWHEEL
+
+CONFIG_ETUX_TIMER_LIST
+**********************
+
+.. doxygendefine:: CONFIG_ETUX_TIMER_LIST
+
+CONFIG_ETUX_TIMER_SUBSEC_BITS
+*****************************
+
+.. doxygendefine:: CONFIG_ETUX_TIMER_SUBSEC_BITS
+
+CONFIG_ETUX_PTEST
+*****************
+
+.. doxygendefine:: CONFIG_ETUX_PTEST
+
+CONFIG_ETUX_TRACE
+*****************
+
+.. doxygendefine:: CONFIG_ETUX_TRACE
+
+CONFIG_UTILS_ASSERT_API
+***********************
+
+.. doxygendefine:: CONFIG_UTILS_ASSERT_API
+
+CONFIG_UTILS_ASSERT_INTERN
+**************************
+
+.. doxygendefine:: CONFIG_UTILS_ASSERT_INTERN
+
+CONFIG_UTILS_ATOMIC
+*******************
+
+.. doxygendefine:: CONFIG_UTILS_ATOMIC
+
+CONFIG_UTILS_DIR
+****************
+
+.. doxygendefine:: CONFIG_UTILS_DIR
+
+CONFIG_UTILS_FD
+***************
+
+.. doxygendefine:: CONFIG_UTILS_FD
+
+CONFIG_UTILS_FILE
+*****************
+
+.. doxygendefine:: CONFIG_UTILS_FILE
+
+CONFIG_ETUX_FSTREE
+******************
+
+.. doxygendefine:: CONFIG_ETUX_FSTREE
+
+CONFIG_UTILS_MQUEUE
+*******************
+
+.. doxygendefine:: CONFIG_UTILS_MQUEUE
+
+CONFIG_UTILS_NET
+****************
+
+.. doxygendefine:: CONFIG_UTILS_NET
+
+CONFIG_UTILS_PATH
+*****************
+
+.. doxygendefine:: CONFIG_UTILS_PATH
+
+CONFIG_UTILS_PIPE
+*****************
+
+.. doxygendefine:: CONFIG_UTILS_PIPE
+
+CONFIG_UTILS_POLL
+*****************
+
+.. doxygendefine:: CONFIG_UTILS_POLL
+
+CONFIG_UTILS_POLL_UNSK
+**********************
+
+.. doxygendefine:: CONFIG_UTILS_POLL_UNSK
+
+CONFIG_UTILS_PWD
+****************
+
+.. doxygendefine:: CONFIG_UTILS_PWD
+
+CONFIG_UTILS_SIGNAL
+*******************
+
+.. doxygendefine:: CONFIG_UTILS_SIGNAL
+
+CONFIG_UTILS_SIGNAL_FD
+**********************
+
+.. doxygendefine:: CONFIG_UTILS_SIGNAL_FD
+
+CONFIG_UTILS_STR
+****************
+
+.. doxygendefine:: CONFIG_UTILS_STR
+
+CONFIG_UTILS_TIME
+*****************
+
+.. doxygendefine:: CONFIG_UTILS_TIME
+
+CONFIG_UTILS_THREAD
+*******************
+
+.. doxygendefine:: CONFIG_UTILS_THREAD
+
+CONFIG_UTILS_UNSK
+*****************
+
+.. doxygendefine:: CONFIG_UTILS_UNSK
+
+CONFIG_UTILS_UTEST
+******************
+
+.. doxygendefine:: CONFIG_UTILS_UTEST
+
+Macros
+------
+
+Typedefs
+--------
+
+Structures
+----------
+
+Functions
+---------
+

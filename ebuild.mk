@@ -138,3 +138,26 @@ libetux_timer_hwheel.pc-tmpl := libetux_timer_hwheel_pkgconf_tmpl
 tagfiles := $(shell find $(addprefix $(CURDIR)/,$(subdirs)) \
                          $(HEADERDIR) \
                          -type f)
+
+################################################################################
+# Documentation generation
+################################################################################
+
+doxyconf  := $(CURDIR)/sphinx/Doxyfile
+doxyenv   := SRCDIR="$(HEADERDIR) $(SRCDIR)"
+
+sphinxsrc := $(CURDIR)/sphinx
+sphinxenv := \
+	VERSION="$(VERSION)" \
+	$(if $(strip $(EBUILDDOC_TARGET_PATH)), \
+	     EBUILDDOC_TARGET_PATH="$(strip $(EBUILDDOC_TARGET_PATH))") \
+	$(if $(strip $(EBUILDDOC_INVENTORY_PATH)), \
+	     EBUILDDOC_INVENTORY_PATH="$(strip $(EBUILDDOC_INVENTORY_PATH))") \
+	$(if $(strip $(STROLLDOC_TARGET_PATH)), \
+	     STROLLDOC_TARGET_PATH="$(strip $(STROLLDOC_TARGET_PATH))") \
+	$(if $(strip $(STROLLDOC_INVENTORY_PATH)), \
+	     STROLLDOC_INVENTORY_PATH="$(strip $(STROLLDOC_INVENTORY_PATH))") \
+	$(if $(strip $(CUTEDOC_TARGET_PATH)), \
+	     CUTEDOC_TARGET_PATH="$(strip $(CUTEDOC_TARGET_PATH))") \
+	$(if $(strip $(CUTEDOC_INVENTORY_PATH)), \
+	     CUTEDOC_INVENTORY_PATH="$(strip $(CUTEDOC_INVENTORY_PATH))")

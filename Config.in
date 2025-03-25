@@ -165,7 +165,7 @@ config UTILS_DIR
 config ETUX_FSTREE
 	bool "Filesystem tree"
 	default y
-	select UTILS_FD
+	select UTILS_DIR
 	help
 	  Build utils library with support for POSIX filesystem directory tree
 	  iterator and scanner.

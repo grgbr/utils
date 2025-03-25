@@ -182,14 +182,22 @@ etux_fstree_validate_dirent(const struct dirent * __restrict           dirent,
 	return (ssize_t)len;
 }
 
-bool
-etux_fstree_entry_isdot(
-	const struct etux_fstree_entry * __restrict entry,
-	const struct etux_fstree_iter * __restrict  iter __unused)
+int
+etux_fstree_entry_isdot(struct etux_fstree_entry * __restrict      entry,
+                        const struct etux_fstree_iter * __restrict iter)
 {
 	etux_fstree_entry_assert_api(entry, iter);
 
-	return etux_fstree_path_isdot(entry->dirent.d_name, entry->nlen);
+	int ret;
+
+	ret = etux_fstree_entry_type(entry, iter);
+	if (ret < 0)
+		return ret;
+
+	if (!etux_fstree_path_isdot(entry->dirent.d_name, entry->nlen))
+		return false;
+
+	return true;
 }
 
 const struct stat *
@@ -1472,7 +1480,7 @@ etux_fstree_scan_may_enter(const struct etux_fstree_scan * __restrict scan,
 	else if (ret != DT_DIR)
 		return 0;
 
-	if (etux_fstree_entry_isdot(entry, iter))
+	if (etux_fstree_path_isdot(entry->dirent.d_name, entry->nlen))
 		return 0;
 
 	if (!(iter->opts & ETUX_FSTREE_XDEV_OPT)) {
