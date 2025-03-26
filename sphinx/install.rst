@@ -44,7 +44,7 @@ In addition to the standard |eBuild Prerequisites|, the Stroll_ package is
 required to build Utils_.
 
 Optionally, you will need CUTe_ at build time and at runtime when unit
-testsuite_ is enabled (see :ref:`CONFIG_UTILS_UTEST`).
+testsuite_ is enabled (see :c:macro:`CONFIG_UTILS_UTEST`).
 
 Optionally, you will need multiple packages installed to build the
 documentation_. In addition to packages listed into |eBuild Prerequisites|,

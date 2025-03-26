@@ -63,13 +63,38 @@ may eventually refer to the corresponding C macros listed below:
 * :c:macro:`CONFIG_UTILS_THREAD`
 * :c:macro:`CONFIG_UTILS_UNSK`
 * :c:macro:`CONFIG_UTILS_UTEST`
-  
+
 .. index:: filesystem
 
 Filesystem tree
 ===============
 
-.. todo:: Complete me !!
+When compiled with the :c:macro:`CONFIG_ETUX_FSTREE` build configuration
+option enabled, the Utils_ library provides support for filesystem operations
+upon directory tree hierarchies. These are:
+
+.. hlist::
+
+   * Traversal:
+
+      * :c:func:`etux_fstree_iter`
+      * :c:func:`etux_fstree_scan`
+      * :c:func:`etux_fstree_sort_iter`
+      * :c:func:`etux_fstree_sort_scan`
+
+   * Traversal state:
+
+      * :c:func:`etux_fstree_iter_depth`
+      * :c:func:`etux_fstree_iter_path`
+
+   * Entry properties:
+
+      * :c:func:`etux_fstree_entry_isdot`
+      * :c:func:`etux_fstree_entry_name`
+      * :c:func:`etux_fstree_entry_path`
+      * :c:func:`etux_fstree_entry_slink`
+      * :c:func:`etux_fstree_entry_stat`
+      * :c:func:`etux_fstree_entry_type`
 
 .. index:: timer, time
 
@@ -224,12 +249,120 @@ CONFIG_UTILS_UTEST
 Macros
 ------
 
+.. _etux_fstree_opts-group:
+
+Filesystem tree traversal options
+*********************************
+
+.. doxygengroup:: etux_fstree_opts-group
+   :content-only:
+
+.. _etux_fstree_cmds-group:
+
+Filesystem tree traversal commands
+**********************************
+
+.. doxygengroup:: etux_fstree_cmds-group
+   :content-only:
+
 Typedefs
 --------
+
+etux_fstree_cmp_fn
+******************
+
+.. doxygentypedef:: etux_fstree_cmp_fn
+
+etux_fstree_filter_fn
+*********************
+
+.. doxygentypedef:: etux_fstree_filter_fn
+
+etux_fstree_handle_fn
+*********************
+
+.. doxygentypedef:: etux_fstree_handle_fn
+
+Enumerations
+------------
+
+etux_fstree_event
+*****************
+
+.. doxygenenum:: etux_fstree_event
 
 Structures
 ----------
 
+etux_fstree_entry
+*****************
+
+.. doxygenstruct:: etux_fstree_entry
+
+etux_fstree_iter
+****************
+
+.. doxygenstruct:: etux_fstree_iter
+
 Functions
 ---------
 
+etux_fstree_entry_isdot()
+*************************
+
+.. doxygenfunction:: etux_fstree_entry_isdot
+
+etux_fstree_entry_name()
+************************
+
+.. doxygenfunction:: etux_fstree_entry_name
+
+etux_fstree_entry_path()
+************************
+
+.. doxygenfunction:: etux_fstree_entry_path
+
+etux_fstree_entry_slink()
+*************************
+
+.. doxygenfunction:: etux_fstree_entry_slink
+
+etux_fstree_entry_stat()
+************************
+
+.. doxygenfunction:: etux_fstree_entry_stat
+
+etux_fstree_entry_type()
+************************
+
+.. doxygenfunction:: etux_fstree_entry_type
+
+etux_fstree_iter()
+******************
+
+.. doxygenfunction:: etux_fstree_iter
+
+etux_fstree_iter_depth()
+************************
+
+.. doxygenfunction:: etux_fstree_iter_depth
+
+etux_fstree_iter_path()
+***********************
+
+.. doxygenfunction:: etux_fstree_iter_path
+
+etux_fstree_scan()
+******************
+
+.. doxygenfunction:: etux_fstree_scan
+
+etux_fstree_sort_iter()
+***********************
+
+.. doxygenfunction:: etux_fstree_sort_iter
+
+etux_fstree_sort_scan()
+***********************
+
+.. doxygenfunction:: etux_fstree_sort_scan

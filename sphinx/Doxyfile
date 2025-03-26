@@ -2383,7 +2383,9 @@ PREDEFINED             = __restrict= \
 			 __assume_align(...)= \
 			 __warn_result= \
 			 __leaf= \
+			 __unused= \
                          __WORDSIZE=64 \
+			 __returns_nonull= \
 			 $(CONFDEFS)
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
