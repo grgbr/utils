@@ -86,7 +86,7 @@ $(checkall_builddir)/conf%/test.config: $(TOPDIR)/scripts/gen_check_confs.py
 .PHONY: check
 check: $(BUILDDIR)/test/utils-utest.xml
 
-#TODO: join test report with timer utests reports ??
+#TODO: merge test timer reports with utests report
 
 $(BUILDDIR)/test/utils-utest.xml: | build-check
 	@echo "  CHECK   $(@)"

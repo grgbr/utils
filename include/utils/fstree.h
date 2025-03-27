@@ -20,6 +20,7 @@
 #define _ETUX_FSTREE_H
 
 #include <utils/dir.h>
+#include <dirent.h>
 
 /**
  * @struct etux_fstree_iter
@@ -29,6 +30,8 @@
  *
  * @see
  * - etux_fstree_iter_depth()
+ * - etux_fstree_iter_dir()
+ * - etux_fstree_iter_dirfdf()
  * - etux_fstree_iter_path()
  * - etux_fstree_filter_fn
  * - etux_fstree_cmp_fn
@@ -46,7 +49,6 @@ struct etux_fstree_iter;
  * of the traversal would be numbered 0.
  *
  * @see
- * - etux_fstree_iter_path()
  * - #etux_fstree_iter
  */
 extern unsigned int
@@ -54,7 +56,7 @@ etux_fstree_iter_depth(const struct etux_fstree_iter * __restrict iter)
 	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
 
 /**
- * Return pathname of current filesystem hierarchy traversal root entry.
+ * Return pathname of current filesystem traversal root entry.
  *
  * @param[in] iter Filesystem tree entry iterator
  *
@@ -62,15 +64,10 @@ etux_fstree_iter_depth(const struct etux_fstree_iter * __restrict iter)
  *         root entry.
  *
  * This roughly corresponds to the @p path argument given to either
- * etux_fstree_iter(), etux_fstree_sort_iter(), etux_fstree_scan() or
+ * etux_fstree_walk(), etux_fstree_sort_walk(), etux_fstree_scan() or
  * etux_fstree_sort_scan() functions.
  *
  * @see
- * - etux_fstree_iter_depth()
- * - etux_fstree_iter()
- * - etux_fstree_sort_iter()
- * - etux_fstree_scan()
- * - etux_fstree_sort_scan()
  * - #etux_fstree_iter
  */
 extern const char *
@@ -80,6 +77,51 @@ etux_fstree_iter_path(const struct etux_fstree_iter * __restrict iter)
 	__utils_nothrow
 	__leaf
 	__returns_nonull
+	__warn_result;
+
+/**
+ * Return current filesystem traversal directory stream.
+ *
+ * @param[in] iter Filesystem tree entry iterator
+ *
+ * @return Pointer to the current filesystem traversal directory stream.
+ *
+ * While traversing a filesystem tree, return the directory stream related to
+ * the current entry's parent directory.
+ *
+ * @see
+ * - #etux_fstree_iter
+ * - etux_fstree_iter_dirfd()
+ */
+extern DIR *
+etux_fstree_iter_dir(const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1)
+	__utils_pure
+	__utils_nothrow
+	__leaf
+	__returns_nonull
+	__warn_result;
+
+/**
+ * Return current filesystem traversal directory file descriptor.
+ *
+ * @param[in] iter Filesystem tree entry iterator
+ *
+ * @return Current filesystem traversal directory file descriptor.
+ *
+ * While traversing a filesystem tree, return the file descriptor related to
+ * the current entry's parent directory.
+ *
+ * @see
+ * - #etux_fstree_iter
+ * - etux_fstree_iter_dir()
+ */
+extern int
+etux_fstree_iter_dirfd(const struct etux_fstree_iter * __restrict iter)
+	__utils_nonull(1)
+	__utils_pure
+	__utils_nothrow
+	__leaf
 	__warn_result;
 
 /**
@@ -121,7 +163,7 @@ struct etux_fstree_entry;
  *
  * Value returned may differ according to @p iter filesystem tree iterator
  * configuration. See #ETUX_FSTREE_FOLLOW_OPT for more informations.
- * 
+ *
  * @see
  * - #etux_fstree_entry
  * - #etux_fstree_iter
@@ -306,7 +348,7 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
  *
  * When used as the return value of an #etux_fstree_handle_fn entry handler
  * function, this tells the filesystem traversal logic to keep iterating over
- * next entries.
+ * next entry.
  *
  * When used as the return value of a #etux_fstree_filter_fn filtering function,
  * this tells the filesystem traversal logic to include the current entry within
@@ -354,10 +396,10 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
  * Filesystem traversal entry filtering routine signature.
  *
  * Use this to implement a function that filters entries in or out during a
- * etux_fstree_sort_iter() or etux_fstree_sort_scan() filesystem tree ordered
+ * etux_fstree_sort_walk() or etux_fstree_sort_scan() filesystem tree ordered
  * traversal.
  *
- * etux_fstree_sort_iter() and etux_fstree_sort_scan() call this function before
+ * etux_fstree_sort_walk() and etux_fstree_sort_scan() call this function before
  * sorting current iteration directory entries.
  *
  * The function is called with:
@@ -366,7 +408,7 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
  *   *iterator*,
  * - and the **third** argument pointing to the optional user provided @p data
  *   argument given to one of the top-level ordered traversal functions
- *   etux_fstree_sort_iter() and etux_fstree_sort_scan().
+ *   etux_fstree_sort_walk() and etux_fstree_sort_scan().
  *
  * This function is *EXPECTED* to return one of the following:
  * - a value described in the @rstref{etux_fstree_cmds-group} section to inform
@@ -377,7 +419,7 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
  *
  * @see
  * - @rstref{etux_fstree_cmds-group}
- * - etux_fstree_sort_iter()
+ * - etux_fstree_sort_walk()
  * - etux_fstree_sort_scan()
  */
 typedef int
@@ -390,7 +432,7 @@ typedef int
  *
  * Use this to implement a function that compares 2 filesystem entries
  * given as arguments according to an arbitrary logic during one of the ordered
- * traversal operations etux_fstree_sort_iter() and etux_fstree_sort_scan().
+ * traversal operations etux_fstree_sort_walk() and etux_fstree_sort_scan().
  *
  * The function is called with:
  * - the **first** argument pointing to the *first entry* to be sorted,
@@ -399,14 +441,14 @@ typedef int
  *   *iterator*,
  * - and the *last* one, pointing to the optional user provided @p data argument
  *   given to one of the top-level ordered traversal functions
- *   etux_fstree_sort_iter() and etux_fstree_sort_scan().
+ *   etux_fstree_sort_walk() and etux_fstree_sort_scan().
  *
  * The function *MUST* return an integer less than, equal to, or greater than
  * zero if first entry is found, respectively, to be less than, to match, or
  * be greater than the second one.
  *
  * @see
- * - etux_fstree_sort_iter()
+ * - etux_fstree_sort_walk()
  * - etux_fstree_sort_scan()
  */
 typedef int
@@ -442,7 +484,7 @@ enum etux_fstree_event {
 	 *
 	 * Happens when a non directory entry has been successfully loaded
 	 * during a filesystem tree traversal operation started thanks to a call
-	 * to etux_fstree_iter(), etux_fstree_sort_iter(), etux_fstree_scan() or
+	 * to etux_fstree_walk(), etux_fstree_sort_walk(), etux_fstree_scan() or
 	 * etux_fstree_sort_scan().
 	 *
 	 * In this case, the #etux_fstree_handle_fn callback is called with the
@@ -451,8 +493,8 @@ enum etux_fstree_event {
 	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
 	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
 	 *   #ETUX_FSTREE_ENT_EVT ;
-	 * - the **fourth** one, the visiting error status, equals `0`, meaning
-	 *   success ;
+	 * - the **fourth** one, the visiting error *status*, equals `0`,
+	 *   meaning success ;
 	 * - and the **last** one points to the optional user provided @p data
 	 *   argument given to the top-level traversal function.
 	 */
@@ -463,7 +505,7 @@ enum etux_fstree_event {
 	 *
 	 * Happens when the next entry cannot be retrieved during a filesystem
 	 * tree traversal operation started thanks to a call to
-	 * etux_fstree_iter(), etux_fstree_sort_iter(), etux_fstree_scan() or
+	 * etux_fstree_walk(), etux_fstree_sort_walk(), etux_fstree_scan() or
 	 * etux_fstree_sort_scan().
 	 *
 	 * In this case, the #etux_fstree_handle_fn callback is called with the
@@ -472,8 +514,8 @@ enum etux_fstree_event {
 	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
 	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
 	 *   #ETUX_FSTREE_NEXT_ERR_EVT ;
-	 * - the **fourth** one, the visiting error status contains a negative
-	 *   errno-like value describing the cause of failure ;
+	 * - the **fourth** one, the visiting error *status*, contains a
+	 *   negative errno-like value describing the cause of failure ;
 	 * - and the **last** one points to the optional user provided @p data
 	 *   argument given to the top-level traversal function.
 	 */
@@ -484,7 +526,7 @@ enum etux_fstree_event {
 	 *
 	 * Happens when properties of an entry could not be loaded during a
 	 * filesystem tree traversal operation started thanks to a call to
-	 * etux_fstree_iter(), etux_fstree_sort_iter(), etux_fstree_scan() or
+	 * etux_fstree_walk(), etux_fstree_sort_walk(), etux_fstree_scan() or
 	 * etux_fstree_sort_scan().
 	 *
 	 * In this case, the #etux_fstree_handle_fn callback is called with the
@@ -493,8 +535,8 @@ enum etux_fstree_event {
 	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
 	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
 	 *   #ETUX_FSTREE_LOAD_ERR_EVT ;
-	 * - the **fourth** one, the visiting error status contains a negative
-	 *   errno-like value describing the cause of failure ;
+	 * - the **fourth** one, the visiting error *status*, contains a
+	 *   negative errno-like value describing the cause of failure ;
 	 * - and the **last** one points to the optional user provided @p data
 	 *   argument given to the top-level traversal function.
 	 */
@@ -502,23 +544,95 @@ enum etux_fstree_event {
 
 	/**
 	 * Filesystem tree traversal loop detected.
+	 *
+	 * Happens when an entry is a link that points to an ancestor of the
+	 * current entry during a filesystem tree traversal operation started
+	 * thanks to a call to etux_fstree_scan() or etux_fstree_sort_scan().
+	 *
+	 * In this case, the #etux_fstree_handle_fn callback is called with the
+	 * following arguments:
+	 * - the **first** one points to a valid #etux_fstree_entry *entry* ;
+	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
+	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
+	 *   #ETUX_FSTREE_LOOP_EVT ;
+	 * - the **fourth** one, the visiting error *status*, equals `0`,
+	 *   meaning success ;
+	 * - and the **last** one points to the optional user provided @p data
+	 *   argument given to the top-level traversal function.
 	 */
 	ETUX_FSTREE_LOOP_EVT,
 
 	/**
 	 * While descending down a filesystem tree, a directory entry is being
 	 * visited.
+	 *
+	 * Happens when a `DT_DIR` directory entry has been successfully loaded
+	 * during a filesystem tree traversal operation started thanks to a call
+	 * to etux_fstree_scan() or etux_fstree_sort_scan() with the
+	 * #ETUX_FSTREE_PRE_OPT @p options enabled.
+	 *
+	 * The #etux_fstree_handle_fn callback is then called a first time while
+	 * descending down the hierarchy with the following arguments:
+	 * - the **first** one points to a valid #etux_fstree_entry *entry* ;
+	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
+	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
+	 *   #ETUX_FSTREE_PRE_EVT ;
+	 * - the **fourth** one, the visiting error *status*, equals `0`,
+	 *   meaning success ;
+	 * - and the **last** one points to the optional user provided @p data
+	 *   argument given to the top-level traversal function.
+	 *
+	 * Note that, when enabled thanks to the #ETUX_FSTREE_POST_OPT option,
+	 * the same entry may also be visited with the #ETUX_FSTREE_POST_EVT
+	 * event while travelling back up towards the initial root directory.
 	 */
 	ETUX_FSTREE_PRE_EVT,
 
 	/**
 	 * While ascending back up a filesystem tree, a directory entry is being
 	 * visited.
+	 *
+	 * Happens when a `DT_DIR` directory entry has been successfully loaded
+	 * during a filesystem tree traversal operation started thanks to a call
+	 * to etux_fstree_scan() or etux_fstree_sort_scan() with the
+	 * #ETUX_FSTREE_POST_OPT @p options enabled.
+	 *
+	 * The #etux_fstree_handle_fn callback is then called a first time while
+	 * descending down the hierarchy with the following arguments:
+	 * - the **first** one points to a valid #etux_fstree_entry *entry* ;
+	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
+	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
+	 *   #ETUX_FSTREE_POST_EVT ;
+	 * - the **fourth** one, the visiting error *status*, equals `0`,
+	 *   meaning success ;
+	 * - and the **last** one points to the optional user provided @p data
+	 *   argument given to the top-level traversal function.
+	 *
+	 * Note that, when enabled thanks to the #ETUX_FSTREE_PRE_OPT option,
+	 * the same entry may already have been visited  with the
+	 * #ETUX_FSTREE_PRE_EVT event while descending down the filesystem tree
+	 * hierarchy.
 	 */
 	ETUX_FSTREE_POST_EVT,
 
 	/**
 	 * Failed to descend down a filesystem directory entry.
+	 *
+	 * Happens when a `DT_DIR` directory entry, that has been successfully
+	 * loaded, could not be entered into during a filesystem tree traversal
+	 * operation started thanks to a call to etux_fstree_scan() or
+	 * etux_fstree_sort_scan().
+	 *
+	 * The #etux_fstree_handle_fn callback is then called with the following
+	 * arguments:
+	 * - the **first** one points to a valid #etux_fstree_entry *entry* ;
+	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
+	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
+	 *   #ETUX_FSTREE_DIR_ERR_EVT ;
+	 * - the **fourth** one, the visiting error *status*, contains a
+	 *   negative errno-like value describing the cause of failure ;
+	 * - and the **last** one points to the optional user provided @p data
+	 *   argument given to the top-level traversal function.
 	 */
 	ETUX_FSTREE_DIR_ERR_EVT,
 
@@ -538,13 +652,14 @@ enum etux_fstree_event {
  * - the **first** argument pointing to the current iteration *entry*,
  * - the **second** one pointing to the underlying filesystem traversal
  *   *iterator*,
- * - the **third** one being the #etux_fstree_event event describing the
+ * - the **third** one being the #etux_fstree_event *event* describing the
  *   circumstances under which the entry is visited,
- * - the **fourth** one describing the error status related to the entry being
+ * - the **fourth** one describing the error *status* related to the entry being
  *   visited,
- * - and the *last* one, pointing to the optional user provided @p data argument
- *   given to one of the top-level traversal functions etux_fstree_iter(),
- *   etux_fstree_sort_iter(), etux_fstree_scan() and etux_fstree_sort_scan().
+ * - and the **last** one, pointing to the optional user provided @p data
+ *   argument given to one of the top-level traversal functions
+ *   etux_fstree_walk(), etux_fstree_sort_walk(), etux_fstree_scan() and
+ *   etux_fstree_sort_scan().
  *
  * This function is *EXPECTED* to return one of the following:
  * - a value described in the @rstref{etux_fstree_cmds-group} section to
@@ -560,8 +675,8 @@ enum etux_fstree_event {
  * - #etux_fstree_event
  * - #etux_fstree_entry
  * - #etux_fstree_iter
- * - etux_fstree_iter()
- * - etux_fstree_sort_iter()
+ * - etux_fstree_walk()
+ * - etux_fstree_sort_walk()
  * - etux_fstree_scan()
  * - etux_fstree_sort_scan()
  */
@@ -583,15 +698,15 @@ typedef int
  * links when resolving directory entries.
  *
  * You may specify this option within the mask given as @p options argument to
- * etux_fstree_iter(), etux_fstree_sort_iter(), etux_fstree_scan() or
+ * etux_fstree_walk(), etux_fstree_sort_walk(), etux_fstree_scan() or
  * etux_fstree_sort_scan() functions.
  *
  * When this option is set, an entry passed to any of the callback pointer(s)
  * given to the functions mentioned above can never be a symbolic link.
  *
  * @see
- * - etux_fstree_iter()
- * - etux_fstree_sort_iter()
+ * - etux_fstree_walk()
+ * - etux_fstree_sort_walk()
  * - etux_fstree_scan()
  * - etux_fstree_sort_scan()
  * - @rstref{etux_fstree_opts-group}
@@ -704,22 +819,21 @@ typedef int
  * @remark
  * - The @p path argument may be passed as `NULL` or an empty C string in which
  *   case this function iterates into the current working directory.
- * - etux_fstree_iter() supports the #ETUX_FSTREE_FOLLOW_OPT option only.
- * - The only possible #etux_fstree_event event that etux_fstree_iter() may pass
+ * - etux_fstree_walk() supports the #ETUX_FSTREE_FOLLOW_OPT option only.
+ * - The only possible #etux_fstree_event event that etux_fstree_walk() may pass
  *   to @p handle is #ETUX_FSTREE_ENT_EVT.
  *
  * @see
  * - #ETUX_FSTREE_FOLLOW_OPT
  * - #ETUX_FSTREE_ENT_EVT
  * - #etux_fstree_handle_fn
- * - etux_fstree_sort_iter()
+ * - etux_fstree_sort_walk()
  * - etux_fstree_scan()
- * - etux_fstree_sort_scan()
  * - @man{errno(3)}
  * - @man{getcwd(3)}, @man{pwd(1)}
  */
 extern int
-etux_fstree_iter(const char * __restrict path,
+etux_fstree_walk(const char * __restrict path,
                  int                     options,
                  etux_fstree_handle_fn * handle,
                  void *                  data)
@@ -752,7 +866,7 @@ etux_fstree_iter(const char * __restrict path,
  * Once filtered and sorted, the @p handle entry handler callback is called once
  * for every entry found under the directory identified by @p path.
  *
- * All callback functions specified to etux_fstree_sort_iter() are given
+ * All callback functions specified to etux_fstree_sort_walk() are given
  * the @p data argument that should point to an optionall arbitrary user
  * provided memory area. Calling conventions of callback functions are described
  * in the following sections:
@@ -763,8 +877,8 @@ etux_fstree_iter(const char * __restrict path,
  * @remark
  * - The @p path argument may be passed as `NULL` or an empty C string in which
  *   case this function iterates into the current working directory.
- * - etux_fstree_sort_iter() supports the #ETUX_FSTREE_FOLLOW_OPT option only.
- * - The only possible #etux_fstree_event event that etux_fstree_iter() may pass
+ * - etux_fstree_sort_walk() supports the #ETUX_FSTREE_FOLLOW_OPT option only.
+ * - The only possible #etux_fstree_event event that etux_fstree_walk() may pass
  *   to @p handle is #ETUX_FSTREE_ENT_EVT.
  *
  * @see
@@ -773,14 +887,13 @@ etux_fstree_iter(const char * __restrict path,
  * - #etux_fstree_handle_fn
  * - #etux_fstree_filter_fn
  * - #etux_fstree_cmp_fn
- * - etux_fstree_iter()
- * - etux_fstree_scan()
+ * - etux_fstree_walk()
  * - etux_fstree_sort_scan()
  * - @man{errno(3)}
  * - @man{getcwd(3)}, @man{pwd(1)}
  */
 extern int
-etux_fstree_sort_iter(const char * __restrict path,
+etux_fstree_sort_walk(const char * __restrict path,
                       int                     options,
                       etux_fstree_filter_fn * filter,
                       etux_fstree_cmp_fn *    compare,
@@ -789,7 +902,56 @@ etux_fstree_sort_iter(const char * __restrict path,
 	__utils_nonull(4, 5);
 
 /**
- * Recursively scan filesystem directory entries.
+ * Scan a filesystem hierarchy.
+ *
+ * @param[in] path    Pathname to root directory of hierarchy to scan
+ * @param[in] options Iteration option mask
+ * @param[in] handle  Entry handler callback
+ * @param[in] data    Optional arbitrary user data
+ *
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ *
+ * This function allows to traverse the whole filesystem hierarchy found under
+ * the directory which pathname is given as the @p path argument.
+ *
+ * Traversal is performed according to the @p options argument which should be
+ * set as a mask of options as specified in the @rstref{etux_fstree_opts-group}
+ * section.
+ *
+ * The @p handle entry handler callback is called once for every entry
+ * found under the current directory (but see below for directory entries).
+ * It is given the optional @p data pointer to an arbitrary user provided memory
+ * area.
+ * The #etux_fstree_handle_fn section describes the @p handle function pointer
+ * calling conventions.
+ *
+ * Note that `DT_DIR` *directory* entries are processed in a specific way since,
+ * in addition to calling the @p handle callback, the traversal logic needs to
+ * change to directories.
+ * Hence, directory entries are *always visited twice*: once while descending
+ * down the hierarchy, and once while travelling back up. The @p handle callback
+ * is then called in the following manner:
+ * - when the #ETUX_FSTREE_PRE_OPT option is enabled into the @p options
+ *   argument, @p handle is called once while descending down, just before
+ *   entering a directory entry ;
+ * - when the #ETUX_FSTREE_POST_OPT option is enabled into the @p options
+ *   argument, @p handle is called once while travelling back up, just after
+ *   changing to the parent directory of the visited directory entry ;
+ *
+ * Also note that when neither of these options are enabled, the @p handle
+ * callback function is not called at all for directory entries.
+ *
+ * @remark
+ * - The @p path argument may be passed as `NULL` or an empty C string in which
+ *   case this function iterates into the current working directory.
+ *
+ * @see
+ * - @rstref{etux_fstree_opts-group}
+ * - #etux_fstree_handle_fn
+ * - etux_fstree_sort_scan()
+ * - etux_fstree_walk()
+ * - @man{errno(3)}
+ * - @man{getcwd(3)}, @man{pwd(1)}
  */
 extern int
 etux_fstree_scan(const char * __restrict path,
@@ -799,7 +961,65 @@ etux_fstree_scan(const char * __restrict path,
 	__utils_nonull(3);
 
 /**
- * Sort and recursively scan filesystem directory entries.
+ * Sort and scan a filesystem hierarchy.
+ *
+ * @param[in] path    Pathname to root directory of hierarchy to scan
+ * @param[in] options Scanning option mask
+ * @param[in] filter  Optional entry filtering callback
+ * @param[in] compare Entry order comparison callback
+ * @param[in] handle  Entry handler callback
+ * @param[in] data    Optional arbitrary user data
+ *
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ *
+ * This function allows to traverse the whole filesystem hierarchy found under
+ * the directory which pathname is given as the @p path argument.
+ *
+ * Traversal is performed according to the @p options argument which should be
+ * set as a mask of options as specified in the @rstref{etux_fstree_opts-group}
+ * section.
+ *
+ * For each directory, entries are sorted according to the callback function
+ * given as argument @p compare.
+ * Prior to the sorting phase, entries may be filtered in or out thanks to the
+ * optional @p filter callback function.
+ *
+ * The @p handle entry handler callback is called once for every entry
+ * found under the current directory (but see below for directory entries).
+ * It is given the optional @p data pointer to an arbitrary user provided memory
+ * area.
+ * The #etux_fstree_handle_fn section describes the @p handle function pointer
+ * calling conventions.
+ *
+ * Note that `DT_DIR` *directory* entries are processed in a specific way since,
+ * in addition to calling the @p handle callback, the traversal logic needs to
+ * change to directories.
+ * Hence, directory entries are *always visited twice*: once while descending
+ * down the hierarchy, and once while travelling back up. The @p handle callback
+ * is then called in the following manner:
+ * - when the #ETUX_FSTREE_PRE_OPT option is enabled into the @p options
+ *   argument, @p handle is called once while descending down, just before
+ *   entering a directory entry ;
+ * - when the #ETUX_FSTREE_POST_OPT option is enabled into the @p options
+ *   argument, @p handle is called once while travelling back up, just after
+ *   changing to the parent directory of the visited directory entry ;
+ *
+ * Also note that when neither of these options are enabled, the @p handle
+ * callback function is not called at all for directory entries.
+ *
+ * @remark
+ * - The @p path argument may be passed as `NULL` or an empty C string in which
+ *   case this function iterates into the current working directory.
+ *
+ * @see
+ * - @rstref{etux_fstree_opts-group}
+ * - #etux_fstree_handle_fn
+ * - #etux_fstree_filter_fn
+ * - #etux_fstree_cmp_fn
+ * - etux_fstree_scan()
+ * - etux_fstree_sort_walk()
+ * - @man{errno(3)}
+ * - @man{getcwd(3)}, @man{pwd(1)}
  */
 extern int
 etux_fstree_sort_scan(const char * __restrict path,

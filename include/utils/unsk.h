@@ -351,29 +351,36 @@ unsk_dgram_buffq_init(struct unsk_buffq * __restrict buffq,
  ******************************************************************************/
 
 /**
- * struct unsk_svc - Service / server side UNIX socket.
+ * Service / server side UNIX socket.
  */
 struct unsk_svc {
-	/* private: system socket file descriptor */
+	/**
+	 * @internal
+	 *
+	 * System socket file descriptor
+	 */
 	int                fd;
 
-	/* private: filesystem pathname this local UNIX socket is bound to */
+	/**
+	 * @internal
+	 *
+	 * Filesystem pathname this local UNIX socket is bound to
+	 */
 	struct sockaddr_un local;
 };
 
 /**
- * unsk_svc_is_path_ok() - Validate a filesystem path to bind a service side
- *                         UNIX socket to.
+ * Validate a filesystem path to bind a service side UNIX socket to.
  *
- * @path: path to validate
+ * @param[in] path Path to validate
  *
- * See: unix(7) man pages.
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0             path is valid
+ * @retval -EFAULT       path is `NULL`
+ * @retval -EINVAL       path is empty
+ * @retval -ENAMETOOLONG path length too long.
  *
- * Return:
- * * 0             - path is valid,
- * * -EFAULT       - path is NULL,
- * * -EINVAL       - path is empty,
- * * -ENAMETOOLONG - path length too long.
+ * @see @man{unix(7)}
  */
 static inline __utils_pure __utils_nothrow
 int
@@ -383,25 +390,29 @@ unsk_svc_is_path_ok(const char * __restrict path)
 }
 
 /**
- * unsk_dgram_svc_send() - Transmit a message from a service side UNIX datagram
- *                         socket to specified peer socket.
+ * Transmit a message from a service side UNIX datagram socket to specified peer
+ * socket.
  *
- * @sock:  local service side UNIX socket
- * @data:  data to send
- * @size:  number of bytes to send
- * @peer:  address of peer abstract socket to send to
- * @flags: flags to send according to
+ * @param[in] sock   local service side UNIX socket
+ * @param[in] data   data to send
+ * @param[in] size   number of bytes to send
+ * @param[in] peer   address of peer abstract socket to send to
+ * @param[in] flags  flags to send according to
  *
- * @flags support limited to MSG_DONTWAIT and MSG_MORE.
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0             success
+ * @retval -EAGAIN       socket is nonblocking and the send operation would
+ *                       block
+ * @retval -EINTR        signal occurred before any data was transmitted
+ * @retval -ECONNREFUSED connection refused, i.e., peer (client) socket has
+ *                       closed
+ * @retval -ENOMEM       no memory available
  *
- * See: sendmsg(2) and unix(7) man pages.
+ * Note that @p flags support is limited to `MSG_DONTWAIT` and `MSG_MORE`.
  *
- * Return:
- * * 0             - success,
- * * -EAGAIN       - socket is nonblocking and the send operation would block,
- * * -EINTR        - signal occurred before any data was transmitted,
- * * -ECONNREFUSED - connection refused, i.e., peer (client) socket has closed,
- * * -ENOMEM       - no memory available.
+ * @see
+ * - @man{sendmsg(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
@@ -412,29 +423,32 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
 	__utils_nonull(1, 2, 4) __warn_result;
 
 /**
- * unsk_dgram_svc_recv() - Fetch a datagram from a service side UNIX
- *                         datagram named socket.
+ * Fetch a datagram from a service side UNIX datagram named socket.
  *
- * @sock:  local service side UNIX socket
- * @data:  buffer to store datagram into
- * @size:  number of bytes @data may hold
- * @peer:  address of peer (client) UNIX socket that sent @data
- * @creds: credentials of process that drives @peer socket
- * @flags: flags according to which to receive
+ * @param[in]  sock  local service side UNIX socket
+ * @param[out] data  buffer to store datagram into
+ * @param[in]  size  number of bytes @p data may hold
+ * @param[out] peer  address of peer (client) UNIX socket that sent @p data
+ * @param[out] creds credentials of process that drives @p peer socket
+ * @param[in]  flags flags according to which to receive
  *
- * @flags support limited to MSG_CMSG_CLOEXEC and MSG_DONTWAIT.
+ * @return `> 0` when successful, a negative errno-like return code otherwise.
+ * @retval > 0            success, i.e., number of bytes received
+ * @retval -EAGAIN        socket is nonblocking and the receive operation would
+ *                        block, i.e. there is no available data to receive
+ * @retval -EINTR         signal occurred before any data could be received
+ * @retval -EADDRNOTAVAIL invalid peer (client) abstract socket address
+ * @retval -EMSGSIZE      received datagram was too large to fit into @p data
+ * @retval -EPROTO        missing credentials ancillary control message
+ * @retval -ENOMEM        no memory available.
  *
- * See: recvmsg(2) and unix(7) man pages.
+ * Note that @p flags support is limited to `MSG_CMSG_CLOEXEC` and
+ * `MSG_DONTWAIT`.
  *
- * Return:
- * * >0             - success, i.e., number of bytes received,
- * * -EAGAIN        - socket is nonblocking and the receive operation would
- *                    block, i.e. there is no available data to receive,
- * * -EINTR         - signal occurred before any data could be received,
- * * -EADDRNOTAVAIL - invalid peer (client) abstract socket address,
- * * -EMSGSIZE      - received datagram was too large to fit into @data,
- * * -EPROTO        - missing credentials ancillary control message,
- * * -ENOMEM        - no memory available.
+ * @see
+ * - @man{recvmsg(2)}
+ * - @man{unix(7)}
+ *
  */
 extern ssize_t
 unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
@@ -446,82 +460,90 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
 	__utils_nonull(1, 2, 4, 5) __warn_result;
 
 /**
- * unsk_svc_bind() - Bind a UNIX service named socket to a local filesystem
- *                   pathname.
+ * Bind a UNIX service named socket to a local filesystem pathname.
  *
- * @sock: local service side UNIX socket
- * @path: filesystem pathname to bind @sock to
+ * @param[inout] sock local service side UNIX socket
+ * @param[in]    path pathname to bind @p sock to
+ *
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0           success
+ * @retval -EACCES     the local address the service socket is bound to is
+ *                     protected (and the user is not the superuser) search
+ *                     permission denied on a component of @p path
+ * @retval -EADDRINUSE given address (@p path) already in use protected (and the
+ *                     user is not the superuser)
+ * @retval -ELOOP      too many symbolic links encountered in resolving @p path
+ * @retval -ENOENT     a component in the directory prefix of @p path does not
+ *                     exist
+ * @retval -EISDIR     @p path is an existing directory
+ * @retval -ENOTDIR    a component of @p path prefix is not a directory
+ * @retval -EROFS      socket inode would reside on a read-only filesystem
+ * @retval -ENOMEM     no memory available
  *
  * Once bound successfully, the corresponding filesystem entry will have been
- * created according to pathname given by @path.
+ * created according to pathname given by @p path.
  * This filesystem entry should be delete using unsk_svc_close() once no longer
  * needed.
  *
- * unsk_svc_bind() will try to unlink(2) @path before binding to prevent from
- * failing with -EADDRINUSE error code. This allows a crashing application to
+ * unsk_svc_bind() will try to unlink(2) @p path before binding to prevent from
+ * failing with `-EADDRINUSE` error code. This allows a crashing application to
  * successfully bind once restarted.
  *
- * Warning:
- * The way @path is removed from filesystem is not safe against multiple threads
- * / processes binding to @path:
+ * @warning
+ * The way @p path is removed from filesystem is not safe against multiple
+ * threads / processes binding to @p path:
  * - a process could silently remove the named socket created by a previous
  *   one ;
- * - there is a possible race condition betwwen @path removal by unlink(2) and
- *   the binding operation performed using bind(2) internally.
+ * - there is a possible race condition betwwen @p path removal by
+ *   @man{unlink(2)} and the binding operation performed using @man{bind(2)}
+ *   internally.
+ *
  * To overcome such a situation, the caller must rely upon external
  * synchronization mechanisms such as advisory / mandatory filesystem locking.
- * See flock(2), lockf(3) and fcntl(2) man pages for more infos.
+ * See @man{flock(2)}, @man{lockf(3)} and @man{fcntl(2)} man pages for more
+ * infos.
  *
- * See: bind(2) and unix(7) man pages.
- *
- * Return:
- * * 0             - success,
- * * -EACCES       - the local address the service socket is bound to is
- *                   protected (and the user is not the superuser),
- *                   search permission denied on a component of @path,
- * * -EADDRINUSE   - given address (@path) already in use
- *                   protected (and the user is not the superuser)
- * * -ELOOP        - too many symbolic links encountered in resolving @path,
- * * -ENOENT       - a component in the directory prefix of @path does not
- *                   exist,
- * * -EISDIR       - @path is an existing directory,
- * * -ENOTDIR      - a component of @path prefix is not a directory
- * * -EROFS        - socket inode would reside on a read-only filesystem,
- * * -ENOMEM       - no memory available.
+ * See
+ * - @man{bind(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
 	__utils_nonull(1, 2) __utils_nothrow;
 
 /**
- * unsk_dgram_svc_open() - Open a service / server side UNIX datagram socket.
+ * Open a service / server side UNIX datagram socket.
  *
- * @sock:  local service side UNIX socket
- * @flags: flags to open socket with
+ * @param[out] sock  local service side UNIX socket
+ * @param[in]  flags flags to open socket with
  *
- * @flags support limited to SOCK_NONBLOCK and SOCK_CLOEXEC.
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0        success
+ * @retval -EACCES  socket creation permission denied
+ * @retval -EMFILE  system-wide limit on the total number of open files has been
+ *                  reached
+ * @retval -ENOMEM  no memory available
+ * @retval -ENOBUFS same as `-ENOMEM`
  *
- * See: socket(2) and unix(7) man pages.
+ * Note that @p flags support is limited to `SOCK_NONBLOCK` and `SOCK_CLOEXEC`.
  *
- * Return:
- * * 0             - success,
- * * -EACCES       - socket creation permission denied,
- * * -EMFILE       - system-wide limit on the total number of open files has
- *                   been reached,
- * * -ENOMEM       - no memory available,
- * * -ENOBUFS      - same as -ENOMEM.
+ * @see
+ * - @man{socket(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_dgram_svc_open(struct unsk_svc * __restrict sock, int flags)
 	__utils_nonull(1) __utils_nothrow;
 
 /**
- * unsk_svc_close() - Close all endpoints of a service / server side UNIX
- *                    socket.
+ * Close all endpoints of a service / server side UNIX socket.
  *
- * @sock: local service side UNIX socket
+ * @param[in] sock local service side UNIX socket
  *
- * See: close(2), shutdown(2) and unix(7) man pages.
+ * @see
+ * - @man{close(2)}
+ * - @man{shutdown(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_svc_close(const struct unsk_svc * __restrict sock) __utils_nonull(1);
@@ -531,61 +553,91 @@ unsk_svc_close(const struct unsk_svc * __restrict sock) __utils_nonull(1);
  ******************************************************************************/
 
 /**
- * union unsk_creds - UNIX socket ancillary / control message holding process
- *                    credentials.
+ * UNIX socket ancillary / control message holding process credentials.
  *
- * See: cmsg(3), recvmsg(2), sendmsg(2) and unix(7) man pages
+ * @see
+ * - @man{cmsg(3)}
+ * - @man{recvmsg(2)}
+ * - @man{sendmsg(2)}
+ * - @man{unix(7)}
  */
 union unsk_creds {
-	/* private: raw buffer where ancillary message content is stored. */
+	/**
+	 * @internal
+	 *
+	 * Raw buffer where ancillary message content is stored.
+	 */
 	char           buff[CMSG_SPACE(sizeof(struct ucred))];
-	/* private: ancillary message descriptor. */
+
+	/**
+	 * @internal
+	 *
+	 * Ancillary message descriptor.
+	 */
 	struct cmsghdr head;
 };
 
 /**
- * struct unsk_clnt - Client side UNIX socket.
+ * Client side UNIX socket.
  */
 struct unsk_clnt {
-	/* private: system socket file descriptor */
+	/**
+	 * @internal
+	 *
+	 * System socket file descriptor
+	 */
 	int                fd;
 
-	/* private: address of filesystem pathname peer (service) UNIX socket */
+	/**
+	 * @internal
+	 *
+	 * Address of filesystem pathname peer (service) UNIX socket
+	 */
 	struct sockaddr_un peer;
 
-	/* private: size of the above address */
+	/**
+	 * @internal
+	 *
+	 * Size of the above address
+	 */
 	socklen_t          peer_sz;
 
-	/*
-	 * private: ancillary / control message where credentials of process
-	 *          owning this socket are stored.
+	/**
+	 * @internal
+	 *
+	 * Ancillary / control message where credentials of process owning this
+	 * socket are stored.
 	 */
 	union unsk_creds   creds;
 };
 
 /**
- * unsk_dgram_clnt_send() - Transmit a message from a client side UNIX datagram
- *                          socket to specified peer (service) socket.
+ * Transmit a message from a client side UNIX datagram socket to specified peer
+ * (service) socket.
  *
- * @sock:  local client side UNIX socket
- * @data:  data to send
- * @size:  number of bytes to send
- * @flags: flags to send according to
+ * @param[in] sock  local client side UNIX socket
+ * @param[in] data  data to send
+ * @param[in] size  number of bytes to send
+ * @param[in] flags flags to send according to
  *
- * @flags support limited to MSG_DONTWAIT and MSG_MORE.
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0             success
+ * @retval -EAGAIN       socket is nonblocking and the send operation would
+ *                       block
+ * @retval -EINTR        signal occurred before any data was transmitted
+ * @retval -EACCES       write permission is denied on destination socket file,
+ *                       or search permission is denied for one of prefix path
+ *                       directories
+ * @retval -ENOENT       peer (service) socket filesystem entry not found
+ * @retval -ECONNREFUSED connection refused, i.e., peer (service) socket has
+ *                       closed
+ * @retval -ENOMEM       no memory available
  *
- * See: sendmsg(2) and unix(7) man pages.
+ * Note that @p flags support is limited to `MSG_DONTWAIT` and `MSG_MORE`.
  *
- * Return:
- * * 0             - success,
- * * -EAGAIN       - socket is nonblocking and the send operation would block,
- * * -EINTR        - signal occurred before any data was transmitted,
- * * -EACCES       - write permission is denied on destination socket file, or
- * *                 search permission is denied for one of prefix path
- * *                 directories,
- * * -ENOENT       - peer (service) socket filesystem entry not found,
- * * -ECONNREFUSED - connection refused, i.e., peer (service) socket has closed,
- * * -ENOMEM       - no memory available.
+ * See
+ * - @man{sendmsg(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
@@ -595,27 +647,29 @@ unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
 	__utils_nonull(1, 2) __warn_result;
 
 /**
- * unsk_dgram_clnt_recv() - Fetch a datagram from a client side UNIX
- *                          datagram unamed socket.
+ * Fetch a datagram from a client side UNIX datagram unamed socket.
  *
- * @sock:  local client side UNIX socket
- * @data:  buffer to store datagram into
- * @size:  number of bytes @data may hold
- * @flags: flags according to which to receive
+ * @param[in]  sock  local client side UNIX socket
+ * @param[out] data  buffer to store datagram into
+ * @param[in]  size  number of bytes @p data may hold
+ * @param[in]  flags flags according to which to receive
  *
- * @flags support limited to MSG_CMSG_CLOEXEC and MSG_DONTWAIT.
+ * @return `>0` when successful, a negative errno-like return code otherwise.
+ * @retval >0             success, i.e., number of bytes received
+ * @retval -EAGAIN        socket is nonblocking and the receive operation would
+ *                        block, i.e. there is no available data to receive
+ * @retval -EINTR         signal occurred before any data could be received
+ * @retval -EADDRNOTAVAIL sender address does not match the service socket we
+ *                        are connected to
+ * @retval -EMSGSIZE      received datagram was too large to fit into @p data
+ * @retval -ENOMEM        no memory available.
  *
- * See: recvmsg(2) and unix(7) man pages.
+ * Note that the @p flags support is limited to `MSG_CMSG_CLOEXEC` and
+ * `MSG_DONTWAIT`.
  *
- * Return:
- * * >0             - success, i.e., number of bytes received,
- * * -EAGAIN        - socket is nonblocking and the receive operation would
- *                    block, i.e. there is no available data to receive,
- * * -EINTR         - signal occurred before any data could be received,
- * * -EADDRNOTAVAIL - sender address does not match the service socket we are
- *                    connected to,
- * * -EMSGSIZE      - received datagram was too large to fit into @data,
- * * -ENOMEM        - no memory available.
+ * @see
+ * - @man{recvmsg(2)}
+ * - @man{unix(7)}
  */
 extern ssize_t
 unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
@@ -625,19 +679,21 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 	__utils_nonull(1, 2) __warn_result;
 
 /**
- * unsk_dgram_clnt_connect() - Connect a UNIX datagram client socket to
- *                             specified peer (service) named socket.
+ * Connect a UNIX datagram client socket to specified peer (service) named
+ * socket.
  *
- * @sock: local client side UNIX socket
- * @path: filesystem pathname to peer (service) UNIX datagram socket
+ * @param[inout] sock local client side UNIX socket
+ * @param[in]    path filesystem pathname to peer (service) UNIX datagram socket
  *
- * See: bind(2) and unix(7) man pages.
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0       success
+ * @retval -EACCES the local address the client socket is bound to is
+ *                 protected (and the user is not the superuser)
+ * @retval -ENOMEM no memory available.
  *
- * Return:
- * * 0             - success,
- * * -EACCES       - the local address the client socket is bound to is
- *                   protected (and the user is not the superuser)
- * * -ENOMEM       - no memory available.
+ * @see
+ * - @man{bind(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
@@ -645,33 +701,38 @@ unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
 	__utils_nonull(1, 2) __utils_nothrow;
 
 /**
- * unsk_dgram_clnt_open() - Open a client side UNIX datagram socket.
+ * Open a client side UNIX datagram socket.
  *
- * @sock:  local client side UNIX socket
- * @flags: flags to open socket with
+ * @param[out] sock   local client side UNIX socket
+ * @param[in]  flags  flags to open socket with
  *
- * @flags support limited to SOCK_NONBLOCK and SOCK_CLOEXEC.
+ * @return `0` when successful, a negative errno-like return code otherwise.
+ * @retval 0        success
+ * @retval -EACCES  socket creation permission denied
+ * @retval -EMFILE  system-wide limit on the total number of open files has
+ *                  been reached
+ * @retval -ENOMEM  no memory available
+ * @retval -ENOBUFS same as -ENOMEM
  *
- * See: socket(2) and unix(7) man pages.
+ * Note that @p flags support is limited to `SOCK_NONBLOCK` and `SOCK_CLOEXEC`.
  *
- * Return:
- * * 0             - success,
- * * -EACCES       - socket creation permission denied,
- * * -EMFILE       - system-wide limit on the total number of open files has
- *                   been reached,
- * * -ENOMEM       - no memory available,
- * * -ENOBUFS      - same as -ENOMEM.
+ * @see
+ * - @man{socket(2)}
+ * - @man{unix(7)}
  */
 extern int
 unsk_dgram_clnt_open(struct unsk_clnt * __restrict sock, int flags)
 	__utils_nonull(1) __utils_nothrow;
 
 /**
- * unsk_clnt_close() - Close all endpoints of a client side UNIX socket.
+ * Close all endpoints of a client side UNIX socket.
  *
- * @sock: local client side UNIX socket
+ * @param[in] sock local client side UNIX socket
  *
- * See: close(2), shutdown(2) and unix(7) man pages.
+ * @see
+ * - @man{close(2)}
+ * - @man{shutdown(2)}
+ * - @man{unix(7)}
  */
 extern void
 unsk_clnt_close(const struct unsk_clnt * __restrict sock) __utils_nonull(1);

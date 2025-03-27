@@ -70,7 +70,6 @@ A copy of the license is included in the section entitled
    .. toctree::
       :caption: Appendix
 
-      glossary
       license
       todo
       genindex

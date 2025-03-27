@@ -75,26 +75,33 @@ upon directory tree hierarchies. These are:
 
 .. hlist::
 
-   * Traversal:
+   * Iterate over directory entries:
 
-      * :c:func:`etux_fstree_iter`
+      * :c:func:`etux_fstree_walk`
+      * :c:func:`etux_fstree_sort_walk`
+
+   * Scan filesystem hierarchies:
+
       * :c:func:`etux_fstree_scan`
-      * :c:func:`etux_fstree_sort_iter`
       * :c:func:`etux_fstree_sort_scan`
 
-   * Traversal state:
+   * Filesystem entry properties:
 
-      * :c:func:`etux_fstree_iter_depth`
-      * :c:func:`etux_fstree_iter_path`
-
-   * Entry properties:
-
+      * :c:struct:`etux_fstree_entry`
       * :c:func:`etux_fstree_entry_isdot`
       * :c:func:`etux_fstree_entry_name`
       * :c:func:`etux_fstree_entry_path`
       * :c:func:`etux_fstree_entry_slink`
       * :c:func:`etux_fstree_entry_stat`
       * :c:func:`etux_fstree_entry_type`
+
+   * Iteration / scanning state:
+
+      * :c:struct:`etux_fstree_iter`
+      * :c:func:`etux_fstree_iter_depth`
+      * :c:func:`etux_fstree_iter_dir`
+      * :c:func:`etux_fstree_iter_dirfd`
+      * :c:func:`etux_fstree_iter_path`
 
 .. index:: timer, time
 
@@ -337,15 +344,20 @@ etux_fstree_entry_type()
 
 .. doxygenfunction:: etux_fstree_entry_type
 
-etux_fstree_iter()
-******************
-
-.. doxygenfunction:: etux_fstree_iter
-
 etux_fstree_iter_depth()
 ************************
 
 .. doxygenfunction:: etux_fstree_iter_depth
+
+etux_fstree_iter_dir
+********************
+
+.. doxygenfunction:: etux_fstree_iter_dir
+
+etux_fstree_iter_dirfd
+**********************
+
+.. doxygenfunction:: etux_fstree_iter_dirfd
 
 etux_fstree_iter_path()
 ***********************
@@ -357,12 +369,17 @@ etux_fstree_scan()
 
 .. doxygenfunction:: etux_fstree_scan
 
-etux_fstree_sort_iter()
-***********************
-
-.. doxygenfunction:: etux_fstree_sort_iter
-
 etux_fstree_sort_scan()
 ***********************
 
 .. doxygenfunction:: etux_fstree_sort_scan
+
+etux_fstree_sort_walk()
+***********************
+
+.. doxygenfunction:: etux_fstree_sort_walk
+
+etux_fstree_walk()
+******************
+
+.. doxygenfunction:: etux_fstree_walk

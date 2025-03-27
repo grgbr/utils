@@ -161,7 +161,7 @@ latex_documents = [
 # entries into generated document.
 # See comments into latex.rst for more informations.
 latex_toplevel_sectioning = 'chapter'
-latex_appendices = [ 'glossary', 'license', 'todo' ]
+latex_appendices = [ 'license', 'todo' ]
 latex_show_urls = 'footnote'
 latex_show_pagerefs = False
 
@@ -197,7 +197,7 @@ texinfo_documents = [
 
 # Request texinfo backend to generate the following appendix entries to benefit
 # from its appendix section numbering scheme.
-texinfo_appendices = [ 'glossary', 'license', 'todo' ]
+texinfo_appendices = [ 'license', 'todo' ]
 texinfo_domain_indices = True
 texinfo_show_urls = 'footnote'
 texinfo_no_detailmenu = True

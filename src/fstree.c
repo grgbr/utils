@@ -8,7 +8,6 @@
 #include "utils/fstree.h"
 #include <stroll/array.h>
 #include <stroll/falloc.h>
-#include <dirent.h>
 
 #if !defined(_DIRENT_HAVE_D_TYPE)
 #error dirent structure is missing support for d_type field. \
@@ -504,6 +503,27 @@ etux_fstree_iter_path(const struct etux_fstree_iter * __restrict iter)
 	return iter->path;
 }
 
+DIR *
+etux_fstree_iter_dir(const struct etux_fstree_iter * __restrict iter)
+{
+	etux_fstree_iter_assert_api(iter);
+
+	return iter->dir;
+}
+
+int
+etux_fstree_iter_dirfd(const struct etux_fstree_iter * __restrict iter)
+{
+	etux_fstree_iter_assert_api(iter);
+
+	int fd;
+
+	fd = dirfd(iter->dir);
+	etux_fstree_assert_intern(fd >= 0);
+
+	return fd;
+}
+
 /*
  * Jump to next directory entry.
  *
@@ -718,7 +738,7 @@ etux_fstree_iter_fini(struct etux_fstree_iter * __restrict iter)
 }
 
 int
-etux_fstree_iter(const char * __restrict path,
+etux_fstree_walk(const char * __restrict path,
                  int                     options,
                  etux_fstree_handle_fn * handle,
                  void *                  data)
@@ -1162,7 +1182,7 @@ etux_fstree_sort_fini(struct etux_fstree_sort * __restrict sort)
 }
 
 int
-etux_fstree_sort_iter(const char * __restrict path,
+etux_fstree_sort_walk(const char * __restrict path,
                       int                     options,
                       etux_fstree_filter_fn * filter,
                       etux_fstree_cmp_fn *    compare,
