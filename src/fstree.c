@@ -419,6 +419,58 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
 	return entry->slink;
 }
 
+ssize_t
+etux_fstree_entry_sized_slink(
+	const struct etux_fstree_entry * __restrict entry,
+	const struct etux_fstree_iter * __restrict  iter,
+	char * __restrict                           target,
+	size_t                                      size)
+{
+	etux_fstree_entry_assert_api(entry, iter);
+	etux_fstree_assert_api(target);
+	etux_fstree_assert_api(size > 1);
+
+	if (!(entry->flags & ETUX_FSTREE_SLINK_FLAG)) {
+		int     fd;
+		ssize_t ret;
+
+		fd = dirfd(iter->dir);
+		etux_fstree_assert_intern(fd >= 0);
+
+		ret = readlinkat(fd, entry->dirent.d_name, target, size);
+		etux_fstree_assert_intern(ret <= size);
+		if (ret < 0) {
+			etux_fstree_assert_intern(ret != EFAULT);
+			etux_fstree_assert_intern(ret != ENAMETOOLONG);
+			etux_fstree_assert_intern(ret != EBADF);
+
+			return -ret;
+		}
+		else if (!ret)
+			return -ENODATA;
+		else if ((size_t)ret == size)
+			return -ENAMETOOLONG;
+
+		/* readlinkat() does not append the terminating NULL byte... */
+		target[ret] = '\0';
+
+		return ret;
+	}
+	else {
+		size_t len;
+
+		len = strnlen(entry->slink, PATH_MAX);
+		etux_fstree_assert_intern(len);
+		etux_fstree_assert_intern(len < PATH_MAX);
+		if (len >= size)
+			return -ENAMETOOLONG;
+
+		memcpy(target, entry->slink, len + 1);
+
+		return (ssize_t)(len);
+	}
+}
+
 static __utils_nonull(1) __utils_nothrow
 void
 etux_fstree_entry_init(struct etux_fstree_entry * __restrict entry)

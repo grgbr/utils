@@ -338,6 +338,15 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
                         const struct etux_fstree_iter * __restrict iter)
 	__utils_nonull(1, 2) __warn_result;
 
+#warning document me!!
+extern ssize_t
+etux_fstree_entry_sized_slink(
+	const struct etux_fstree_entry * __restrict entry,
+	const struct etux_fstree_iter * __restrict  iter,
+	char * __restrict                           target,
+	size_t                                      size)
+	__utils_nonull(1, 2) __warn_result;
+
 /**
  * @defgroup etux_fstree_cmds-group Filesystem tree traversal options
  * @{
