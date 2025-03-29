@@ -372,15 +372,69 @@ etux_fstree_entry_path(struct etux_fstree_entry * __restrict      entry,
 	return entry->path;
 }
 
+extern ssize_t
+etux_fstree_entry_sized_path(const struct etux_fstree_entry * __restrict entry,
+                             const struct etux_fstree_iter * __restrict  iter,
+                             char * __restrict                           path,
+                             size_t                                      size)
+{
+	etux_fstree_entry_assert_api(entry, iter);
+	etux_fstree_assert_api(path);
+	etux_fstree_assert_api(size > 1);
+
+	size_t len;
+
+	if (!(entry->flags & ETUX_FSTREE_PATH_FLAG)) {
+		len = iter->plen;
+		if (len) {
+			if (iter->path[len - 1] != '/') {
+				if ((len + 1) >= size)
+					return -ENAMETOOLONG;
+
+				memcpy(path, iter->path, len);
+				path[len++] = '/';
+			}
+			else {
+				if (len >= size)
+					return -ENAMETOOLONG;
+
+				memcpy(path, iter->path, len);
+			}
+		}
+
+		if ((len + entry->nlen) >= size)
+			return -ENAMETOOLONG;
+
+		memcpy(&path[len], entry->dirent.d_name, entry->nlen);
+		len += entry->nlen;
+		path[len] = '\0';
+	}
+	else {
+		len = iter->plen;
+		if (len && iter->path[len - 1] != '/')
+			len++;
+		len += entry->nlen;
+		etux_fstree_assert_intern(len);
+		etux_fstree_assert_intern(len < PATH_MAX);
+		if (len >= size)
+			return -ENAMETOOLONG;
+
+		memcpy(path, entry->path, len + 1);
+	}
+
+	return (ssize_t)(len);
+}
+
 const char *
 etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
                         const struct etux_fstree_iter * __restrict iter)
 {
 	etux_fstree_entry_assert_api(entry, iter);
 
+	ssize_t ret;
+
 	if (!(entry->flags & ETUX_FSTREE_SLINK_FLAG)) {
-		int     fd;
-		ssize_t ret;
+		int fd;
 
 		if (!entry->slink) {
 			entry->slink = malloc(PATH_MAX);
@@ -401,14 +455,15 @@ etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
 			etux_fstree_assert_intern(ret != ENAMETOOLONG);
 			etux_fstree_assert_intern(ret != EBADF);
 
+			errno = -(int)ret;
 			return NULL;
 		}
 		else if (!ret) {
-			errno = -ENODATA;
+			errno = ENODATA;
 			return NULL;
 		}
 		else if (ret == PATH_MAX) {
-			errno = -ENAMETOOLONG;
+			errno = ENAMETOOLONG;
 			return NULL;
 		}
 
@@ -608,13 +663,22 @@ etux_fstree_iter_next(struct etux_fstree_iter * __restrict iter,
 
 	etux_fstree_assert_intern(errno != EBADF);
 	if (errno) {
-		/* An unrecoverable error happened. */
-		int err = -errno;
+		/* An unrecoverable iteration error happened. */
+		if (errno != ENOMEM) {
+			int ret;
 
-		if (err != -ENOMEM)
-			handle(NULL, iter, ETUX_FSTREE_NEXT_ERR_EVT, err, data);
+			ret = handle(NULL,
+			             iter,
+			             ETUX_FSTREE_NEXT_ERR_EVT,
+			             -errno,
+			             data);
+			etux_fstree_assert_api((ret < 0) ||
+			                       (ret == ETUX_FSTREE_STOP_CMD));
 
-		return err;
+			return ret;
+		}
+
+		return -ENOMEM;
 	}
 
 	/* End of current directory iteration. */

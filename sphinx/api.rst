@@ -91,6 +91,8 @@ upon directory tree hierarchies. These are:
       * :c:func:`etux_fstree_entry_isdot`
       * :c:func:`etux_fstree_entry_name`
       * :c:func:`etux_fstree_entry_path`
+      * :c:func:`etux_fstree_entry_sized_path`
+      * :c:func:`etux_fstree_entry_sized_slink`
       * :c:func:`etux_fstree_entry_slink`
       * :c:func:`etux_fstree_entry_stat`
       * :c:func:`etux_fstree_entry_type`
@@ -328,6 +330,16 @@ etux_fstree_entry_path()
 ************************
 
 .. doxygenfunction:: etux_fstree_entry_path
+
+etux_fstree_entry_sized_path()
+******************************
+
+.. doxygenfunction:: etux_fstree_entry_sized_path
+
+etux_fstree_entry_sized_slink()
+*******************************
+
+.. doxygenfunction:: etux_fstree_entry_sized_slink
 
 etux_fstree_entry_slink()
 *************************

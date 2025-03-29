@@ -288,6 +288,7 @@ etux_fstree_entry_name(
  * informations.
  *
  * @see
+ * - etux_fstree_entry_sized_path()
  * - etux_fstree_entry_name()
  * - etux_fstree_entry_slink()
  * - #etux_fstree_entry
@@ -299,6 +300,51 @@ extern const char *
 etux_fstree_entry_path(struct etux_fstree_entry * __restrict      entry,
                        const struct etux_fstree_iter * __restrict iter)
 	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
+
+/**
+ * Retrieve pathname to filesystem tree traversal entry given in argument.
+ *
+ * @param[in]  entry Filesystem tree entry
+ * @param[in]  iter  Filesystem tree entry iterator
+ * @param[out] path  Output path
+ * @param[in]  size  Size of @p path in bytes
+ *
+ * @return `>0` when successful, a negative errno-like return code otherwise.
+ * @retval >0            Length of retrieved path
+ * @retval -ENAMETOOLONG Retrieved path too larget to fit into @p path
+ *
+ * This function retrieves the pathname relative to the root of the traversal
+ * for the filesystem tree entry specified as @p entry and places it into the
+ * string specified as the @p path argument.
+ *
+ * The @p size argument should specify the available size of the @p path string.
+ * It is guaranteed that no more than @p size bytes (including the terminating
+ * `NULL` byte) are copied into @p path string.
+ *
+ * Length of the string returned (excluding the terminating `NULL` byte) is
+ * guaranteed to be `> 0` and `< PATH_MAX` as defined by `<limits.h>`.
+ * In other words, the maximum required size for the @p path string (including
+ * the terminating `NULL` byte) is `<= PATH_MAX` as defined by `<limits.h>`.
+ *
+ * Content of the @p path string may differ according to @p iter filesystem
+ * tree iterator configuration. See #ETUX_FSTREE_FOLLOW_OPT for more
+ * informations.
+ *
+ * @see
+ * - etux_fstree_entry_path()
+ * - etux_fstree_entry_name()
+ * - etux_fstree_entry_slink()
+ * - #etux_fstree_entry
+ * - #etux_fstree_iter
+ * - #ETUX_FSTREE_FOLLOW_OPT
+ * - @man{errno(3)}
+ */
+extern ssize_t
+etux_fstree_entry_sized_path(const struct etux_fstree_entry * __restrict entry,
+                             const struct etux_fstree_iter * __restrict  iter,
+                             char * __restrict                           path,
+                             size_t                                      size)
+	__utils_nonull(1, 2, 3) __utils_nothrow __leaf __warn_result;
 
 /**
  * Return target of filesystem tree traversal symbolic link entry given in
@@ -318,13 +364,14 @@ etux_fstree_entry_path(struct etux_fstree_entry * __restrict      entry,
  *
  * @note
  * - @p entry *MUST* be a symbolic link, i.e., its type *MUST* be `DT_LNK` as
- *   returned by etux_fstree_entry_type(). A `NULL` pointer is returned otherwise
- *   and @man{errno(3)} is set to `EINVAL`.
+ *   returned by etux_fstree_entry_type(). A `NULL` pointer is returned
+ *   otherwise and @man{errno(3)} is set to `EINVAL`.
  * - when @p iter filesystem tree iterator is configured with the
  *   #ETUX_FSTREE_FOLLOW_OPT option, no symbolic link is ever traversed ; in
  *   this case, etux_fstree_entry_slink() always returns `NULL`...
  *
  * @see
+ * - etux_fstree_entry_sized_slink()
  * - etux_fstree_entry_type()
  * - etux_fstree_entry_name()
  * - etux_fstree_entry_path()
@@ -336,16 +383,58 @@ etux_fstree_entry_path(struct etux_fstree_entry * __restrict      entry,
 extern const char *
 etux_fstree_entry_slink(struct etux_fstree_entry * __restrict      entry,
                         const struct etux_fstree_iter * __restrict iter)
-	__utils_nonull(1, 2) __warn_result;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __warn_result;
 
-#warning document me!!
+/**
+ * Retrieve target of filesystem tree traversal symbolic link entry given in
+ * argument.
+ *
+ * @param[in]  entry  Filesystem tree entry
+ * @param[in]  iter   Filesystem tree entry iterator
+ * @param[out] target Output symbolic link target path
+ * @param[in]  size   Size of @p target in bytes
+ *
+ * @return `>0` when successful, a negative errno-like return code otherwise.
+ * @retval >0            Length of retrieved symbolic link target path
+ * @retval -ENODATA      Empty symbolic link target path found
+ * @retval -ENAMETOOLONG Symbolic link target path too larget to fit into @p
+ *                       target
+ *
+ * This function retrieves the symbolic link target pathname for the filesystem
+ * tree entry specified as @p entry and places it into the string specified as
+ * the @p target argument.
+ *
+ * The @p size argument should specify the available size of the @p target
+ * string. It is guaranteed that no more than @p size bytes (including the
+ * terminating `NULL` byte) are copied into @p target string.
+ * In addition, the maximum required size for the @p target string (including
+ * the terminating `NULL` byte) is `<= PATH_MAX` as defined by `<limits.h>`.
+ *
+ * @note
+ * - @p entry *MUST* be a symbolic link, i.e., its type *MUST* be `DT_LNK` as
+ *   returned by etux_fstree_entry_type(). A `NULL` pointer is returned
+ *   otherwise and @man{errno(3)} is set to `EINVAL`.
+ * - when @p iter filesystem tree iterator is configured with the
+ *   #ETUX_FSTREE_FOLLOW_OPT option, no symbolic link is ever traversed ; in
+ *   this case, etux_fstree_entry_slink() always returns `-EINVAL`...
+ *
+ * @see
+ * - etux_fstree_entry_slink()
+ * - etux_fstree_entry_type()
+ * - etux_fstree_entry_name()
+ * - etux_fstree_entry_path()
+ * - #etux_fstree_entry
+ * - #etux_fstree_iter
+ * - #ETUX_FSTREE_FOLLOW_OPT
+ * - @man{errno(3)}
+ */
 extern ssize_t
 etux_fstree_entry_sized_slink(
 	const struct etux_fstree_entry * __restrict entry,
 	const struct etux_fstree_iter * __restrict  iter,
 	char * __restrict                           target,
 	size_t                                      size)
-	__utils_nonull(1, 2) __warn_result;
+	__utils_nonull(1, 2, 3) __utils_nothrow __leaf __warn_result;
 
 /**
  * @defgroup etux_fstree_cmds-group Filesystem tree traversal options
@@ -527,6 +616,21 @@ enum etux_fstree_event {
 	 *   negative errno-like value describing the cause of failure ;
 	 * - and the **last** one points to the optional user provided @p data
 	 *   argument given to the top-level traversal function.
+	 *
+	 * @warning
+	 * In this case, the value returned by the #etux_fstree_handle_fn
+	 * callback function is treated in a special way. It is *REQUIRED* to be
+	 * one of the following:
+	 * - a negative errno-like value that aborts the ongoing iteration /
+	 *   scanning process ;
+	 * - or #ETUX_FSTREE_STOP_CMD to tell the caller to interrupt the
+	 *   current directory iteration and try to keep scanning the ongoing
+	 *   filesystem hierarchy in cases where the traversal operation was
+	 *   started thanks to a call to etux_fstree_scan() or
+	 *   etux_fstree_sort_scan().
+	 *
+	 * The traversal process behavior is *undefined* for any other value
+	 * returned.
 	 */
 	ETUX_FSTREE_NEXT_ERR_EVT,
 
@@ -540,7 +644,8 @@ enum etux_fstree_event {
 	 *
 	 * In this case, the #etux_fstree_handle_fn callback is called with the
 	 * following arguments:
-	 * - the **first** one points to a valid #etux_fstree_entry *entry* ;
+	 * - the **first** one *MAY* point to a valid #etux_fstree_entry *entry*
+	 *   (see the warning below) ;
 	 * - the **second** one points to a valid #etux_fstree_iter *iterator* ;
 	 * - the **third** one, the #etux_fstree_event visiting *event*, equals
 	 *   #ETUX_FSTREE_LOAD_ERR_EVT ;
@@ -548,6 +653,11 @@ enum etux_fstree_event {
 	 *   negative errno-like value describing the cause of failure ;
 	 * - and the **last** one points to the optional user provided @p data
 	 *   argument given to the top-level traversal function.
+	 *
+	 * @warning
+	 * The **first** argument points to a `NULL` entry when @p status value
+	 * is different from `-ENODATA' and `-ENAMETOOLONG`. It points to a
+	 * valid entry otherwise.
 	 */
 	ETUX_FSTREE_LOAD_ERR_EVT,
 
@@ -674,8 +784,8 @@ enum etux_fstree_event {
  * - a value described in the @rstref{etux_fstree_cmds-group} section to
  *   control the traversal process,
  * - or a negative errno-like value to inform the traversal logic that an
- *   *unrecoverable error* happened and that iteration should be *aborted*
- *   immediately.
+ *   *unrecoverable error* happened and that iteration / scanning should be
+ *   *aborted* immediately.
  *
  * See individual #etux_fstree_event events description for additional details
  * about #etux_fstree_handle_fn calling conventions.
