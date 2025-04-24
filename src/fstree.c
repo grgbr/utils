@@ -493,7 +493,7 @@ etux_fstree_entry_sized_slink(
 		etux_fstree_assert_intern(fd >= 0);
 
 		ret = readlinkat(fd, entry->dirent.d_name, target, size);
-		etux_fstree_assert_intern(ret <= size);
+		etux_fstree_assert_intern((size_t)ret <= size);
 		if (ret < 0) {
 			etux_fstree_assert_intern(ret != EFAULT);
 			etux_fstree_assert_intern(ret != ENAMETOOLONG);
@@ -920,7 +920,7 @@ etux_fstree_vect_count(const struct etux_fstree_vect * __restrict vector)
 static __utils_nonull(1)
        __utils_pure
        __utils_nothrow
-       __returns_nonnull
+       __returns_nonull
        __warn_result
 struct etux_fstree_entry *
 etux_fstree_vect_get(const struct etux_fstree_vect * __restrict vector,
