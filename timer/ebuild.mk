@@ -9,8 +9,11 @@ include ../common.mk
 
 common-cflags                   += -fvisibility=hidden
 shared-common-cflags            += -fvisibility=hidden
-common-ldflags                  += -fvisibility=hidden
-shared-common-ldflags           += -fvisibility=hidden \
+common-ldflags                  += $(common-ldflags) \
+                                   -fvisibility=hidden
+shared-common-ldflags           := -L$(BUILDDIR)/../src \
+                                   $(shared-common-ldflags) \
+                                   -fvisibility=hidden \
                                    -l:shared/builtin.a -lutils
 common-pkgconf                  += $(call kconf_enabled,ETUX_TRACE,lttng-ust)
 
