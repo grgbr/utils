@@ -484,6 +484,7 @@ etux_fstree_entry_sized_slink(
 	etux_fstree_entry_assert_api(entry, iter);
 	etux_fstree_assert_api(target);
 	etux_fstree_assert_api(size > 1);
+	etux_fstree_assert_api(size <= INT_MAX);
 
 	if (!(entry->flags & ETUX_FSTREE_SLINK_FLAG)) {
 		int     fd;
