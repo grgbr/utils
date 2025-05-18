@@ -31,19 +31,45 @@
  * low-level UNIX socket wrappers
  ******************************************************************************/
 
-int
-unsk_is_named_path_ok(const char * __restrict path)
+ssize_t
+unsk_validate_named_path(const char * __restrict path)
 {
+	unsk_assert_api(path);
+
 	ssize_t len;
 
-	if (!path)
-		return -EFAULT;
-
 	len = upath_validate_path(path, UNSK_NAMED_PATH_MAX);
-	if (len < 0)
-		return (int)len;
+	unsk_assert_intern(len);
 
-	return 0;
+	return len;
+}
+
+socklen_t
+unsk_make_sized_addr(struct sockaddr_un * __restrict addr,
+                     const char * __restrict         path,
+                     size_t                          len)
+{
+	unsk_assert_api(addr);
+	unsk_assert_api(path);
+	unsk_assert_api(unsk_validate_named_path(path) == (ssize_t)len);
+
+	addr->sun_family = AF_UNIX;
+	memcpy(addr->sun_path, path, len + 1);
+
+	return (socklen_t)(offsetof(typeof(*addr), sun_path) + len + 1);
+}
+
+socklen_t
+unsk_make_named_addr(struct sockaddr_un * __restrict addr,
+                     const char * __restrict         path)
+{
+	unsk_assert_api(addr);
+	unsk_assert_api(path);
+	unsk_assert_api(unsk_validate_named_path(path) > 0);
+
+	return unsk_make_sized_addr(addr,
+	                            path,
+	                            strnlen(path, sizeof(addr->sun_path)));
 }
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -232,7 +258,6 @@ unsk_connect_dgram(int                             fd,
 
 	const struct sockaddr_un local = { .sun_family = AF_UNIX };
 	int                      err;
-	size_t                   sz;
 
 	/*
 	 * Explicitly bind to instantiate a local abstract UNIX socket.
@@ -252,10 +277,7 @@ unsk_connect_dgram(int                             fd,
 	}
 
 	/* Setup peer address to send messages to. */
-	sz = strnlen(peer_path, sizeof(peer_addr->sun_path)) + 1;
-	peer_addr->sun_family = AF_UNIX;
-	memcpy(&peer_addr->sun_path[0], peer_path, sz);
-	*addr_len = (socklen_t)(offsetof(typeof(*peer_addr), sun_path) + sz);
+	*addr_len = unsk_make_named_addr(peer_addr, peer_path);
 
 	return 0;
 }
@@ -552,9 +574,8 @@ unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
 	struct sockaddr_un * addr = &sock->local;
 	const int            cred = 1;
 
-	sz = strnlen(path, sizeof(addr->sun_path)) + 1;
-	addr->sun_family = AF_UNIX;
-	memcpy(&addr->sun_path[0], path, sz);
+	/* Build local listen address. */
+	sz = unsk_make_named_addr(addr, path);
 
 	/*
 	 * Remove local filesystem pathname if existing.

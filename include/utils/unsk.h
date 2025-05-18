@@ -43,15 +43,39 @@
  * low-level UNIX socket wrappers
  ******************************************************************************/
 
-#define UNSK_INIT_NAMED_ADDR(_path) \
+#define UNSK_NAMED_ADDR(_path) \
 	{ .sun_family = AF_UNIX, .sun_path = _path }
 
-#define UNSK_INIT_NAMED_ADDR_LEN(_path) \
+#define UNSK_NAMED_ADDR_LEN(_path) \
 	(offsetof(struct sockaddr_un, sun_path) + sizeof(_path))
 
-extern int
+extern ssize_t
+unsk_validate_named_path(const char * __restrict path)
+	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+int
 unsk_is_named_path_ok(const char * __restrict path)
-	__utils_pure __utils_nothrow __leaf __warn_result;
+{
+	unsk_assert_api(path);
+
+	ssize_t len;
+
+	len = unsk_validate_named_path(path);
+
+	return (len < 0) ? (int)len : 0;
+}
+
+extern socklen_t
+unsk_make_sized_addr(struct sockaddr_un * __restrict addr,
+                     const char * __restrict         path,
+                     size_t                          len)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
+
+extern socklen_t
+unsk_make_named_addr(struct sockaddr_un * __restrict addr,
+                     const char * __restrict         path)
+	__utils_nonull(1, 2) __utils_nothrow __warn_result;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
