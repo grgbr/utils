@@ -184,20 +184,49 @@ config UTILS_POLL
 	help
 	  Build utils library with polling support.
 
+menuconfig ETUX_SOCK
+	bool "Sockets"
+	select UTILS_FD
+	default y
+	help
+	  Build eTux library with socket support.
+
+if ETUX_SOCK
+
 config UTILS_UNSK
 	bool "UNIX sockets"
-	select UTILS_FD
+	depends on ETUX_SOCK
 	default y
 	help
 	  Build utils library with UNIX socket support.
 
 config UTILS_POLL_UNSK
 	bool "Poll'able UNIX sockets"
-	select UTILS_UNSK
+	depends on UTILS_UNSK
 	select UTILS_POLL
 	default y
 	help
 	  Build utils library with poll'able UNIX socket support.
+
+config ETUX_INSK
+	depends on ETUX_SOCK
+	default n
+
+config ETUX_IN4SK
+	bool "IPv4 sockets"
+	select ETUX_INSK
+	default y
+	help
+	  Build utils library with IPv4 socket support.
+
+config ETUX_IN6SK
+	bool "IPv6 sockets"
+	select ETUX_INSK
+	default y
+	help
+	  Build utils library with IPv6 socket support.
+
+endif # ETUX_SOCK
 
 config UTILS_MQUEUE
 	bool "Message queue"

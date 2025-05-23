@@ -19,7 +19,6 @@ libutils-objects      = $(call kconf_enabled,UTILS_SIGNAL,signal.o) \
                         $(call kconf_enabled,ETUX_FSTREE,fstree.o) \
                         $(call kconf_enabled,UTILS_STR,string.o) \
                         $(call kconf_enabled,UTILS_POLL,poll.o) \
-                        $(call kconf_enabled,UTILS_UNSK,unsk.o) \
                         $(call kconf_enabled,UTILS_MQUEUE,mqueue.o) \
                         $(call kconf_enabled,UTILS_NET,net.o) \
                         $(call kconf_enabled,UTILS_PWD,pwd.o)
@@ -30,11 +29,17 @@ shared/thread.o-cflags := -pthread $(shared-common-cflags)
 libutils.so-cflags     := $(shared-common-cflags)
 libutils.so-ldflags    := $(call kconf_enabled,UTILS_THREAD,-pthread) \
                           $(shared-common-ldflags) \
+                          -Wl,--push-state,--whole-archive \
+                          -l:../sock/shared/builtin.a \
+                          -Wl,--pop-state \
                           -Wl,-soname,libutils.so
 libutils.so-pkgconf    := $(common-pkgconf)
 
 arlibs                 := libutils.a
 libutils.a-objs         = $(addprefix static/,$(libutils-objects))
+libutils.a-lots        := $(call kconf_enabled, \
+                                 UTILS_UNSK, \
+                                 ../sock/static/unsk.o)
 static/thread.o-cflags := -pthread $(shared-common-cflags)
 libutils.a-cflags      := $(common-cflags)
 libutils.a-pkgconf     := $(common-pkgconf)

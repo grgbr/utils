@@ -51,7 +51,12 @@
 
 extern ssize_t
 unsk_validate_named_path(const char * __restrict path)
-	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __warn_result;
+	__utils_nonull(1)
+	__utils_pure
+	__utils_nothrow
+	__leaf
+	__warn_result
+	__export_public;
 
 static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
 int
@@ -70,12 +75,12 @@ extern socklen_t
 unsk_make_sized_addr(struct sockaddr_un * __restrict addr,
                      const char * __restrict         path,
                      size_t                          len)
-	__utils_nonull(1, 2) __utils_nothrow __warn_result;
+	__utils_nonull(1, 2) __utils_nothrow __warn_result __export_public;
 
 extern socklen_t
 unsk_make_named_addr(struct sockaddr_un * __restrict addr,
                      const char * __restrict         path)
-	__utils_nonull(1, 2) __utils_nothrow __warn_result;
+	__utils_nonull(1, 2) __utils_nothrow __warn_result __export_public;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
@@ -96,25 +101,25 @@ unsk_setsockopt(int                     fd,
 
 extern ssize_t
 unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
-	__utils_nonull(2) __warn_result;
+	__utils_nonull(2) __warn_result __export_public;
 
 extern ssize_t
 unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
-	__utils_nonull(2) __warn_result;
+	__utils_nonull(2) __warn_result __export_public;
 
 extern int
 unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
-	__utils_nonull(2) __utils_nothrow __leaf;
+	__utils_nonull(2) __utils_nothrow __leaf __export_public;
 
 extern int
-unsk_open(int type, int flags) __utils_nothrow __leaf;
+unsk_open(int type, int flags) __utils_nothrow __leaf __export_public;
 
 extern int
-unsk_close(int fd);
+unsk_close(int fd) __export_public;
 
 extern int
 unsk_unlink(const char * __restrict path)
-	__utils_nonull(1) __utils_nothrow __leaf;
+	__utils_nonull(1) __utils_nothrow __leaf __export_public;
 
 #else /* !defined(CONFIG_UTILS_ASSERT_API) */
 
@@ -205,7 +210,7 @@ unsk_connect_dgram(int                             fd,
                    const char * __restrict         peer_path,
                    struct sockaddr_un * __restrict peer_addr,
                    socklen_t * __restrict          addr_len)
-	__utils_nonull(2, 3, 4) __utils_nothrow;
+	__utils_nonull(2, 3, 4) __utils_nothrow __export_public;
 
 /******************************************************************************
  * UNIX socket buffer and queue handling
@@ -245,45 +250,63 @@ unsk_buffq_has_free(const struct unsk_buffq * __restrict buffq)
 
 extern struct unsk_buff *
 unsk_buffq_peek_busy(const struct unsk_buffq * __restrict buffq)
-	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __returns_nonull;
+	__utils_nonull(1)
+	__utils_pure
+	__utils_nothrow
+	__leaf
+	__returns_nonull
+	__export_public;
 
 extern struct unsk_buff *
 unsk_buffq_peek_free(const struct unsk_buffq * __restrict buffq)
-	__utils_nonull(1) __utils_pure __utils_nothrow __leaf __returns_nonull;
+	__utils_nonull(1)
+	__utils_pure
+	__utils_nothrow
+	__leaf
+	__returns_nonull
+	__export_public;
 
 extern void
 unsk_buffq_nqueue_busy(struct unsk_buffq * __restrict buffq,
                        struct unsk_buff * __restrict  buff)
-	__utils_nonull(1, 2) __utils_nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __export_public;
 
 extern void
 unsk_buffq_requeue_busy(struct unsk_buffq * __restrict buffq,
                         struct unsk_buff * __restrict  buff)
-	__utils_nonull(1, 2) __utils_nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __export_public;
 
 extern struct unsk_buff *
 unsk_buffq_dqueue_busy(struct unsk_buffq * __restrict buffq)
-	__utils_nonull(1) __utils_nothrow __leaf __returns_nonull;
+	__utils_nonull(1)
+	__utils_nothrow
+	__leaf
+	__returns_nonull
+	__export_public;
 
 extern struct unsk_buff *
 unsk_buffq_dqueue_free(struct unsk_buffq * __restrict buffq)
-	__utils_nonull(1) __utils_nothrow __leaf __returns_nonull;
+	__utils_nonull(1)
+	__utils_nothrow
+	__leaf
+	__returns_nonull
+	__export_public;
 
 extern void
 unsk_buffq_release(struct unsk_buffq * __restrict buffq,
                    struct unsk_buff * __restrict  buff)
-	__utils_nonull(1, 2) __utils_nothrow __leaf;
+	__utils_nonull(1, 2) __utils_nothrow __leaf __export_public;
 
 extern int
 unsk_buffq_init(struct unsk_buffq * __restrict buffq,
                 size_t                         buff_desc_sz,
                 size_t                         max_data_sz,
                 unsigned int                   max_buff_nr)
-	__utils_nonull(1) __utils_nothrow __leaf;
+	__utils_nonull(1) __utils_nothrow __leaf __export_public;
 
 extern void
 unsk_buffq_fini(struct unsk_buffq * __restrict buffq)
-	__utils_nonull(1) __utils_nothrow __leaf;
+	__utils_nonull(1) __utils_nothrow __leaf __export_public;
 
 struct unsk_dgram_buff {
 	struct unsk_buff   unsk;
@@ -444,7 +467,7 @@ unsk_dgram_svc_send(const struct unsk_svc * __restrict    sock,
                     size_t                                size,
                     const struct sockaddr_un * __restrict peer,
                     int                                   flags)
-	__utils_nonull(1, 2, 4) __warn_result;
+	__utils_nonull(1, 2, 4) __warn_result __export_public;
 
 /**
  * Fetch a datagram from a service side UNIX datagram named socket.
@@ -481,7 +504,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
                     struct sockaddr_un *               peer,
                     struct ucred * __restrict          creds,
                     int                                flags)
-	__utils_nonull(1, 2, 4, 5) __warn_result;
+	__utils_nonull(1, 2, 4, 5) __warn_result __export_public;
 
 /**
  * Bind a UNIX service named socket to a local filesystem pathname.
@@ -533,7 +556,7 @@ unsk_dgram_svc_recv(const struct unsk_svc * __restrict sock,
  */
 extern int
 unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
-	__utils_nonull(1, 2) __utils_nothrow;
+	__utils_nonull(1, 2) __utils_nothrow __export_public;
 
 /**
  * Open a service / server side UNIX datagram socket.
@@ -557,7 +580,7 @@ unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
  */
 extern int
 unsk_dgram_svc_open(struct unsk_svc * __restrict sock, int flags)
-	__utils_nonull(1) __utils_nothrow;
+	__utils_nonull(1) __utils_nothrow __export_public;
 
 /**
  * Close all endpoints of a service / server side UNIX socket.
@@ -570,7 +593,8 @@ unsk_dgram_svc_open(struct unsk_svc * __restrict sock, int flags)
  * - @man{unix(7)}
  */
 extern int
-unsk_svc_close(const struct unsk_svc * __restrict sock) __utils_nonull(1);
+unsk_svc_close(const struct unsk_svc * __restrict sock)
+	__utils_nonull(1) __export_public;
 
 /******************************************************************************
  * Client side UNIX socket handling
@@ -668,7 +692,7 @@ unsk_dgram_clnt_send(const struct unsk_clnt * __restrict sock,
                      const void * __restrict             data,
                      size_t                              size,
                      int                                 flags)
-	__utils_nonull(1, 2) __warn_result;
+	__utils_nonull(1, 2) __warn_result __export_public;
 
 /**
  * Fetch a datagram from a client side UNIX datagram unamed socket.
@@ -700,7 +724,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
                      void * __restrict                   data,
                      size_t                              size,
                      int                                 flags)
-	__utils_nonull(1, 2) __warn_result;
+	__utils_nonull(1, 2) __warn_result __export_public;
 
 /**
  * Connect a UNIX datagram client socket to specified peer (service) named
@@ -722,7 +746,7 @@ unsk_dgram_clnt_recv(const struct unsk_clnt * __restrict sock,
 extern int
 unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
                         const char * __restrict       path)
-	__utils_nonull(1, 2) __utils_nothrow;
+	__utils_nonull(1, 2) __utils_nothrow __export_public;
 
 /**
  * Open a client side UNIX datagram socket.
@@ -746,7 +770,7 @@ unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
  */
 extern int
 unsk_dgram_clnt_open(struct unsk_clnt * __restrict sock, int flags)
-	__utils_nonull(1) __utils_nothrow;
+	__utils_nonull(1) __utils_nothrow __export_public;
 
 /**
  * Close all endpoints of a client side UNIX socket.
@@ -759,7 +783,8 @@ unsk_dgram_clnt_open(struct unsk_clnt * __restrict sock, int flags)
  * - @man{unix(7)}
  */
 extern void
-unsk_clnt_close(const struct unsk_clnt * __restrict sock) __utils_nonull(1);
+unsk_clnt_close(const struct unsk_clnt * __restrict sock)
+	__utils_nonull(1) __export_public;
 
 /******************************************************************************
  * Asynchronous service / server side UNIX socket handling
@@ -810,7 +835,7 @@ unsk_dgram_async_svc_recv(const struct unsk_async_svc * __restrict svc,
                           size_t                                   size,
                           struct ucred * __restrict                creds,
                           int                                      flags)
-	__utils_nonull(1, 2, 4) __warn_result;
+	__utils_nonull(1, 2, 4) __warn_result __export_public;
 
 extern int
 unsk_dgram_async_svc_open(struct unsk_async_svc * __restrict svc,
@@ -819,12 +844,12 @@ unsk_dgram_async_svc_open(struct unsk_async_svc * __restrict svc,
                           const struct upoll * __restrict    poller,
                           uint32_t                           poll_flags,
                           upoll_dispatch_fn *                dispatch)
-	__utils_nonull(1, 2, 4, 6) __utils_nothrow;
+	__utils_nonull(1, 2, 4, 6) __utils_nothrow __export_public;
 
 extern int
 unsk_dgram_async_svc_close(struct unsk_async_svc * __restrict svc,
                            const struct upoll * __restrict    poller)
-	__utils_nonull(1, 2);
+	__utils_nonull(1, 2) __export_public;
 
 #endif /* defined(CONFIG_UTILS_POLL_UNSK) */
 

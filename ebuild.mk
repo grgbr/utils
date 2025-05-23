@@ -47,6 +47,12 @@ timer-deps := src
 test-deps  += timer
 endif # ($(CONFIG_ETUX_TIMER),y)
 
+ifeq ($(CONFIG_ETUX_SOCK),y)
+subdirs    += sock
+src-deps   += sock
+test-deps  += sock
+endif # ($(CONFIG_ETUX_SOCK),y)
+
 ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 override libutils_pkgconf_libs := \
 	Libs: -L$${libdir} \
