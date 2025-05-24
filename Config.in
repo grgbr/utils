@@ -209,6 +209,7 @@ config UTILS_POLL_UNSK
 	  Build utils library with poll'able UNIX socket support.
 
 config ETUX_INSK
+	bool
 	depends on ETUX_SOCK
 	default n
 

@@ -16,6 +16,7 @@ common-cflags         := -Wall \
                          -Wmissing-declarations \
                          -D_GNU_SOURCE \
                          -iquote $(TOPDIR)/include \
+                         -I $(TOPDIR)/include \
                          $(EXTRA_CFLAGS)
 
 ifeq ($(CONFIG_UTILS_UTEST)$(CONFIG_UTILS_ASSERT_API),yy)
