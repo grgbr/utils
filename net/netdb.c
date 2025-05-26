@@ -68,10 +68,14 @@ int
 etux_netdb_make_host(int                          family,
                      const char * __restrict      host,
                      struct sockaddr * __restrict addr,
+                     size_t                       size __unused,
                      int                          flags)
 {
+	etux_netdb_assert_api(family >= AF_UNSPEC);
 	etux_netdb_assert_api(host);
 	etux_netdb_assert_api(addr);
+	etux_netdb_assert_api(size >= sizeof(*addr));
+	etux_netdb_assert_api(size < UINT_MAX);
 	etux_netdb_assert_api(!(flags & ~(AI_NUMERICHOST |
 	                                  AI_PASSIVE |
 	                                  AI_V4MAPPED |
@@ -127,13 +131,73 @@ etux_netdb_make_host(int                          family,
 	                         (infos->ai_family == hints.ai_family));
 	etux_netdb_assert_intern(infos->ai_socktype);
 	etux_netdb_assert_intern(infos->ai_addr);
-	etux_netdb_assert_intern(infos->ai_addrlen);
+	etux_netdb_assert_intern(infos->ai_addrlen <= size);
 
 	memcpy(addr, infos->ai_addr, infos->ai_addrlen);
 
 	freeaddrinfo(infos);
 
 	return 0;
+}
+
+ssize_t
+etux_netdb_host_name(
+	const struct sockaddr * __restrict addr,
+	size_t                             size,
+	char                               host[__restrict_arr NI_MAXHOST],
+	int                                flags)
+{
+	etux_netdb_assert_api(addr);
+	etux_netdb_assert_api(addr->sa_family != AF_UNSPEC);
+	etux_netdb_assert_api(size >= sizeof(*addr));
+	etux_netdb_assert_api(size < UINT_MAX);
+	etux_netdb_assert_api(host);
+	etux_netdb_assert_api(!(flags & ~(NI_NAMEREQD |
+	                                  NI_NOFQDN |
+	                                  NI_NUMERICHOST)));
+	etux_netdb_assert_api((flags & (NI_NAMEREQD | NI_NUMERICHOST)) !=
+	                      (NI_NAMEREQD | NI_NUMERICHOST));
+
+	int err;
+
+	err = getnameinfo(addr,
+	                  (socklen_t)size,
+	                  host,
+	                  NI_MAXHOST,
+	                  NULL,
+	                  0,
+	                  flags);
+	if (!err) {
+		size_t len;
+
+		len = strlen(host);
+		etux_netdb_assert_intern(len);
+		etux_netdb_assert_intern(len < NI_MAXHOST);
+
+		return (ssize_t)len;
+	}
+
+	etux_netdb_assert_api(err != EAI_BADFLAGS);
+	etux_netdb_assert_api(err != EAI_FAMILY);
+	etux_netdb_assert_api(err != EAI_OVERFLOW);
+
+	switch (err) {
+	case EAI_AGAIN:
+		return -EAGAIN;
+	case EAI_FAIL:
+		return -ENOTRECOVERABLE;
+	case EAI_MEMORY:
+		return -ENOMEM;
+	case EAI_NONAME:
+		etux_netdb_assert_api(flags & NI_NAMEREQD);
+		return -ENOENT;
+	case EAI_SYSTEM:
+		break;
+	default:
+		etux_netdb_assert_intern(0);
+	}
+
+	return -errno;
 }
 
 int

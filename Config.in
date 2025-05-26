@@ -229,7 +229,6 @@ config UTILS_POLL_UNSK
 config ETUX_IN4SK
 	bool "IPv4 sockets"
 	select ETUX_SOCK
-	select ETUX_NETDB
 	default y
 	help
 	  Build utils library with IPv4 socket support.
@@ -237,7 +236,6 @@ config ETUX_IN4SK
 config ETUX_IN6SK
 	bool "IPv6 sockets"
 	select ETUX_SOCK
-	select ETUX_NETDB
 	default y
 	help
 	  Build utils library with IPv6 socket support.

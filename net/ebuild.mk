@@ -12,7 +12,6 @@ shared-common-cflags     += -fvisibility=hidden
 
 
 builtins                 := shared/builtin.a
-shared/builtin.a-objs    += $(call kconf_enabled, ETUX_SOCK, shared/syssk.o)
 shared/builtin.a-objs    += $(call kconf_enabled, ETUX_NETDB, shared/netdb.o)
 shared/builtin.a-objs    += $(call kconf_enabled, ETUX_NETIF, shared/netif.o)
 shared/builtin.a-objs    += $(call kconf_enabled, UTILS_UNSK, shared/unsk.o)
@@ -20,8 +19,8 @@ shared/builtin.a-objs    += $(call kconf_enabled, ETUX_IN4SK, shared/in4sk.o)
 shared/builtin.a-cflags  := $(shared-common-cflags)
 shared/builtin.a-pkgconf := $(common-pkgconf)
 
+
 builtins                 += static/builtin.a
-static/builtin.a-objs    += $(call kconf_enabled, ETUX_SOCK, static/syssk.o)
 static/builtin.a-objs    += $(call kconf_enabled, ETUX_NETDB, static/netdb.o)
 static/builtin.a-objs    += $(call kconf_enabled, ETUX_NETIF, static/netif.o)
 static/builtin.a-objs    += $(call kconf_enabled, UTILS_UNSK, static/unsk.o)

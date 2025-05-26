@@ -8,68 +8,6 @@
 #include "utils/in4sk.h"
 #include "syssk.h"
 
-#if defined(CONFIG_UTILS_ASSERT_INTERN)
-
-#include <stroll/assert.h>
-
-#define etux_in4sk_assert_intern(_expr) \
-	stroll_assert("etux:in4sk", _expr)
-
-#else  /* !defined(CONFIG_UTILS_ASSERT_INTERN) */
-
-#define etux_in4sk_assert_intern(_expr)
-
-#endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
-
-MAKE ME STATIC INLINE
-int
-etux_in4sk_make_host(struct sockaddr_in * __restrict addr,
-                     const char * __restrict         string,
-                     int                             flags)
-{
-	etux_in4sk_assert_api(addr);
-	etux_in4sk_assert_api(string);
-	etux_in4sk_assert_api(!(flags & ~(AI_NUMERICHOST |
-	                                  AI_PASSIVE |
-	                                  AI_ADDRCONFIG |
-	                                  AI_IDN)));
-
-	int err;
-
-	err = etux_netdb_make_host(AF_INET,
-	                           string,
-	                           (struct sockaddr *)addr,
-	                           flags);
-	if (!err) {
-		etux_in4sk_assert_intern(addr->sin_family == AF_INET);
-		return 0;
-	}
-
-	return err;
-}
-FINISHE ME!!
-int
-etux_in4sk_host_name(
-	const struct sockaddr_in * __restrict addr,
-	char                                  host[__restrict_arr NI_MAXHOST],
-	int                                   flags)
-{
-	etux_in4sk_assert_api(addr);
-	etux_in4sk_assert_api(addr->sin_family == AF_INET);
-	etux_in4sk_assert_api(host);
-	etux_in4sk_assert_api(!(flags & ~(NI_NAMEREQD |
-	                                  NI_NOFQDN |
-	                                  NI_NUMERICHOST)));
-	etux_in4sk_assert_api(!((flags & NI_NAMEREQD) &&
-	                        (flags & NI_NUMERICHOST)));
-
-	return etux_syssk_getnameinfo((const struct sockaddr *)addr,
-	                              sizeof(*addr),
-	                              host,
-	                              NULL,
-	                              flags);
-}
-
 void
 etux_in4sk_setup_addr(struct sockaddr_in * __restrict addr,
                       in_addr_t                       host,
@@ -81,6 +19,8 @@ etux_in4sk_setup_addr(struct sockaddr_in * __restrict addr,
 	addr->sin_port = htons(serv);
 	addr->sin_addr.s_addr = htonl(host);
 }
+
+#if defined(CONFIG_ETUX_NETDB)
 
 /*
  * Do not use getaddrinfo() as service port resolution is not properly handled
@@ -97,7 +37,8 @@ etux_in4sk_make_addr(struct sockaddr_in * __restrict addr,
                      int                             flags)
 {
 	etux_in4sk_assert_api(addr);
-	etux_in4sk_assert_api(host || serv);
+	etux_in4sk_assert_api(host);
+	etux_in4sk_assert_api(serv);
 	etux_in4sk_assert_api(!(flags & ~(AI_NUMERICHOST |
 	                                  AI_NUMERICSERV |
 	                                  AI_PASSIVE |
@@ -116,30 +57,48 @@ etux_in4sk_make_addr(struct sockaddr_in * __restrict addr,
 	return etux_in4sk_make_serv(addr, serv, proto, flags & AI_NUMERICSERV);
 }
 
-int
+ssize_t
 etux_in4sk_addr_name(
 	const struct sockaddr_in * __restrict addr,
-	char                                  host[__restrict_arr NI_MAXHOST],
-	char                                  serv[__restrict_arr NI_MAXSERV],
+	const char * __restrict               proto,
+	char                                  name[__restrict_arr ETUX_NETDB_NAME_MAX],
 	int                                   flags)
 {
 	etux_in4sk_assert_api(addr);
 	etux_in4sk_assert_api(addr->sin_family == AF_INET);
-	etux_in4sk_assert_api(host);
-	etux_in4sk_assert_api(serv);
+	etux_in4sk_assert_api(name);
 	etux_in4sk_assert_api(!(flags & ~(NI_NAMEREQD |
 	                                  NI_NOFQDN |
 	                                  NI_NUMERICHOST |
 	                                  NI_NUMERICSERV)));
-	etux_in4sk_assert_api(!((flags & NI_NAMEREQD) &&
-	                        (flags & NI_NUMERICHOST)));
+	etux_in4sk_assert_api((flags & (NI_NAMEREQD | NI_NUMERICHOST)) !=
+	                      (NI_NAMEREQD | NI_NUMERICHOST));
 
-	return etux_syssk_getnameinfo((const struct sockaddr *)addr,
-	                              sizeof(*addr),
-	                              host,
-	                              serv,
-	                              flags);
+	ssize_t ret;
+	ssize_t len;
+
+	ret = etux_in4sk_host_name(addr, name, flags & ~NI_NUMERICSERV);
+	etux_in4sk_assert_intern(ret);
+	etux_in4sk_assert_intern(ret < NI_MAXHOST);
+	if (ret < 0)
+		return ret;
+
+	name[ret] = ':';
+	len = ret + 1;
+
+	ret = etux_in4sk_serv_name(addr,
+	                           proto,
+	                           &name[len],
+	                           flags & NI_NUMERICSERV);
+	etux_in4sk_assert_intern(ret);
+	etux_in4sk_assert_intern(ret < NI_MAXSERV);
+	if (ret < 0)
+		return ret;
+
+	return len + ret + 1;
 }
+
+#endif /* defined(CONFIG_ETUX_NETDB) */
 
 int
 etux_in4sk_connect(int fd, const struct sockaddr_in * __restrict peer)
@@ -181,6 +140,8 @@ etux_in4sk_bind(int fd, const struct sockaddr_in * __restrict local)
 	                       sizeof(*local));
 }
 
+#if defined(CONFIG_ETUX_NETIF)
+
 int
 etux_in4sk_bind_netif(int fd, const char * __restrict iface, size_t len)
 {
@@ -192,6 +153,8 @@ etux_in4sk_bind_netif(int fd, const char * __restrict iface, size_t len)
 
 	return etux_syssk_bind_netif(fd, iface, len);
 }
+
+#endif /* defined(CONFIG_ETUX_NETIF) */
 
 int
 etux_in4sk_open(int type, int proto, int flags)

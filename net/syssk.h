@@ -9,9 +9,7 @@
 #define _ETUX_SYSSK_H
 
 #include "utils/fd.h"
-#include <netdb.h>
 #include <arpa/inet.h>
-#include <net/if.h>
 #include <sys/socket.h>
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -39,24 +37,6 @@
 #define etux_syssk_assert_intern(_expr)
 
 #endif /* defined(CONFIG_ETUX_ASSERT_INTERN) */
-
-extern int
-etux_syssk_getnameinfo(
-	const struct sockaddr * __restrict addr,
-	socklen_t                          size,
-	char                               host[__restrict_arr NI_MAXHOST],
-	char                               serv[__restrict_arr NI_MAXSERV],
-	int                                flags)
-	__utils_nonull(1) __warn_result;
-
-static inline __utils_nonull(1) __utils_nothrow
-void
-etux_syssk_freeaddrinfo(struct addrinfo * __restrict infos)
-{
-	etux_syssk_assert_intern(infos);
-
-	freeaddrinfo(infos);
-}
 
 static inline __utils_nonull(2) __warn_result
 int
@@ -129,6 +109,10 @@ etux_syssk_bind(int                                fd,
 	return -errno;
 }
 
+#if defined(CONFIG_ETUX_NETIF)
+
+#include <net/if.h>
+
 static inline __utils_nonull(2) __utils_nothrow __warn_result
 int
 etux_syssk_bind_netif(int fd, const char * __restrict iface, size_t len)
@@ -154,6 +138,8 @@ etux_syssk_bind_netif(int fd, const char * __restrict iface, size_t len)
 
 	return -errno;
 }
+
+#endif /* defined(CONFIG_ETUX_NETIF) */
 
 static inline __utils_nothrow __warn_result
 int

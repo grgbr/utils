@@ -36,8 +36,17 @@ extern int
 etux_netdb_make_host(int                          family,
                      const char * __restrict      host,
                      struct sockaddr * __restrict addr,
+                     size_t                       size __unused,
                      int                          flags)
 	__utils_nonull(2, 3) __warn_result __export_public;
+
+extern ssize_t
+etux_netdb_host_name(
+	const struct sockaddr * __restrict addr,
+	size_t                             size,
+	char                               host[__restrict_arr NI_MAXHOST],
+	int                                flags)
+	__utils_nonull(1, 3) __warn_result __export_public;
 
 extern int
 etux_netdb_validate_proto(const char * __restrict string)
