@@ -273,7 +273,7 @@ etux_netdb_parse_serv(const char * __restrict serv,
 				return -ENOENT;
 
 			/* Port number is given in network byte order. */
-			prt = ntohl((unsigned int)ent->s_port);
+			prt = (unsigned long)ntohs((unsigned short)ent->s_port);
 		}
 		else
 			return err;
