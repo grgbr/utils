@@ -28,6 +28,9 @@ headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
 headers             += $(call kconf_enabled,UTILS_MQUEUE,utils/mqueue.h)
 headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
+headers             += $(call kconf_enabled,ETUX_NETDB,utils/netdb.h)
+headers             += $(call kconf_enabled,ETUX_NETIF,utils/netif.h)
+headers             += $(call kconf_enabled,ETUX_IN4SK,utils/in4sk.h)
 
 subdirs   := src
 
@@ -47,11 +50,11 @@ timer-deps := src
 test-deps  += timer
 endif # ($(CONFIG_ETUX_TIMER),y)
 
-ifeq ($(CONFIG_ETUX_SOCK),y)
-subdirs    += sock
-src-deps   += sock
-test-deps  += sock
-endif # ($(CONFIG_ETUX_SOCK),y)
+ifeq ($(CONFIG_ETUX_NET),y)
+subdirs    += net
+src-deps   += net
+test-deps  += net
+endif # ($(CONFIG_ETUX_NET),y)
 
 ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 override libutils_pkgconf_libs := \

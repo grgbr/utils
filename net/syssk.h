@@ -11,6 +11,7 @@
 #include "utils/fd.h"
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <sys/socket.h>
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -39,76 +40,14 @@
 
 #endif /* defined(CONFIG_ETUX_ASSERT_INTERN) */
 
-extern ssize_t
-etux_syssk_validate_host_name(const char * __restrict string)
+extern int
+etux_syssk_getnameinfo(
+	const struct sockaddr * __restrict addr,
+	socklen_t                          size,
+	char                               host[__restrict_arr NI_MAXHOST],
+	char                               serv[__restrict_arr NI_MAXSERV],
+	int                                flags)
 	__utils_nonull(1) __warn_result;
-
-static inline __utils_nonull(1, 3) __utils_nothrow __warn_result
-int
-etux_syssk_parse_addr(void * __restrict       addr,
-                      int                     family,
-                      const char * __restrict string)
-{
-	etux_syssk_assert_api(addr);
-	etux_syssk_assert_api(family != AF_UNSPEC);
-	etux_syssk_assert_api(string);
-
-	int ret __unused;
-
-	ret = inet_pton(family, string, addr);
-	if (ret == 1)
-		return 0;
-
-	etux_syssk_assert_intern(!ret);
-
-	return -EINVAL;
-}
-
-extern int
-etux_syssk_parse_port(in_port_t * __restrict  port,
-                      const char * __restrict string)
-	__utils_nonull(1, 2) __utils_nothrow __warn_result;
-
-extern int
-etux_syssk_resolv_serv(in_port_t * __restrict  port,
-                       const char * __restrict string)
-	__utils_nonull(1, 2) __warn_result;
-
-static inline __utils_nonull(4) __warn_result
-int
-etux_syssk_getaddrinfo(const char * __restrict            host,
-                       const char * __restrict            serv,
-                       const struct addrinfo * __restrict hints,
-                       struct addrinfo ** __restrict      infos)
-{
-	etux_syssk_assert_api(host || serv);
-	etux_syssk_assert_api(!hints || (hints->ai_family != AF_UNSPEC));
-	etux_syssk_assert_api(!hints ||
-	                      !(hints->ai_flags & ~(AI_NUMERICHOST |
-	                                            AI_NUMERICSERV |
-	                                            AI_PASSIVE |
-	                                            AI_ADDRCONFIG |
-	                                            AI_IDN)));
-	etux_syssk_assert_api(infos);
-
-	int err;
-
-	err = getaddrinfo(host, serv, hints, infos);
-	if (err) {
-		etux_syssk_assert_api(err != EAI_BADFLAGS);
-		etux_syssk_assert_api(err != EAI_SOCKTYPE);
-
-		return err;
-	}
-
-	etux_syssk_assert_intern(*infos);
-	etux_syssk_assert_intern((*infos)->ai_family == hints->ai_family);
-	etux_syssk_assert_intern((*infos)->ai_socktype);
-	etux_syssk_assert_intern((*infos)->ai_addr);
-	etux_syssk_assert_intern((*infos)->ai_addrlen);
-
-	return 0;
-}
 
 static inline __utils_nonull(1) __utils_nothrow
 void
@@ -190,13 +129,40 @@ etux_syssk_bind(int                                fd,
 	return -errno;
 }
 
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
+etux_syssk_bind_netif(int fd, const char * __restrict iface, size_t len)
+{
+	etux_syssk_assert_api(fd >= 0);
+	etux_syssk_assert_api(iface);
+	etux_syssk_assert_api(len);
+	etux_syssk_assert_api(len < IFNAMSIZ);
+	etux_syssk_assert_api(strnlen(iface, IFNAMSIZ) == len);
+
+	if (!setsockopt(fd,
+	                SOL_SOCKET,
+	                SO_BINDTODEVICE,
+	                iface,
+	                (socklen_t)len + 1))
+		return 0;
+
+	etux_syssk_assert_api(errno != EBADF);
+	etux_syssk_assert_api(errno != EFAULT);
+	etux_syssk_assert_api(errno != EINVAL);
+	etux_syssk_assert_api(errno != ENOPROTOOPT);
+	etux_syssk_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
 
 static inline __utils_nothrow __warn_result
 int
 etux_syssk_open(int domain, int type, int proto, int flags)
 {
-	etux_syssk_assert_api(domain != AF_UNSPEC);
-	etux_syssk_assert_api(type);
+	etux_syssk_assert_api(domain > AF_UNSPEC);
+	etux_syssk_assert_api(type > 0);
+	etux_syssk_assert_api(proto >= 0);
+	etux_syssk_assert_api(proto < IPPROTO_MAX);
 	etux_syssk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
 
 	int fd;
