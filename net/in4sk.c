@@ -75,7 +75,6 @@ etux_in4sk_addr_name(
 	                      (NI_NAMEREQD | NI_NUMERICHOST));
 
 	ssize_t ret;
-	ssize_t len;
 
 	ret = etux_in4sk_host_name(addr, name, flags & ~NI_NUMERICSERV);
 	etux_in4sk_assert_intern(ret);
@@ -83,19 +82,24 @@ etux_in4sk_addr_name(
 	if (ret < 0)
 		return ret;
 
-	name[ret] = ':';
-	len = ret + 1;
+	if (addr->sin_port) {
+		ssize_t len = ret + 1;
 
-	ret = etux_in4sk_serv_name(addr,
-	                           proto,
-	                           &name[len],
-	                           flags & NI_NUMERICSERV);
-	etux_in4sk_assert_intern(ret);
-	etux_in4sk_assert_intern(ret < NI_MAXSERV);
-	if (ret < 0)
-		return ret;
+		name[ret] = ':';
 
-	return len + ret + 1;
+		ret = etux_in4sk_serv_name(addr,
+		                           proto,
+		                           &name[len],
+		                           flags & NI_NUMERICSERV);
+		etux_in4sk_assert_intern(ret);
+		etux_in4sk_assert_intern(ret < NI_MAXSERV);
+		if (ret < 0)
+			return ret;
+
+		ret += len;
+	}
+
+	return ret;
 }
 
 #endif /* defined(CONFIG_ETUX_NETDB) */
