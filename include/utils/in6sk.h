@@ -49,24 +49,51 @@
 #endif /* defined(CONFIG_UTILS_ASSERT_INTERN) */
 
 /*
- * The following may be used with ETUX_IN6SK_ADDR_FROM_HOST:
- * - IN6ADDR_ANY_INIT
- * - IN6ADDR_LOOPBACK_INIT
+ * The following may be used with ETUX_IN6SK_ADDR _net argument:
+ * - IN6ADDR_ANY_INIT or the in6addr_any variable
+ * - IN6ADDR_LOOPBACK_INIT or the in6addr_loopback
+ * Expected in network byte order.
  * See <netinet/in.h> for more infos...
+ *
+ * The following may be used with ETUX_IN6SK_ADDR _flow argument:
+ * - IPV6_FLOWINFO_FLOWLABEL
+ * - IPV6_FLOWINFO_PRIORITY
+ * - IPV6_PRIORITY_UNCHARACTERIZED
+ * - IPV6_PRIORITY_FILLER
+ * - IPV6_PRIORITY_UNATTENDED
+ * - IPV6_PRIORITY_RESERVED1
+ * - IPV6_PRIORITY_BULK
+ * - IPV6_PRIORITY_RESERVED2
+ * - IPV6_PRIORITY_INTERACTIVE
+ * - IPV6_PRIORITY_CONTROL
+ * - IPV6_PRIORITY_8
+ * - IPV6_PRIORITY_9
+ * - IPV6_PRIORITY_10
+ * - IPV6_PRIORITY_11
+ * - IPV6_PRIORITY_12
+ * - IPV6_PRIORITY_13
+ * - IPV6_PRIORITY_14
+ * - IPV6_PRIORITY_15
+ * Expected in host byte order (to be able to use the above macros).
+ * See <linux/in6.h> for further infos...
  */
 #define ETUX_IN6SK_ADDR(_net, _flow, _scope, _xport) \
 	((struct sockaddr_in6) { \
 		.sin6_family   = AF_INET6, \
 		.sin6_port     = htons(_xport), \
-		.flowinfo      = _flow, \
+		.sin6_flowinfo = htonl(_flow), \
+		.sin6_addr     = _net, \
 		.sin6_scope_id = _scope \
 	 })
 
-#define ETUX_IN6SK_ADDR_FROM_HEXTETS(_net, _flow, _scope, _xport) \
-	ETUX_IN6SK_MAKE_ADDR({ .s6_addr16 = _net }, _flow, _scope, _xport)
-
-#define ETUX_IN6SK_ADDR_FROM_OCTETS(_net, _flow, _scope, _xport) \
-	ETUX_IN6SK_MAKE_ADDR({ .s6_addr = _net }, _flow, _scope, _xport)
+#define ETUX_IN6SK_HEXTETS(_net0, _net1, _net2, _net3, \
+                           _net4, _net5, _net6, _net7) \
+	{ \
+		.s6_addr16 = { \
+			htons(_net0), htons(_net1), htons(_net2), htons(_net3), \
+			htons(_net4), htons(_net5), htons(_net6), htons(_net7), \
+		} \
+	}
 
 extern void
 etux_in6sk_setup_addr(struct sockaddr_in6 * __restrict   addr,
@@ -90,6 +117,7 @@ etux_in6sk_make_host(struct sockaddr_in6 * __restrict addr,
 	etux_in6sk_assert_api(string);
 	etux_in6sk_assert_api(!(flags & ~(AI_NUMERICHOST |
 	                                  AI_PASSIVE |
+	                                  AI_V4MAPPED |
 	                                  AI_ADDRCONFIG |
 	                                  AI_IDN)));
 
@@ -167,9 +195,6 @@ etux_in6sk_make_addr(struct sockaddr_in6 * __restrict addr,
                      const char * __restrict          proto,
                      int                              flags)
 	__utils_nonull(1, 2, 3) __warn_result __export_public;
-
-#define ETUX_NETDB_NAME_MAX \
-	(1U + (NI_MAXHOST - 1U) + 2U + NI_MAXSERV)
 
 extern ssize_t
 etux_in6sk_addr_name(

@@ -69,12 +69,8 @@
 		.sin_addr.s_addr = htonl(_net) \
 	 })
 
-#define ETUX_IN4SK_ADDR_FROM_QUAD(_net0, _net1, _net2, _net3, _xport) \
-	ETUX_IN4SK_MAKE_ADDR(((_net0) << 24) | \
-	                     ((_net1) << 16) | \
-	                     ((_net2) << 8) | \
-	                     (_net3), \
-	                     _xport)
+#define ETUX_IN4SK_QUAD(_net0, _net1, _net2, _net3) \
+	(((_net0) << 24) | ((_net1) << 16) | ((_net2) << 8) | (_net3))
 
 extern void
 etux_in4sk_setup_addr(struct sockaddr_in * __restrict addr,
@@ -173,9 +169,6 @@ etux_in4sk_make_addr(struct sockaddr_in * __restrict addr,
                      const char * __restrict         proto,
                      int                             flags)
 	__utils_nonull(1, 2, 3) __warn_result __export_public;
-
-#define ETUX_NETDB_NAME_MAX \
-	(1U + (NI_MAXHOST - 1U) + 2U + NI_MAXSERV)
 
 extern ssize_t
 etux_in4sk_addr_name(

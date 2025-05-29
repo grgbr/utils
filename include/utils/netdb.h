@@ -23,6 +23,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#define ETUX_NETDB_NAME_MAX \
+	(1U + (NI_MAXHOST - 1U) + 2U + NI_MAXSERV)
+
 extern int
 etux_netdb_validate_host(const char * __restrict string)
 	__utils_nonull(1)
