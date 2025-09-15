@@ -196,7 +196,7 @@ etux_in6sk_open(int type, int proto, int flags)
 	etux_in6sk_assert_api((type == SOCK_DGRAM) ||
 	                      (type == SOCK_STREAM) ||
 	                      (type == SOCK_RAW));
-	etux_in6sk_assert_api(proto >= IPPROTO_MAX);
+	etux_in6sk_assert_api(proto >= IPPROTO_IP);
 	etux_in6sk_assert_api(proto < IPPROTO_MAX);
 	etux_in6sk_assert_api((type == SOCK_RAW) ^ !!proto);
 	etux_in6sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
