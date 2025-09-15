@@ -126,8 +126,7 @@ etux_in4sk_accept(int fd, struct sockaddr_in * __restrict peer, int flags)
 	int       nevv;
 
 	nevv = etux_syssk_accept(fd, (struct sockaddr *)peer, &sz, flags);
-	if (nevv >= 0)
-		etux_in4sk_assert_api(sz == sizeof(*peer));
+	etux_in4sk_assert_api((nevv < 0) || (sz == sizeof(*peer)));
 
 	return nevv;
 }

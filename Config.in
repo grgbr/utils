@@ -240,6 +240,13 @@ config ETUX_IN6SK
 	help
 	  Build utils library with IPv6 socket support.
 
+config ETUX_INSK
+	bool "IPv6 sockets"
+	depends on ETUX_IN4SK || ETUX_IN6SK
+	default y
+	help
+	  Build utils library with unified IPv4 and/or IPv6 socket support.
+
 endif # ETUX_NET
 
 config UTILS_MQUEUE

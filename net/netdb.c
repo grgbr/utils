@@ -68,7 +68,7 @@ int
 etux_netdb_make_host(int                          family,
                      const char * __restrict      host,
                      struct sockaddr * __restrict addr,
-                     size_t                       size __unused,
+                     socklen_t                    size,
                      int                          flags)
 {
 	etux_netdb_assert_api(family >= AF_UNSPEC);
@@ -93,15 +93,15 @@ etux_netdb_make_host(int                          family,
 		.ai_next      = NULL
 	};
 	struct addrinfo *     infos;
-	int                   err;
+	int                   ret;
 
-	err = getaddrinfo(host, NULL, &hints, &infos);
-	if (err) {
-		etux_netdb_assert_api(err != EAI_BADFLAGS);
-		etux_netdb_assert_api(err != EAI_SOCKTYPE);
-		etux_netdb_assert_api(err != EAI_SERVICE);
+	ret = getaddrinfo(host, NULL, &hints, &infos);
+	if (ret) {
+		etux_netdb_assert_api(ret != EAI_BADFLAGS);
+		etux_netdb_assert_api(ret != EAI_SOCKTYPE);
+		etux_netdb_assert_api(ret != EAI_SERVICE);
 
-		switch (err) {
+		switch (ret) {
 		case EAI_ADDRFAMILY:
 			return -EADDRNOTAVAIL;
 		case EAI_AGAIN:
@@ -131,19 +131,29 @@ etux_netdb_make_host(int                          family,
 	                         (infos->ai_family == hints.ai_family));
 	etux_netdb_assert_intern(infos->ai_socktype);
 	etux_netdb_assert_intern(infos->ai_addr);
-	etux_netdb_assert_intern(infos->ai_addrlen <= size);
+	etux_netdb_assert_intern(!hints.ai_family || infos->ai_addrlen <= size);
+
+	if (!hints.ai_family) {
+		if (infos->ai_addrlen > size) {
+			ret = -ENAMETOOLONG;
+			goto free;
+		}
+	}
 
 	memcpy(addr, infos->ai_addr, infos->ai_addrlen);
 
+	ret = 0;
+
+free:
 	freeaddrinfo(infos);
 
-	return 0;
+	return ret;
 }
 
 ssize_t
 etux_netdb_host_name(
 	const struct sockaddr * __restrict addr,
-	size_t                             size,
+	socklen_t                          size,
 	char                               host[__restrict_arr NI_MAXHOST],
 	int                                flags)
 {
@@ -160,13 +170,7 @@ etux_netdb_host_name(
 
 	int err;
 
-	err = getnameinfo(addr,
-	                  (socklen_t)size,
-	                  host,
-	                  NI_MAXHOST,
-	                  NULL,
-	                  0,
-	                  flags);
+	err = getnameinfo(addr, size, host, NI_MAXHOST, NULL, 0, flags);
 	if (!err) {
 		size_t len;
 

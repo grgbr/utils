@@ -30,6 +30,7 @@ headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
 headers             += $(call kconf_enabled,ETUX_NETDB,utils/netdb.h)
 headers             += $(call kconf_enabled,ETUX_NETIF,utils/netif.h)
+headers             += $(call kconf_enabled,ETUX_INSK,utils/insk.h)
 headers             += $(call kconf_enabled,ETUX_IN4SK,utils/in4sk.h)
 headers             += $(call kconf_enabled,ETUX_IN6SK,utils/in6sk.h)
 
