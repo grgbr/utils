@@ -195,6 +195,22 @@ unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
 }
 
 int
+unsk_listen(int fd, int backlog)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(backlog >= 0);
+
+	if (!listen(fd, backlog))
+		return 0;
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != ENOTSOCK);
+	unsk_assert_api(errno != EOPNOTSUPP);
+
+	return -errno;
+}
+
+int
 unsk_open(int type, int flags)
 {
 	unsk_assert_api((type == SOCK_DGRAM) ||

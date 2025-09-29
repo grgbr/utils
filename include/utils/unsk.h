@@ -71,6 +71,25 @@ unsk_is_named_path_ok(const char * __restrict path)
 	return (len < 0) ? (int)len : 0;
 }
 
+static inline __utils_nonull(1) __utils_pure __utils_nothrow __warn_result
+bool
+unsk_is_named_addr(const struct sockaddr_un * __restrict addr,
+                   socklen_t                             size)
+{
+	unsk_assert_api(addr);
+	unsk_assert_api(size >= sizeof(sa_family_t));
+
+	if ((size <= (sizeof(sa_family_t) + 1)) ||
+	    (addr->sun_path[0] == '\0'))
+		return false;
+
+	unsk_assert_api((sizeof(sa_family_t) +
+	                 (size_t)unsk_validate_named_path(addr->sun_path) +
+	                 1) == size);
+
+	return true;
+}
+
 extern socklen_t
 unsk_make_sized_addr(struct sockaddr_un * __restrict addr,
                      const char * __restrict         path,
@@ -83,6 +102,22 @@ unsk_make_named_addr(struct sockaddr_un * __restrict addr,
 	__utils_nonull(1, 2) __utils_nothrow __warn_result __export_public;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nonull(3, 4) __utils_nothrow
+void
+unsk_getsockopt(int                    fd,
+                int                    option,
+                void * __restrict      value,
+                socklen_t * __restrict size)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(option);
+	unsk_assert_api(value);
+	unsk_assert_api(size);
+	unsk_assert_api(*size);
+
+	unsk_assert_api(!getsockopt(fd, SOL_SOCKET, option, value, size));
+}
 
 static inline __utils_nonull(3) __utils_nothrow
 void
@@ -107,9 +142,58 @@ extern ssize_t
 unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
 	__utils_nonull(2) __warn_result __export_public;
 
+/*
+ * Warning
+ * -------
+ *
+ * As stated into accept(2) man page:
+ *   -- Linux  accept() (and accept4()) passes already-pending network errors on
+ *      the new socket as an error code from accept().  This behavior differs
+ *      from other BSD socket implementations. For reliable operation the
+ *      application should detect the network errors defined for the protocol
+ *      after accept() and treat them like EAGAIN by retrying. In the case of
+ *      TCP/IP, these  are ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET,
+ *      EHOSTUNREACH, EOPNOTSUPP, and ENETUNREACH.
+ */
+static inline __warn_result
+int
+unsk_accept(int                             fd,
+            struct sockaddr_un * __restrict peer_addr,
+            socklen_t * __restrict          peer_size,
+            int                             flags)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(!peer_addr || peer_size);
+	unsk_assert_api(!peer_size || (*peer_size >= sizeof(sa_family_t)));
+	unsk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
+
+	int nevv;
+
+	nevv = accept4(fd, peer_addr, peer_size, flags);
+	if (nevv >= 0) {
+		unsk_assert_api(!peer_size ||
+		                (*peer_size >= sizeof(sa_family_t)));
+		unsk_assert_api(!peer_size ||
+		                (*peer_size <= sizeof(*peer_addr)));
+		return nevv;
+	}
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != ENOTSOCK);
+	unsk_assert_api(errno != EOPNOTSUPP);
+
+	return -errno;
+}
+
 extern int
 unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
-	__utils_nonull(2) __utils_nothrow __leaf __export_public;
+	__utils_nonull(2) __utils_nothrow __leaf __warn_result __export_public;
+
+extern int
+unsk_listen(int fd, int backlog)
+	__utils_nothrow __leaf __warn_result __export_public;
 
 extern int
 unsk_open(int type, int flags) __utils_nothrow __leaf __export_public;
@@ -117,11 +201,40 @@ unsk_open(int type, int flags) __utils_nothrow __leaf __export_public;
 extern int
 unsk_close(int fd) __export_public;
 
+static inline
+void
+unsk_reject(int fd)
+{
+	unsk_assert_api(fd >= 0);
+
+	int nevv;
+
+	nevv = unsk_accept(fd, NULL, NULL, 0);
+	if (nevv >= 0)
+		unsk_close(nevv);
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != ENOTSOCK);
+	unsk_assert_api(errno != EOPNOTSUPP);
+}
+
 extern int
 unsk_unlink(const char * __restrict path)
 	__utils_nonull(1) __utils_nothrow __leaf __export_public;
 
 #else /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(3, 4) __utils_nothrow
+void
+unsk_getsockopt(int                    fd,
+                int                    option,
+                void * __restrict      value,
+                socklen_t * __restrict size)
+{
+	getsockopt(fd, SOL_SOCKET, option, value, size);
+}
 
 static inline __utils_nonull(3) __utils_nothrow
 void
