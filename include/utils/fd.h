@@ -156,7 +156,7 @@ ufd_lseek(int fd, off_t off, int whence)
 	ufd_assert_intern(errno != EOVERFLOW);
 	ufd_assert_api(errno != ESPIPE);
 
-	return ret;
+	return -errno;
 }
 
 static inline __utils_nonull(2) __warn_result
