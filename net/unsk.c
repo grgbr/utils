@@ -221,30 +221,32 @@ unsk_open(int type, int flags)
 	int fd;
 
 	fd = socket(AF_UNIX, type | flags, 0);
-	if (fd < 0) {
-		unsk_assert_api(errno != EAFNOSUPPORT);
-		unsk_assert_api(errno != EINVAL);
-		unsk_assert_api(errno != EPROTONOSUPPORT);
+	if (fd >= 0)
+		return fd;
 
-		return -errno;
-	}
+	unsk_assert_api(errno != EAFNOSUPPORT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != EPROTONOSUPPORT);
 
-	return fd;
+	return -errno;
 }
 
+/*
+ * May return -EINTR or -EIO
+ */
 int
 unsk_close(int fd)
 {
 	unsk_assert_api(fd >= 0);
 
-	int err;
+	int ret;
 
-	err = ufd_close(fd);
+	ret = ufd_close(fd);
 
-	unsk_assert_api(err != -ENOSPC);
-	unsk_assert_api(err != -EDQUOT);
+	unsk_assert_api(ret != -ENOSPC);
+	unsk_assert_api(ret != -EDQUOT);
 
-	return err;
+	return ret;
 }
 
 int

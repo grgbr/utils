@@ -134,9 +134,79 @@ unsk_setsockopt(int                     fd,
 	unsk_assert_api(!setsockopt(fd, SOL_SOCKET, option, value, size));
 }
 
+/*
+ * When size is zero, buff may be NULL to send a zero sized payload for datagram
+ * and seqpacket sockets.
+ *
+ * As stated into unix(7), unix sockets don't support the transmission of
+ * out-of-band data. Hence, passing the MSG_OOB flag generates an assertion.
+ */
+static inline __warn_result
+ssize_t
+unsk_send(int fd, const void * buff, size_t size, int flags)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(!buff || size);
+	unsk_assert_api(
+		!(flags &
+		  ~(MSG_DONTWAIT | MSG_EOR | MSG_MORE | MSG_NOSIGNAL)));
+
+	ssize_t bytes;
+
+	bytes = send(fd, buff, size, flags);
+	if (bytes >= 0)
+		return bytes;
+
+	/*
+	 * Should never happen since we should have been validated by a previous
+	 * connect(2) call.
+	 */
+	unsk_assert_api(errno != EACCES);
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != EDESTADDRREQ);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != ENOTCONN);
+	unsk_assert_api(errno != ENOTSOCK);
+	unsk_assert_api(errno != EOPNOTSUPP);
+
+	return -errno;
+}
+
 extern ssize_t
 unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
 	__utils_nonull(2) __warn_result __export_public;
+
+/*
+ * As stated into unix(7), unix sockets don't support the transmission of
+ * out-of-band data. Hence, passing the MSG_OOB flag generates an assertion.
+ */
+static inline __utils_nonull(2) __warn_result
+ssize_t
+unsk_recv(int fd, void * buff, size_t size, int flags)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(buff);
+	unsk_assert_api(size);
+	unsk_assert_api(
+		!(flags &
+		  ~(MSG_DONTWAIT | MSG_PEEK | MSG_TRUNC | MSG_WAITALL)));
+
+	ssize_t bytes;
+
+	bytes = recv(fd, buff, size, flags);
+	if (bytes >= 0)
+		return bytes;
+
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EINVAL);
+	unsk_assert_api(errno != ENOTCONN);
+	unsk_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
 
 extern ssize_t
 unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
