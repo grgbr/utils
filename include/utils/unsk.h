@@ -139,17 +139,18 @@ unsk_setsockopt(int                     fd,
  * and seqpacket sockets.
  *
  * As stated into unix(7), unix sockets don't support the transmission of
- * out-of-band data. Hence, passing the MSG_OOB flag generates an assertion.
+ * out-of-band data. However, Linux seems to support it since 2021: also allow
+ * passing the MSG_OOB flag.
  */
 static inline __warn_result
 ssize_t
-unsk_send(int fd, const void * buff, size_t size, int flags)
+unsk_send(int fd, const void * __restrict buff, size_t size, int flags)
 {
 	unsk_assert_api(fd >= 0);
 	unsk_assert_api(!buff || size);
-	unsk_assert_api(
-		!(flags &
-		  ~(MSG_DONTWAIT | MSG_EOR | MSG_MORE | MSG_NOSIGNAL)));
+	unsk_assert_api(!size || (size <= SSIZE_MAX));
+	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_EOR | MSG_MORE |
+		                    MSG_NOSIGNAL | MSG_OOB)));
 
 	ssize_t bytes;
 
@@ -180,18 +181,19 @@ unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
 
 /*
  * As stated into unix(7), unix sockets don't support the transmission of
- * out-of-band data. Hence, passing the MSG_OOB flag generates an assertion.
+ * out-of-band data. However, Linux seems to support it since 2021: also allow
+ * passing the MSG_OOB flag.
  */
 static inline __utils_nonull(2) __warn_result
 ssize_t
-unsk_recv(int fd, void * buff, size_t size, int flags)
+unsk_recv(int fd, void * __restrict buff, size_t size, int flags)
 {
 	unsk_assert_api(fd >= 0);
 	unsk_assert_api(buff);
 	unsk_assert_api(size);
-	unsk_assert_api(
-		!(flags &
-		  ~(MSG_DONTWAIT | MSG_PEEK | MSG_TRUNC | MSG_WAITALL)));
+	unsk_assert_api(size <= SSIZE_MAX);
+	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_PEEK | MSG_OOB |
+	                            MSG_TRUNC | MSG_WAITALL)));
 
 	ssize_t bytes;
 
