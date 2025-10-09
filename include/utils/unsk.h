@@ -214,6 +214,28 @@ extern ssize_t
 unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
 	__utils_nonull(2) __warn_result __export_public;
 
+static inline __warn_result
+int
+unsk_connect(int                                   fd,
+             const struct sockaddr_un * __restrict peer_addr,
+             socklen_t                             peer_size)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(peer_addr);
+	unsk_assert_api(peer_size > sizeof(sa_family_t));
+
+	if (!connect(fd, peer_addr, peer_size))
+		return 0;
+
+	unsk_assert_api(errno != EAFNOSUPPORT);
+	unsk_assert_api(errno != EBADF);
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != EISCONN);
+	unsk_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
+
 /*
  * Warning
  * -------
