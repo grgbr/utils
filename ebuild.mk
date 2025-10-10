@@ -24,15 +24,16 @@ headers             += $(call kconf_enabled,UTILS_DIR,utils/dir.h)
 headers             += $(call kconf_enabled,ETUX_FSTREE,utils/fstree.h)
 headers             += $(call kconf_enabled,UTILS_STR,utils/string.h)
 headers             += $(call kconf_enabled,UTILS_POLL,utils/poll.h)
-headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
 headers             += $(call kconf_enabled,UTILS_MQUEUE,utils/mqueue.h)
 headers             += $(call kconf_enabled,UTILS_NET,utils/net.h)
 headers             += $(call kconf_enabled,UTILS_PWD,utils/pwd.h)
 headers             += $(call kconf_enabled,ETUX_NETDB,utils/netdb.h)
 headers             += $(call kconf_enabled,ETUX_NETIF,utils/netif.h)
+headers             += $(call kconf_enabled,ETUX_SOCK,utils/sock.h)
 headers             += $(call kconf_enabled,ETUX_INSK,utils/insk.h)
 headers             += $(call kconf_enabled,ETUX_IN4SK,utils/in4sk.h)
 headers             += $(call kconf_enabled,ETUX_IN6SK,utils/in6sk.h)
+headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
 
 subdirs   := src
 
