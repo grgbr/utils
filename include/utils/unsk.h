@@ -41,6 +41,9 @@
  * low-level UNIX socket wrappers
  ******************************************************************************/
 
+#define UNSK_NAMED_PATH_MAX \
+	(sizeof_member(struct sockaddr_un, sun_path))
+
 #define UNSK_NAMED_ADDR(_path) \
 	{ .sun_family = AF_UNIX, .sun_path = _path }
 
@@ -154,6 +157,31 @@ unsk_send(int fd, const void * __restrict buff, size_t size, int flags)
 	return etux_sock_send(fd, buff, size, flags);
 }
 
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+extern ssize_t
+unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
+	__utils_nonull(2) __warn_result __export_public;
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(2) __warn_result
+ssize_t
+unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
+{
+	ssize_t ret;
+
+	ret = sendmsg(fd, msg, flags);
+	if (ret > 0)
+		return ret;
+	else if (!ret)
+		return -EAGAIN;
+
+	return -errno;
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
 /*
  * As stated into unix(7), unix sockets don't support the transmission of
  * out-of-band data. However, Linux seems to support it since 2021: also allow
@@ -173,6 +201,31 @@ unsk_recv(int fd, void * __restrict buff, size_t size, int flags)
 	return etux_sock_recv(fd, buff, size, flags);
 }
 
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+extern ssize_t
+unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
+	__utils_nonull(2) __warn_result __export_public;
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(2) __warn_result
+ssize_t
+unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
+{
+	ssize_t ret;
+
+	ret = recvmsg(fd, msg, flags);
+	if (ret > 0)
+		return ret;
+	else if (!ret)
+		return -EAGAIN;
+
+	return -errno;
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
 static inline __utils_nonull(2) __warn_result
 int
 unsk_connect(int                                   fd,
@@ -185,6 +238,13 @@ unsk_connect(int                                   fd,
 
 	return etux_sock_connect(fd, (const struct sockaddr *)peer, size);
 }
+
+extern int
+unsk_connect_dgram(int                             fd,
+                   const char * __restrict         peer_path,
+                   struct sockaddr_un * __restrict peer_addr,
+                   socklen_t * __restrict          addr_len)
+	__utils_nonull(2, 3, 4) __utils_nothrow __export_public;
 
 static inline __warn_result
 int
@@ -207,26 +267,39 @@ unsk_accept(int                             fd,
 	return sk;
 }
 
-#if defined(CONFIG_UTILS_ASSERT_API)
-
-extern ssize_t
-unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
-	__utils_nonull(2) __warn_result __export_public;
-
-extern ssize_t
-unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
-	__utils_nonull(2) __warn_result __export_public;
-
-extern int
-unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
-	__utils_nonull(2) __utils_nothrow __leaf __warn_result __export_public;
-
-extern int
+static inline __utils_nothrow __warn_result
+int
 unsk_listen(int fd, int backlog)
-	__utils_nothrow __leaf __warn_result __export_public;
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(backlog >= 0);
 
-extern int
-unsk_open(int type, int flags) __utils_nothrow __leaf __export_public;
+	return etux_sock_listen(fd, backlog);
+}
+
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
+unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(addr);
+	unsk_assert_api(addr->sun_family == AF_UNIX);
+	unsk_assert_api(size >= sizeof(sa_family_t));
+
+	return etux_sock_bind(fd, (const struct sockaddr *)addr, size);
+}
+
+static inline __utils_nothrow __warn_result
+int
+unsk_open(int type, int flags)
+{
+	unsk_assert_api((type == SOCK_DGRAM) ||
+	                (type == SOCK_STREAM) ||
+	                (type == SOCK_SEQPACKET));
+	unsk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
+
+	return etux_sock_open(AF_UNIX, type, 0, flags);
+}
 
 static inline __utils_nothrow
 void
@@ -237,103 +310,32 @@ unsk_shutdown(int fd, int how)
 	                (how == SHUT_WR) ||
 	                (how == SHUT_RDWR));
 
-	unsk_assert_api(!shutdown(fd, how));
-}
-
-extern int
-unsk_close(int fd) __export_public;
-
-extern int
-unsk_unlink(const char * __restrict path)
-	__utils_nonull(1) __utils_nothrow __leaf __export_public;
-
-#else /* !defined(CONFIG_UTILS_ASSERT_API) */
-
-static inline __utils_nonull(2) __warn_result
-ssize_t
-unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
-{
-	ssize_t ret;
-
-	ret = sendmsg(fd, msg, flags);
-	if (ret > 0)
-		return ret;
-	else if (!ret)
-		return -EAGAIN;
-
-	return -errno;
-}
-
-static inline __utils_nonull(2) __warn_result
-ssize_t
-unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
-{
-	ssize_t ret;
-
-	ret = recvmsg(fd, msg, flags);
-	if (ret > 0)
-		return ret;
-	else if (!ret)
-		return -EAGAIN;
-
-	return -errno;
-}
-
-static inline __utils_nonull(2) __utils_nothrow
-int
-unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
-{
-	if (!bind(fd, (const struct sockaddr *)addr, size))
-		return 0;
-
-	return -errno;
-}
-
-static inline __utils_nothrow
-int
-unsk_open(int type, int flags)
-{
-	int fd;
-
-	fd = socket(AF_UNIX, type | flags, 0);
-	if (fd >= 0)
-		return fd;
-
-	return -errno;
-}
-
-static inline __utils_nothrow
-void
-unsk_shutdown(int fd, int how)
-{
-	shutdown(fd, how))
+	etux_sock_shutdown(fd, how);
 }
 
 static inline
 int
 unsk_close(int fd)
 {
-	return ufd_close(fd);
+	unsk_assert_api(fd >= 0);
+
+	return etux_sock_close(fd);
 }
 
 static inline __utils_nonull(1) __utils_nothrow
 int
 unsk_unlink(const char * __restrict path)
 {
+	unsk_assert_api(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);
+
 	if (!upath_unlink(path) || (errno == ENOENT))
 		return 0;
 
+	unsk_assert_api(errno != EFAULT);
+	unsk_assert_api(errno != ENAMETOOLONG);
+
 	return -errno;
 }
-
-#endif /* defined(CONFIG_UTILS_ASSERT_API) */
-
-extern int
-unsk_connect_dgram(int                             fd,
-                   const char * __restrict         peer_path,
-                   struct sockaddr_un * __restrict peer_addr,
-                   socklen_t * __restrict          addr_len)
-	__utils_nonull(2, 3, 4) __utils_nothrow __export_public;
 
 /******************************************************************************
  * UNIX socket buffer and queue handling

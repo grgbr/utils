@@ -8,7 +8,6 @@
 #include "utils/unsk.h"
 #include <stdlib.h>
 
-#define UNSK_NAMED_PATH_MAX     (sizeof_member(struct sockaddr_un, sun_path))
 #define UNSK_ABSTRACT_PATH_LEN  (5U)
 #define UNSK_ABSTRACT_PATH_MAX  (UNSK_ABSTRACT_PATH_LEN + 1)
 #define UNSK_ABSTRACT_ADDR_LEN \
@@ -173,96 +172,6 @@ unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
 	return -errno;
 }
 
-int
-unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
-{
-	unsk_assert_api(fd >= 0);
-	unsk_assert_api(addr);
-	unsk_assert_api(addr->sun_family == AF_UNIX);
-	unsk_assert_api(size >= sizeof(sa_family_t));
-
-	if (!bind(fd, (const struct sockaddr *)addr, size))
-		return 0;
-
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != EINVAL);
-	unsk_assert_api(errno != ENOTSOCK);
-	unsk_assert_api(errno != EADDRNOTAVAIL);
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
-int
-unsk_listen(int fd, int backlog)
-{
-	unsk_assert_api(fd >= 0);
-	unsk_assert_api(backlog >= 0);
-
-	if (!listen(fd, backlog))
-		return 0;
-
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != ENOTSOCK);
-	unsk_assert_api(errno != EOPNOTSUPP);
-
-	return -errno;
-}
-
-int
-unsk_open(int type, int flags)
-{
-	unsk_assert_api((type == SOCK_DGRAM) ||
-	                (type == SOCK_STREAM) ||
-	                (type == SOCK_SEQPACKET));
-	unsk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
-
-	int fd;
-
-	fd = socket(AF_UNIX, type | flags, 0);
-	if (fd >= 0)
-		return fd;
-
-	unsk_assert_api(errno != EAFNOSUPPORT);
-	unsk_assert_api(errno != EINVAL);
-	unsk_assert_api(errno != EPROTONOSUPPORT);
-
-	return -errno;
-}
-
-/*
- * May return -EINTR or -EIO
- */
-int
-unsk_close(int fd)
-{
-	unsk_assert_api(fd >= 0);
-
-	int ret;
-
-	ret = ufd_close(fd);
-
-	unsk_assert_api(ret != -ENOSPC);
-	unsk_assert_api(ret != -EDQUOT);
-
-	return ret;
-}
-
-int
-unsk_unlink(const char * __restrict path)
-{
-	unsk_assert_api(upath_validate_path(path, UNSK_NAMED_PATH_MAX) > 0);
-
-	if (!upath_unlink(path) || (errno == ENOENT))
-		return 0;
-
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != ENAMETOOLONG);
-
-	return -errno;
-}
-
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 int
@@ -293,6 +202,11 @@ unsk_connect_dgram(int                             fd,
 
 		return err;
 	}
+
+	/*
+	 * FIXME: use unsk_connect() instead since it allows filtering of
+	 * unwanted incoming messages at the kernel level.
+	 */
 
 	/* Setup peer address to send messages to. */
 	*addr_len = unsk_make_named_addr(peer_addr, peer_path);
