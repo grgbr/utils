@@ -119,7 +119,7 @@ etux_in6sk_addr_name(
 			goto free;
 
 		ret += len;
-		etux_in6sk_assert_intern(ret < ETUX_NETDB_NAME_MAX);
+		etux_in6sk_assert_intern((size_t)ret < ETUX_NETDB_NAME_MAX);
 
 free:
 		free(host);
