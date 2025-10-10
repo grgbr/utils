@@ -19,7 +19,7 @@
 #ifndef _ETUX_IN4SK_H
 #define _ETUX_IN4SK_H
 
-#include <utils/cdefs.h>
+#include <utils/sock.h>
 #include <netinet/in.h>
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -180,36 +180,105 @@ etux_in4sk_addr_name(
 
 #endif /* defined(CONFIG_ETUX_NETDB) */
 
-extern int
+static inline __utils_nonull(2) __warn_result
+int
 etux_in4sk_connect(int fd, const struct sockaddr_in * __restrict peer)
-	__utils_nonull(2) __warn_result __export_public;
+{
+	etux_in4sk_assert_api(fd >= 0);
+	etux_in4sk_assert_api(peer);
+	etux_in4sk_assert_api(peer->sin_family == AF_INET);
 
-extern int
+	return etux_sock_connect(fd,
+	                         (const struct sockaddr *)peer,
+	                         sizeof(*peer));
+}
+
+static inline __warn_result
+int
 etux_in4sk_accept(int fd, struct sockaddr_in * __restrict peer, int flags)
-	__warn_result __export_public;
+{
+	etux_in4sk_assert_api(fd >= 0);
+	etux_in4sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
 
-extern int
-etux_in4sk_bind(int fd, const struct sockaddr_in * __restrict local)
-	__utils_nonull(2) __utils_nothrow __leaf __warn_result __export_public;
+	socklen_t sz = sizeof(*peer);
+
+	return etux_sock_accept(fd, (struct sockaddr *)peer, &sz, flags);
+}
+
+static inline __utils_nothrow __warn_result
+int
+etux_in4sk_listen(int fd, int backlog)
+{
+	etux_in4sk_assert_api(fd >= 0);
+	etux_in4sk_assert_api(backlog >= 0);
+
+	return etux_sock_listen(fd, backlog);
+}
 
 #if defined(CONFIG_ETUX_NETIF)
 
-extern int
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
 etux_in4sk_bind_netif(int fd, const char * __restrict iface, size_t len)
-	__utils_nonull(2) __utils_nothrow __leaf __warn_result __export_public;
+{
+	etux_in4sk_assert_api(fd >= 0);
+	etux_in4sk_assert_api(iface);
+	etux_in4sk_assert_api(len);
+	etux_in4sk_assert_api(len < IFNAMSIZ);
+	etux_in4sk_assert_api(strnlen(iface, IFNAMSIZ) == len);
+
+	return etux_sock_bind_netif(fd, iface, len);
+}
 
 #endif /* defined(CONFIG_ETUX_NETIF) */
 
-extern int
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
+etux_in4sk_bind(int fd, const struct sockaddr_in * __restrict local)
+{
+	etux_in4sk_assert_api(fd >= 0);
+	etux_in4sk_assert_api(local);
+	etux_in4sk_assert_api(local->sin_family == AF_INET);
+
+	return etux_sock_bind(fd,
+	                      (const struct sockaddr *)local,
+	                      sizeof(*local));
+}
+
+static inline __utils_nothrow __warn_result
+int
 etux_in4sk_open(int type, int proto, int flags)
-	__utils_nothrow __leaf __warn_result __export_public;
+{
+	etux_in4sk_assert_api((type == SOCK_DGRAM) ||
+	                      (type == SOCK_STREAM) ||
+	                      (type == SOCK_RAW));
+	etux_in4sk_assert_api(proto >= IPPROTO_IP);
+	etux_in4sk_assert_api(proto < IPPROTO_MAX);
+	etux_in4sk_assert_api((type == SOCK_RAW) ^ !!proto);
+	etux_in4sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
 
-extern int
+	return etux_sock_open(AF_INET, type, proto, flags);
+}
+
+static inline __utils_nothrow
+void
 etux_in4sk_shutdown(int fd, int how)
-	__utils_nothrow __warn_result __leaf __export_public;
+{
+	etux_in4sk_assert_api(fd >= 0);
+	etux_in4sk_assert_api((how == SHUT_RD) ||
+	                      (how == SHUT_WR) ||
+	                      (how == SHUT_RDWR));
 
-extern int
+	etux_sock_shutdown(fd, how);
+}
+
+static inline
+int
 etux_in4sk_close(int fd)
-	__export_public;
+{
+	etux_in4sk_assert_api(fd >= 0);
+
+	return etux_sock_close(fd);
+}
 
 #endif /* _UTILS_IN4SK_H */

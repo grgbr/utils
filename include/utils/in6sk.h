@@ -19,7 +19,7 @@
 #ifndef _ETUX_IN6SK_H
 #define _ETUX_IN6SK_H
 
-#include <utils/cdefs.h>
+#include <utils/sock.h>
 #include <netinet/in.h>
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -206,36 +206,105 @@ etux_in6sk_addr_name(
 
 #endif /* defined(CONFIG_ETUX_NETDB) */
 
-extern int
+static inline __utils_nonull(2) __warn_result
+int
 etux_in6sk_connect(int fd, const struct sockaddr_in6 * __restrict peer)
-	__utils_nonull(2) __warn_result __export_public;
+{
+	etux_in6sk_assert_api(fd >= 0);
+	etux_in6sk_assert_api(peer);
+	etux_in6sk_assert_api(peer->sin6_family == AF_INET6);
 
-extern int
+	return etux_sock_connect(fd,
+	                         (const struct sockaddr *)peer,
+	                         sizeof(*peer));
+}
+
+static inline __warn_result
+int
 etux_in6sk_accept(int fd, struct sockaddr_in6 * __restrict peer, int flags)
-	__warn_result __export_public;
+{
+	etux_in6sk_assert_api(fd >= 0);
+	etux_in6sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
 
-extern int
-etux_in6sk_bind(int fd, const struct sockaddr_in6 * __restrict local)
-	__utils_nonull(2) __utils_nothrow __leaf __warn_result __export_public;
+	socklen_t sz = sizeof(*peer);
+
+	return etux_sock_accept(fd, (struct sockaddr *)peer, &sz, flags);
+}
+
+static inline __utils_nothrow __warn_result
+int
+etux_in6sk_listen(int fd, int backlog)
+{
+	etux_in6sk_assert_api(fd >= 0);
+	etux_in6sk_assert_api(backlog >= 0);
+
+	return etux_sock_listen(fd, backlog);
+}
 
 #if defined(CONFIG_ETUX_NETIF)
 
-extern int
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
 etux_in6sk_bind_netif(int fd, const char * __restrict iface, size_t len)
-	__utils_nonull(2) __utils_nothrow __leaf __warn_result __export_public;
+{
+	etux_in6sk_assert_api(fd >= 0);
+	etux_in6sk_assert_api(iface);
+	etux_in6sk_assert_api(len);
+	etux_in6sk_assert_api(len < IFNAMSIZ);
+	etux_in6sk_assert_api(strnlen(iface, IFNAMSIZ) == len);
+
+	return etux_sock_bind_netif(fd, iface, len);
+}
 
 #endif /* defined(CONFIG_ETUX_NETIF) */
 
-extern int
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
+etux_in6sk_bind(int fd, const struct sockaddr_in6 * __restrict local)
+{
+	etux_in6sk_assert_api(fd >= 0);
+	etux_in6sk_assert_api(local);
+	etux_in6sk_assert_api(local->sin6_family == AF_INET6);
+
+	return etux_sock_bind(fd,
+	                      (const struct sockaddr *)local,
+	                      sizeof(*local));
+}
+
+static inline __utils_nothrow __warn_result
+int
 etux_in6sk_open(int type, int proto, int flags)
-	__utils_nothrow __leaf __warn_result __export_public;
+{
+	etux_in6sk_assert_api((type == SOCK_DGRAM) ||
+	                      (type == SOCK_STREAM) ||
+	                      (type == SOCK_RAW));
+	etux_in6sk_assert_api(proto >= IPPROTO_IP);
+	etux_in6sk_assert_api(proto < IPPROTO_MAX);
+	etux_in6sk_assert_api((type == SOCK_RAW) ^ !!proto);
+	etux_in6sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
 
-extern int
+	return etux_sock_open(AF_INET6, type, proto, flags);
+}
+
+static inline __utils_nothrow
+void
 etux_in6sk_shutdown(int fd, int how)
-	__utils_nothrow __warn_result __leaf __export_public;
+{
+	etux_in6sk_assert_api(fd >= 0);
+	etux_in6sk_assert_api((how == SHUT_RD) ||
+	                      (how == SHUT_WR) ||
+	                      (how == SHUT_RDWR));
 
-extern int
+	etux_sock_shutdown(fd, how);
+}
+
+static inline
+int
 etux_in6sk_close(int fd)
-	__export_public;
+{
+	etux_in6sk_assert_api(fd >= 0);
+
+	return etux_sock_close(fd);
+}
 
 #endif /* _UTILS_IN6SK_H */

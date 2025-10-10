@@ -35,6 +35,53 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
+static inline __utils_nonull(4, 5) __utils_nothrow
+void
+etux_sock_getopt(int                    fd,
+                 int                    level,
+                 int                    option,
+                 void * __restrict      value,
+                 socklen_t * __restrict size)
+{
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(level >= 0);
+	etux_sock_assert_api(option >= 0);
+	etux_sock_assert_api(value);
+	etux_sock_assert_api(size);
+	etux_sock_assert_api(*size);
+
+	int err __unused;
+
+	err = getsockopt(fd, level, option, value, size);
+	etux_sock_assert_api(!err);
+}
+
+static inline __utils_nonull(4) __utils_nothrow __warn_result
+int
+etux_sock_setopt(int                     fd,
+                 int                     level,
+                 int                     option,
+                 const void * __restrict value,
+                 socklen_t               size)
+{
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(level >= 0);
+	etux_sock_assert_api(option >= 0);
+	etux_sock_assert_api(value);
+	etux_sock_assert_api(size);
+
+	if (!setsockopt(fd, SOL_SOCKET, option, value, size))
+		return 0;
+
+	etux_sock_assert_api(errno != EBADF);
+	etux_sock_assert_api(errno != EFAULT);
+	etux_sock_assert_api(errno != EINVAL);
+	etux_sock_assert_api(errno != ENOPROTOOPT);
+	etux_sock_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
+
 /**
  * Send a buffer over socket to its connected peer if any.
  *
@@ -136,14 +183,14 @@ etux_sock_recv(int fd, void * __restrict buff, size_t size, int flags)
 static inline __utils_nonull(2) __warn_result
 int
 etux_sock_connect(int                                fd,
-                  const struct sockaddr * __restrict peer_addr,
-                  socklen_t                          peer_size)
+                  const struct sockaddr * __restrict peer,
+                  socklen_t                          size)
 {
 	etux_sock_assert_api(fd >= 0);
-	etux_sock_assert_api(peer_addr);
-	etux_sock_assert_api(peer_size >= sizeof(*peer_addr));
+	etux_sock_assert_api(peer);
+	etux_sock_assert_api(size >= sizeof(*peer));
 
-	if (!connect(fd, peer_addr, peer_size))
+	if (!connect(fd, peer, size))
 		return 0;
 
 	etux_sock_assert_api(errno != EAFNOSUPPORT);
@@ -177,24 +224,36 @@ etux_sock_connect(int                                fd,
  * As stated into @man{accept4(2)}, additional protocol specific network errors
  * may be returned. Various Linux kernels can return other errors such as
  * `ENOSR`, `ESOCKTNOSUPPORT`, `EPROTONOSUPPORT`, `ETIMEDOUT` and `ERESTARTSYS`.
+ *
+ * @warning
+ * As stated into @man{accept(2)} man page, Linux  @man{accept(2)} and
+ * @man{accept4(2)} passes already-pending network errors on the new socket as
+ * an error code from @man{accept(2)}. This behavior differs from other BSD
+ * socket implementations. For reliable operation the application should detect
+ * the network errors defined for the protocol after @man{accept(2)} and treat
+ * them like EAGAIN by retrying. In the case of TCP/IP, these  are `ENETDOWN`,
+ * `EPROTO`, `ENOPROTOOPT`, `EHOSTDOWN`, `ENONET`, `EHOSTUNREACH`, `EOPNOTSUPP`,
+ * and `ENETUNREACH`.
  */
 static inline __warn_result
 int
 etux_sock_accept(int                          fd,
-                 struct sockaddr * __restrict peer_addr,
-                 socklen_t * __restrict       peer_size,
+                 struct sockaddr * __restrict peer,
+                 socklen_t * __restrict       size,
                  int                          flags)
 {
 	etux_sock_assert_api(fd >= 0);
-	etux_sock_assert_api(!peer_addr || peer_size);
-	etux_sock_assert_api(!peer_size || (*peer_size >= sizeof(sa_family_t)));
+	etux_sock_assert_api(!peer || size);
+	etux_sock_assert_api(!size || (*size >= sizeof(sa_family_t)));
 	etux_sock_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
 
 	int sk;
 
-	sk = accept4(fd, peer_addr, peer_size, flags);
-	if (sk >= 0)
+	sk = accept4(fd, peer, size, flags);
+	if (sk >= 0) {
+		etux_sock_assert_api(!size || (*size >= sizeof(sa_family_t)));
 		return sk;
+	}
 
 	etux_sock_assert_api(errno != EBADF);
 	etux_sock_assert_api(errno != EFAULT);
@@ -218,6 +277,71 @@ etux_sock_listen(int fd, int backlog)
 	etux_sock_assert_api(errno != EBADF);
 	etux_sock_assert_api(errno != ENOTSOCK);
 	etux_sock_assert_api(errno != EOPNOTSUPP);
+
+	return -errno;
+}
+
+#if defined(CONFIG_ETUX_NETIF)
+
+#include <net/if.h>
+
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
+etux_sock_bind_netif(int fd, const char * __restrict iface, size_t len)
+{
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(iface);
+	etux_sock_assert_api(len);
+	etux_sock_assert_api(len < IFNAMSIZ);
+	etux_sock_assert_api(strnlen(iface, IFNAMSIZ) == len);
+
+	return etux_sock_setopt(fd,
+	                        SOL_SOCKET,
+	                        SO_BINDTODEVICE,
+	                        iface,
+	                        (socklen_t)len + 1);
+}
+
+#endif /* defined(CONFIG_ETUX_NETIF) */
+
+static inline __utils_nonull(2) __utils_nothrow __warn_result
+int
+etux_sock_bind(int                                fd,
+               const struct sockaddr * __restrict local,
+               socklen_t                          size)
+{
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(local);
+	etux_sock_assert_api(local->sa_family != AF_UNSPEC);
+	etux_sock_assert_api(size);
+
+	if (!bind(fd, local, size))
+		return 0;
+
+	etux_sock_assert_api(errno != EBADF);
+	etux_sock_assert_api(errno != EINVAL);
+	etux_sock_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
+
+static inline __utils_nothrow __warn_result
+int
+etux_sock_open(int domain, int type, int proto, int flags)
+{
+	etux_sock_assert_api(domain > AF_UNSPEC);
+	etux_sock_assert_api(type > 0);
+	etux_sock_assert_api(proto >= 0);
+	etux_sock_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
+
+	int fd;
+
+	fd = socket(domain, type | flags, proto);
+	if (fd >= 0)
+		return fd;
+
+	etux_sock_assert_api(errno != EINVAL);
+	etux_sock_assert_api(errno != EPROTONOSUPPORT);
 
 	return -errno;
 }

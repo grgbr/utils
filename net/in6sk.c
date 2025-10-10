@@ -6,7 +6,6 @@
  ******************************************************************************/
 
 #include "utils/in6sk.h"
-#include "syssk.h"
 
 void
 etux_in6sk_setup_addr(struct sockaddr_in6 * __restrict   addr,
@@ -134,91 +133,3 @@ free:
 }
 
 #endif /* defined(CONFIG_ETUX_NETDB) */
-
-int
-etux_in6sk_connect(int fd, const struct sockaddr_in6 * __restrict peer)
-{
-	etux_in6sk_assert_api(fd >= 0);
-	etux_in6sk_assert_api(peer);
-	etux_in6sk_assert_api(peer->sin6_family == AF_INET6);
-
-	return etux_syssk_connect(fd,
-	                          (const struct sockaddr *)peer,
-	                          sizeof(*peer));
-}
-
-int
-etux_in6sk_accept(int fd, struct sockaddr_in6 * __restrict peer, int flags)
-{
-	etux_in6sk_assert_api(fd >= 0);
-	etux_in6sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
-
-	socklen_t sz = sizeof(*peer);
-	int       nevv;
-
-	nevv = etux_syssk_accept(fd, (struct sockaddr *)peer, &sz, flags);
-	etux_in6sk_assert_api((nevv < 0) || (sz == sizeof(*peer)));
-
-	return nevv;
-}
-
-int
-etux_in6sk_bind(int fd, const struct sockaddr_in6 * __restrict local)
-{
-	etux_in6sk_assert_api(fd >= 0);
-	etux_in6sk_assert_api(local);
-	etux_in6sk_assert_api(local->sin6_family == AF_INET6);
-
-	return etux_syssk_bind(fd,
-	                       (const struct sockaddr *)local,
-	                       sizeof(*local));
-}
-
-#if defined(CONFIG_ETUX_NETIF)
-
-int
-etux_in6sk_bind_netif(int fd, const char * __restrict iface, size_t len)
-{
-	etux_in6sk_assert_api(fd >= 0);
-	etux_in6sk_assert_api(iface);
-	etux_in6sk_assert_api(len);
-	etux_in6sk_assert_api(len < IFNAMSIZ);
-	etux_in6sk_assert_api(strnlen(iface, IFNAMSIZ) == len);
-
-	return etux_syssk_bind_netif(fd, iface, len);
-}
-
-#endif /* defined(CONFIG_ETUX_NETIF) */
-
-int
-etux_in6sk_open(int type, int proto, int flags)
-{
-	etux_in6sk_assert_api((type == SOCK_DGRAM) ||
-	                      (type == SOCK_STREAM) ||
-	                      (type == SOCK_RAW));
-	etux_in6sk_assert_api(proto >= IPPROTO_IP);
-	etux_in6sk_assert_api(proto < IPPROTO_MAX);
-	etux_in6sk_assert_api((type == SOCK_RAW) ^ !!proto);
-	etux_in6sk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
-
-	return etux_syssk_open(AF_INET6, type, proto, flags);
-}
-
-int
-etux_in6sk_shutdown(int fd, int how)
-{
-	etux_in6sk_assert_api(fd >= 0);
-	etux_in6sk_assert_api((how == SHUT_RD) ||
-	                      (how == SHUT_WR) ||
-	                      (how == SHUT_RDWR));
-
-	return etux_syssk_shutdown(fd, how);
-}
-
-int
-etux_in6sk_close(int fd)
-{
-	etux_in6sk_assert_api(fd >= 0);
-
-	return etux_syssk_close(fd);
-}

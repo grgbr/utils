@@ -19,11 +19,9 @@
 #ifndef _UTILS_UNSK_H
 #define _UTILS_UNSK_H
 
-#include <utils/cdefs.h>
+#include <utils/sock.h>
 #include <stroll/slist.h>
 #include <utils/poll.h>
-#include <utils/fd.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 
 #if defined(CONFIG_UTILS_ASSERT_API)
@@ -101,8 +99,6 @@ unsk_make_named_addr(struct sockaddr_un * __restrict addr,
                      const char * __restrict         path)
 	__utils_nonull(1, 2) __utils_nothrow __warn_result __export_public;
 
-#if defined(CONFIG_UTILS_ASSERT_API)
-
 static inline __utils_nonull(3, 4) __utils_nothrow
 void
 unsk_getsockopt(int                    fd,
@@ -111,12 +107,12 @@ unsk_getsockopt(int                    fd,
                 socklen_t * __restrict size)
 {
 	unsk_assert_api(fd >= 0);
-	unsk_assert_api(option);
+	unsk_assert_api(option >= 0);
 	unsk_assert_api(value);
 	unsk_assert_api(size);
 	unsk_assert_api(*size);
 
-	unsk_assert_api(!getsockopt(fd, SOL_SOCKET, option, value, size));
+	etux_sock_getopt(fd, SOL_SOCKET, option, value, size);
 }
 
 static inline __utils_nonull(3) __utils_nothrow
@@ -127,11 +123,14 @@ unsk_setsockopt(int                     fd,
                 socklen_t               size)
 {
 	unsk_assert_api(fd >= 0);
-	unsk_assert_api(option);
+	unsk_assert_api(option >= 0);
 	unsk_assert_api(value);
 	unsk_assert_api(size);
 
-	unsk_assert_api(!setsockopt(fd, SOL_SOCKET, option, value, size));
+	int err __unused;
+
+	err = etux_sock_setopt(fd, SOL_SOCKET, option, value, size);
+	unsk_assert_api(!err);
 }
 
 /*
@@ -152,32 +151,8 @@ unsk_send(int fd, const void * __restrict buff, size_t size, int flags)
 	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_EOR | MSG_MORE |
 		                    MSG_NOSIGNAL | MSG_OOB)));
 
-	ssize_t bytes;
-
-	bytes = send(fd, buff, size, flags);
-	if (bytes >= 0)
-		return bytes;
-
-	/*
-	 * Should never happen since we should have been validated by a previous
-	 * connect(2) call.
-	 */
-	unsk_assert_api(errno != EACCES);
-
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != EDESTADDRREQ);
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != EINVAL);
-	unsk_assert_api(errno != ENOTCONN);
-	unsk_assert_api(errno != ENOTSOCK);
-	unsk_assert_api(errno != EOPNOTSUPP);
-
-	return -errno;
+	return etux_sock_send(fd, buff, size, flags);
 }
-
-extern ssize_t
-unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
-	__utils_nonull(2) __warn_result __export_public;
 
 /*
  * As stated into unix(7), unix sockets don't support the transmission of
@@ -195,91 +170,52 @@ unsk_recv(int fd, void * __restrict buff, size_t size, int flags)
 	unsk_assert_api(!(flags & ~(MSG_DONTWAIT | MSG_PEEK | MSG_OOB |
 	                            MSG_TRUNC | MSG_WAITALL)));
 
-	ssize_t bytes;
-
-	bytes = recv(fd, buff, size, flags);
-	if (bytes >= 0)
-		return bytes;
-
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != EINVAL);
-	unsk_assert_api(errno != ENOTCONN);
-	unsk_assert_api(errno != ENOTSOCK);
-
-	return -errno;
+	return etux_sock_recv(fd, buff, size, flags);
 }
+
+static inline __utils_nonull(2) __warn_result
+int
+unsk_connect(int                                   fd,
+             const struct sockaddr_un * __restrict peer,
+             socklen_t                             size)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(peer);
+	unsk_assert_api(size > sizeof(sa_family_t));
+
+	return etux_sock_connect(fd, (const struct sockaddr *)peer, size);
+}
+
+static inline __warn_result
+int
+unsk_accept(int                             fd,
+            struct sockaddr_un * __restrict peer,
+            socklen_t * __restrict          size,
+            int                             flags)
+{
+	unsk_assert_api(fd >= 0);
+	unsk_assert_api(!peer || size);
+	unsk_assert_api(!size || (*size >= sizeof(sa_family_t)));
+	unsk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
+
+	int sk;
+
+	sk = etux_sock_accept(fd, (struct sockaddr *)peer, size, flags);
+	if (sk >= 0)
+		unsk_assert_api(!size || (*size <= sizeof(*peer)));
+
+	return sk;
+}
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+extern ssize_t
+unsk_send_dgram_msg(int fd, const struct msghdr * __restrict msg, int flags)
+	__utils_nonull(2) __warn_result __export_public;
 
 extern ssize_t
 unsk_recv_dgram_msg(int fd, struct msghdr * __restrict msg, int flags)
 	__utils_nonull(2) __warn_result __export_public;
-
-static inline __warn_result
-int
-unsk_connect(int                                   fd,
-             const struct sockaddr_un * __restrict peer_addr,
-             socklen_t                             peer_size)
-{
-	unsk_assert_api(fd >= 0);
-	unsk_assert_api(peer_addr);
-	unsk_assert_api(peer_size > sizeof(sa_family_t));
-
-	if (!connect(fd, peer_addr, peer_size))
-		return 0;
-
-	unsk_assert_api(errno != EAFNOSUPPORT);
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != EISCONN);
-	unsk_assert_api(errno != ENOTSOCK);
-
-	return -errno;
-}
-
-/*
- * Warning
- * -------
- *
- * As stated into accept(2) man page:
- *   -- Linux  accept() (and accept4()) passes already-pending network errors on
- *      the new socket as an error code from accept().  This behavior differs
- *      from other BSD socket implementations. For reliable operation the
- *      application should detect the network errors defined for the protocol
- *      after accept() and treat them like EAGAIN by retrying. In the case of
- *      TCP/IP, these  are ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET,
- *      EHOSTUNREACH, EOPNOTSUPP, and ENETUNREACH.
- */
-static inline __warn_result
-int
-unsk_accept(int                             fd,
-            struct sockaddr_un * __restrict peer_addr,
-            socklen_t * __restrict          peer_size,
-            int                             flags)
-{
-	unsk_assert_api(fd >= 0);
-	unsk_assert_api(!peer_addr || peer_size);
-	unsk_assert_api(!peer_size || (*peer_size >= sizeof(sa_family_t)));
-	unsk_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
-
-	int nevv;
-
-	nevv = accept4(fd, peer_addr, peer_size, flags);
-	if (nevv >= 0) {
-		unsk_assert_api(!peer_size ||
-		                (*peer_size >= sizeof(sa_family_t)));
-		unsk_assert_api(!peer_size ||
-		                (*peer_size <= sizeof(*peer_addr)));
-		return nevv;
-	}
-
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != EINVAL);
-	unsk_assert_api(errno != ENOTSOCK);
-	unsk_assert_api(errno != EOPNOTSUPP);
-
-	return -errno;
-}
 
 extern int
 unsk_bind(int fd, const struct sockaddr_un * __restrict addr, socklen_t size)
@@ -292,53 +228,26 @@ unsk_listen(int fd, int backlog)
 extern int
 unsk_open(int type, int flags) __utils_nothrow __leaf __export_public;
 
-extern int
-unsk_close(int fd) __export_public;
-
-static inline
+static inline __utils_nothrow
 void
-unsk_reject(int fd)
+unsk_shutdown(int fd, int how)
 {
 	unsk_assert_api(fd >= 0);
+	unsk_assert_api((how == SHUT_RD) ||
+	                (how == SHUT_WR) ||
+	                (how == SHUT_RDWR));
 
-	int nevv;
-
-	nevv = unsk_accept(fd, NULL, NULL, 0);
-	if (nevv >= 0)
-		unsk_close(nevv);
-
-	unsk_assert_api(errno != EBADF);
-	unsk_assert_api(errno != EFAULT);
-	unsk_assert_api(errno != EINVAL);
-	unsk_assert_api(errno != ENOTSOCK);
-	unsk_assert_api(errno != EOPNOTSUPP);
+	unsk_assert_api(!shutdown(fd, how));
 }
+
+extern int
+unsk_close(int fd) __export_public;
 
 extern int
 unsk_unlink(const char * __restrict path)
 	__utils_nonull(1) __utils_nothrow __leaf __export_public;
 
 #else /* !defined(CONFIG_UTILS_ASSERT_API) */
-
-static inline __utils_nonull(3, 4) __utils_nothrow
-void
-unsk_getsockopt(int                    fd,
-                int                    option,
-                void * __restrict      value,
-                socklen_t * __restrict size)
-{
-	getsockopt(fd, SOL_SOCKET, option, value, size);
-}
-
-static inline __utils_nonull(3) __utils_nothrow
-void
-unsk_setsockopt(int                     fd,
-                int                     option,
-                const void * __restrict value,
-                socklen_t               size)
-{
-	setsockopt(fd, SOL_SOCKET, option, value, size);
-}
 
 static inline __utils_nonull(2) __warn_result
 ssize_t
@@ -391,6 +300,13 @@ unsk_open(int type, int flags)
 		return fd;
 
 	return -errno;
+}
+
+static inline __utils_nothrow
+void
+unsk_shutdown(int fd, int how)
+{
+	shutdown(fd, how))
 }
 
 static inline
