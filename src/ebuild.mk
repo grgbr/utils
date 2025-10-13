@@ -52,6 +52,6 @@ static/thread.o-cflags := -pthread $(shared-common-cflags)
 libutils.a-cflags      := $(common-cflags)
 libutils.a-pkgconf     := $(common-pkgconf)
 
-endif # ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
+endif # ifeq ($(CONFIG_UTILS_PROVIDES_LIBS),y)
 
 # ex: filetype=make :

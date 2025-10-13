@@ -1,3 +1,10 @@
+################################################################################
+# SPDX-License-Identifier: LGPL-3.0-only
+#
+# This file is part of Utils.
+# Copyright (C) 2017-2025 Grégor Boirie <gregor.boirie@free.fr>
+################################################################################
+
 override PACKAGE := utils
 override VERSION := 1.0
 EXTRA_CFLAGS     := -O2 -DNDEBUG -Wall -Wextra -Wformat=2

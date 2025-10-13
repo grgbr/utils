@@ -188,7 +188,7 @@ etux_sock_connect(int                                fd,
 {
 	etux_sock_assert_api(fd >= 0);
 	etux_sock_assert_api(peer);
-	etux_sock_assert_api(size >= sizeof(*peer));
+	etux_sock_assert_api(size >= sizeof(sa_family_t));
 
 	if (!connect(fd, peer, size))
 		return 0;
