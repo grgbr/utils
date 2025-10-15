@@ -62,6 +62,19 @@ struct upoll_worker {
 	uint32_t            kernel;
 };
 
+static inline __utils_nonull(1) __utils_pure __utils_nothrow
+uint32_t
+upoll_watched_events(const struct upoll_worker * __restrict worker)
+{
+	upoll_assert_api(worker);
+	upoll_assert_api(worker->dispatch);
+	upoll_assert_api(!(worker->user &
+	                   ~((uint32_t)
+	                     (EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI))));
+
+	return worker->user;
+}
+
 static inline __utils_nonull(1) __utils_nothrow
 void
 upoll_enable_watch(struct upoll_worker * __restrict worker, uint32_t events)
