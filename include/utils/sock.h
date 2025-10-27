@@ -156,20 +156,53 @@ static inline __utils_nonull(2) __warn_result
 ssize_t
 etux_sock_recv(int fd, void * __restrict buff, size_t size, int flags)
 {
-#define ETUX_SOCK_VALID_RECV_FLAGS \
+#define ETUX_SOCK_RECV_VALID_FLAGS \
 	(MSG_DONTWAIT | MSG_ERRQUEUE | MSG_OOB | MSG_PEEK | MSG_TRUNC | \
 	 MSG_WAITALL)
 	etux_sock_assert_api(fd >= 0);
 	etux_sock_assert_api(buff);
 	etux_sock_assert_api(size);
 	etux_sock_assert_api(size <= SSIZE_MAX);
-	etux_sock_assert_api(!(flags & ~ETUX_SOCK_VALID_RECV_FLAGS));
+	etux_sock_assert_api(!(flags & ~ETUX_SOCK_RECV_VALID_FLAGS));
 
 	ssize_t bytes;
 
 	bytes = recv(fd, buff, size, flags);
 	if (bytes >= 0)
 		return bytes;
+
+	etux_sock_assert_api(errno != EBADF);
+	etux_sock_assert_api(errno != EFAULT);
+	etux_sock_assert_api(errno != EINVAL);
+	etux_sock_assert_api(errno != ENOTCONN);
+	etux_sock_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
+
+static inline __utils_nonull(2) __warn_result
+ssize_t
+etux_sock_recvmsg(int fd, struct msghdr * __restrict msg, int flags)
+{
+#define ETUX_SOCK_RECVMSG_VALID_FLAGS \
+	(MSG_CMSG_CLOEXEC | ETUX_SOCK_RECV_VALID_FLAGS)
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(msg);
+	etux_sock_assert_api(!msg->msg_name || msg->msg_namelen);
+	etux_sock_assert_api(msg->msg_iov || msg->msg_control);
+	etux_sock_assert_api(!msg->msg_iov || msg->msg_iovlen);
+	etux_sock_assert_api(!msg->msg_control || msg->msg_controllen);
+	etux_sock_assert_api(!(flags & ~ETUX_SOCK_RECVMSG_VALID_FLAGS));
+
+	ssize_t bytes;
+
+	bytes = recvmsg(fd, msg, flags);
+	if (bytes >= 0) {
+		etux_sock_assert_api(msg->msg_flags &
+		                     ~(MSG_EOR | MSG_TRUNC | MSG_CTRUNC |
+		                       MSG_OOB | MSG_ERRQUEUE));
+		return bytes;
+	}
 
 	etux_sock_assert_api(errno != EBADF);
 	etux_sock_assert_api(errno != EFAULT);
