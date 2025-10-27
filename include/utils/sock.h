@@ -20,6 +20,7 @@
 #define _ETUX_SOCK_H
 
 #include <utils/fd.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 
 #if defined(CONFIG_UTILS_ASSERT_API)
