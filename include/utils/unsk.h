@@ -33,7 +33,8 @@
 
 #else  /* !defined(CONFIG_UTILS_ASSERT_API) */
 
-#define unsk_assert_api(_expr)
+#define unsk_assert_api(_expr) \
+	do { } while (0)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 

@@ -57,21 +57,21 @@ etux_insk_make_host(__SOCKADDR_ARG               addr,
                     socklen_t                    size,
                     const char * __restrict      string,
                     int                          flags)
-	__utils_nonull(1, 3) __warn_result __export_public;
+	__utils_nonull(3) __warn_result __export_public;
 
 extern ssize_t
 etux_insk_host_name(
 	__CONST_SOCKADDR_ARG               addr,
 	char                               host[__restrict_arr NI_MAXHOST],
 	int                                flags)
-	__utils_nonull(1, 2) __warn_result __export_public;
+	__utils_nonull(2) __warn_result __export_public;
 
 extern int
 etux_insk_make_serv(__SOCKADDR_ARG               addr,
                     const char * __restrict      serv,
                     const char * __restrict      proto,
                     int                          flags)
-	__utils_nonull(1, 2) __warn_result __export_public;
+	__utils_nonull(2) __warn_result __export_public;
 
 extern ssize_t
 etux_insk_serv_name(
@@ -79,7 +79,7 @@ etux_insk_serv_name(
 	const char * __restrict            proto,
 	char                               serv[__restrict_arr NI_MAXSERV],
 	int                                flags)
-	__utils_nonull(1, 3) __warn_result __export_public;
+	__utils_nonull(3) __warn_result __export_public;
 
 #endif /* defined(CONFIG_ETUX_NETDB) */
 
