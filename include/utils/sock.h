@@ -71,7 +71,7 @@ etux_sock_setopt(int                     fd,
 	etux_sock_assert_api(value);
 	etux_sock_assert_api(size);
 
-	if (!setsockopt(fd, SOL_SOCKET, option, value, size))
+	if (!setsockopt(fd, level, option, value, size))
 		return 0;
 
 	etux_sock_assert_api(errno != EBADF);
