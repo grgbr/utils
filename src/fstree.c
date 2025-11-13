@@ -7,6 +7,7 @@
 
 #include "utils/fstree.h"
 #include <stroll/array.h>
+#include <stroll/page.h>
 #include <stroll/falloc.h>
 
 #if !defined(_DIRENT_HAVE_D_TYPE)
@@ -1280,9 +1281,10 @@ etux_fstree_sort_init(struct etux_fstree_sort * __restrict sort,
 	if (err)
 		return err;
 
-#define ETUX_FSTREE_ENTRY_ALLOC_NR (32U)
 	stroll_falloc_init(&sort->alloc,
-	                   ETUX_FSTREE_ENTRY_ALLOC_NR,
+	                   STROLL_FALLOC_UNBOUND_CHUNK_NR,
+	                   (unsigned int)(stroll_page_size() /
+	                                  sizeof(struct etux_fstree_entry)),
 	                   sizeof(struct etux_fstree_entry));
 
 	return 0;
