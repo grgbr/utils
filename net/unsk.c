@@ -482,7 +482,13 @@ STROLL_RESTORE_WARN
 		    (cmsg->cmsg_len != CMSG_LEN(sizeof(*creds))))
 			return -EPROTO;
 
-		*creds = *(const struct ucred *)CMSG_DATA(cmsg);
+		/*
+		 * As stated into cmsg(3), CMSG_DATA() returns a pointer that
+		 * cannot be assumed to be suitably aligned for accessing
+		 * arbitrary payload data types.
+		 * Use memcpy...
+		 */
+		memcpy(creds, CMSG_DATA(cmsg), sizeof(*creds));
 
 		return ret;
 	}
@@ -689,20 +695,28 @@ unsk_dgram_clnt_connect(struct unsk_clnt * __restrict sock,
 
 	int              err;
 	struct cmsghdr * cmsg = &sock->creds.head;
-	struct ucred *   creds = (struct ucred *)CMSG_DATA(cmsg);
+	struct ucred     creds;
 
 	err = unsk_connect_dgram(sock->fd, path, &sock->peer, &sock->peer_sz);
 	if (err)
 		return err;
 
-	/* Setup credentials ancillary message to send messages with. */
+	/*
+	 * Setup credentials ancillary message to send messages with.
+	 *
+	 * As stated into cmsg(3), CMSG_DATA() returns a pointer that cannot be
+	 * assumed to be suitably aligned for accessing arbitrary payload data
+	 * types.
+	 * Use memcpy to setup credentials.
+	 */
 	memset(cmsg, 0, sizeof(*cmsg));
 	cmsg->cmsg_level = SOL_SOCKET;
 	cmsg->cmsg_type = SCM_CREDENTIALS;
 	cmsg->cmsg_len = CMSG_LEN(sizeof(struct ucred));
-	creds->pid = getpid();
-	creds->uid = geteuid();
-	creds->gid = getegid();
+	creds.pid = getpid();
+	creds.uid = geteuid();
+	creds.gid = getegid();
+	memcpy(CMSG_DATA(cmsg), &creds, sizeof(creds));
 
 	return 0;
 }
