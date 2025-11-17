@@ -20,13 +20,11 @@ upoll_apply(const struct upoll * __restrict poller,
 	upoll_assert_intern(poller->nr <= INT_MAX);
 	upoll_assert_intern(poller->events);
 	upoll_assert_api(fd >= 0);
-	upoll_assert_api(worker->user);
 	upoll_assert_api(!(worker->user &
 	                   ~((uint32_t)
 	                     EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
 	upoll_assert_api(worker);
 	upoll_assert_api(worker->dispatch);
-	upoll_assert_intern(worker->kernel);
 
 	if (worker->user != worker->kernel) {
 		int                err __unused;
@@ -38,6 +36,14 @@ upoll_apply(const struct upoll * __restrict poller,
 		/*
 		 * Cannot fail if proper arguments are given...
 		 * See <linux>/fs/eventpoll.c
+		 *
+		 * Also note that the caller is allowed to specify a zero event
+		 * mask so that it may temporarily disable explicitly specified
+		 * event notifications (e.g., anything except EPOLLERR and
+		 * EPOLLHUP).
+		 * This provides an alternative to calling upoll_unregister()
+		 * where implicit event notifications (e.g., EPOLLERR and
+		 * EPOLLHUP) are still desirable.
 		 */
 		err = epoll_ctl(poller->fd, EPOLL_CTL_MOD, fd, &evt);
 		upoll_assert_api(!err);
