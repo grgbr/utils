@@ -1154,7 +1154,7 @@ etux_fstree_sort_load_entry(
 
 	ent = etux_fstree_sort_create_entry(sort);
 	if (!ent)
-		return -ENOMEM;
+		return -errno;
 
 	/* Load and validate current directory entry content. */
 	ret = etux_fstree_iter_load(&sort->iter, ent, dirent);
@@ -1263,6 +1263,9 @@ etux_fstree_sort_process(struct etux_fstree_sort * __restrict sort,
 	return (ret >= 0) ? 0 : ret;
 }
 
+#define ETUX_FSTREE_DEPTH_MAX \
+	STROLL_CONCAT(CONFIG_ETUX_FSTREE_DEPTH_MAX, U)
+
 static __utils_nonull(1) __warn_result
 int
 etux_fstree_sort_init(struct etux_fstree_sort * __restrict sort,
@@ -1281,11 +1284,10 @@ etux_fstree_sort_init(struct etux_fstree_sort * __restrict sort,
 	if (err)
 		return err;
 
-	stroll_falloc_init(&sort->alloc,
-	                   STROLL_FALLOC_UNBOUND_CHUNK_NR,
-	                   (unsigned int)(stroll_page_size() /
-	                                  sizeof(struct etux_fstree_entry)),
-	                   sizeof(struct etux_fstree_entry));
+	stroll_falloc_init_block_size(&sort->alloc,
+	                              ETUX_FSTREE_DEPTH_MAX,
+	                              sizeof(struct etux_fstree_entry),
+	                              stroll_page_size());
 
 	return 0;
 }
@@ -1758,7 +1760,7 @@ etux_fstree_scan_enter(struct etux_fstree_scan * __restrict   scan,
 
 		nevv = etux_fstree_sort_create_entry(&scan->sort);
 		if (!nevv)
-			return -ENOMEM;
+			return -errno;
 
 		pt = etux_fstree_scan_enter_dir(scan, old);
 		if (pt) {
@@ -1858,7 +1860,7 @@ etux_fstree_scan_process(struct etux_fstree_scan * __restrict scan,
 
 	ent = etux_fstree_sort_create_entry(&scan->sort);
 	if (!ent)
-		return -ENOMEM;
+		return -errno;
 
 	do {
 		struct etux_fstree_iter * iter = etux_fstree_scan_iter(scan);

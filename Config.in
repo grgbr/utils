@@ -170,6 +170,14 @@ config ETUX_FSTREE
 	  Build utils library with support for POSIX filesystem directory tree
 	  iterator and scanner.
 
+config ETUX_FSTREE_DEPTH_MAX
+	int "Maximum filesystem tree recursion depth"
+	depends on ETUX_FSTREE
+	range 1 2048
+	default 32
+	help
+	  Configure maximum filesystem tree recursion depth.
+
 config UTILS_STR
 	bool "String utilities"
 	select UTILS_PROVIDES_LIBS
