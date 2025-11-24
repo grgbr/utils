@@ -276,10 +276,14 @@ etux_sock_accept(int                          fd,
                  socklen_t * __restrict       size,
                  int                          flags)
 {
+#define ETUX_SOCK_ACCEPT_VALID_FLAGS \
+	(SOCK_NONBLOCK | SOCK_CLOEXEC)
+#define ETUX_SOCK_ACCEPT_INVALID_FLAGS \
+	(~ETUX_SOCK_ACCEPT_VALID_FLAGS)
 	etux_sock_assert_api(fd >= 0);
 	etux_sock_assert_api(!peer || size);
 	etux_sock_assert_api(!size || (*size >= sizeof(sa_family_t)));
-	etux_sock_assert_api(!(flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)));
+	etux_sock_assert_api(!(flags & ETUX_SOCK_ACCEPT_INVALID_FLAGS));
 
 	int sk;
 
