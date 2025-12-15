@@ -44,13 +44,4 @@
 #endif /* defined(CONFIG_UTILS_ASSERT_API) || \
           defined(CONFIG_UTILS_ASSERT_INTERN) */
 
-static inline __pure __nothrow
-unsigned int
-usys_page_size(void)
-{
-	extern unsigned int usys_pgsz;
-
-	return usys_pgsz;
-}
-
 #endif /* _UTILS_CDEFS_H */
