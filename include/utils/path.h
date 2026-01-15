@@ -31,6 +31,38 @@
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
+/*
+ *  Maximum value for an off_t variable.
+ *
+ * As stated into the glibc manual section "Feature Test Macros", the
+ * _FILE_OFFSET_BITS macro controls the bit size of off_t, and therefore the bit
+ * size of all off_t-derived types and the prototypes of all related functions.
+ *
+ * See
+ * https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
+ * for more infos.
+ */
+#define OFF_MAX \
+	compile_choose(__builtin_types_compatible_p(off_t, long long), \
+	               LLONG_MAX, \
+	               LONG_MAX)
+
+/*
+ *  Minimum value for an off_t variable.
+ *
+ * As stated into the glibc manual section "Feature Test Macros", the
+ * _FILE_OFFSET_BITS macro controls the bit size of off_t, and therefore the bit
+ * size of all off_t-derived types and the prototypes of all related functions.
+ *
+ * See
+ * https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
+ * for more infos.
+ */
+#define OFF_MIN \
+	compile_choose(__builtin_types_compatible_p(off_t, long long), \
+	               LLONG_MIN, \
+	               LONG_MIN)
+
 #if defined(CONFIG_UTILS_ASSERT_API)
 
 #include <stroll/assert.h>

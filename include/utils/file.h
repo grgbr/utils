@@ -197,7 +197,6 @@ ufile_copy_fds(int src_fd, int dst_fd, size_t size)
 	ufile_assert_api(errno != EBADF);
 	ufile_assert_api(errno != EINVAL);
 	ufile_assert_api(errno != EISDIR);
-	ufile_assert_api(errno != EOVERFLOW);
 	ufile_assert_api(errno != ETXTBSY);
 
 	return -errno;
