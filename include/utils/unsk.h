@@ -92,6 +92,17 @@ unsk_is_named_addr(const struct sockaddr_un * __restrict addr,
 	return true;
 }
 
+extern const char *
+unsk_make_addr_string(
+	char                                  string[UNSK_NAMED_PATH_MAX],
+	const struct sockaddr_un * __restrict addr,
+	socklen_t                             length)
+	__utils_nonull(1, 2)
+	__utils_nothrow
+	__leaf
+	__warn_result
+	__export_public;
+
 extern socklen_t
 unsk_make_sized_addr(struct sockaddr_un * __restrict addr,
                      const char * __restrict         path,

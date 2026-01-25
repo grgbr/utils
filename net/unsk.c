@@ -7,6 +7,7 @@
 
 #include "utils/unsk.h"
 #include <stdlib.h>
+#include <ctype.h>
 
 #define UNSK_ABSTRACT_PATH_LEN  (5U)
 #define UNSK_ABSTRACT_PATH_MAX  (UNSK_ABSTRACT_PATH_LEN + 1)
@@ -41,6 +42,53 @@ unsk_validate_named_path(const char * __restrict path)
 	unsk_assert_intern(len);
 
 	return len;
+}
+
+const char *
+unsk_make_addr_string(
+	char                                  string[UNSK_NAMED_PATH_MAX],
+	const struct sockaddr_un * __restrict addr,
+	socklen_t                             length)
+{
+	unsk_assert_api(string);
+	unsk_assert_api(addr);
+	unsk_assert_api(length >= sizeof(sa_family_t));
+	unsk_assert_api(length <= (sizeof(sa_family_t) + UNSK_NAMED_PATH_MAX));
+
+	if (length != sizeof(sa_family_t)) {
+		if (addr->sun_path[0] == '\0') {
+			/* This is a UNIX abstract address. */
+			unsk_assert_api(length == UNSK_ABSTRACT_ADDR_LEN);
+
+			unsigned int c;
+			char *       s = string;
+
+			*s++ = '@';
+			for (c = 1; c < UNSK_ABSTRACT_PATH_MAX; c++) {
+				/*
+				 * Abstract address is made of a sequence of 5
+				 * hexadecimal alphanumeric characters only.
+				 * See <linux/net/unix/af_unix.c
+				 */
+				unsk_assert_intern(isalnum(addr->sun_path[c]));
+				*s++ = addr->sun_path[c];
+			}
+			*s = '\0';
+		}
+		else {
+			/* This is a UNIX (filesystem) named address. */
+			unsk_assert_api(unsk_is_named_addr(addr, length));
+
+			length -= (socklen_t)sizeof(sa_family_t) + 1;
+			memcpy(string, addr->sun_path, length);
+			string[length] = '\0';
+		}
+	}
+	else
+		/* An address assigned to a socket created by socketpair(2). */
+		memcpy(string, "<unnamed>", sizeof("<unnamed>"));
+
+	return string;
 }
 
 socklen_t
