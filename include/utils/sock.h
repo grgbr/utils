@@ -107,14 +107,14 @@ static inline __warn_result
 ssize_t
 etux_sock_send(int fd, const void * __restrict buff, size_t size, int flags)
 {
-#define ETUX_SOCK_VALID_SEND_FLAGS \
+#define ETUX_SOCK_SEND_VALID_FLAGS \
 	(MSG_CONFIRM | MSG_DONTROUTE | MSG_DONTWAIT | MSG_EOR | \
 	 MSG_MORE | MSG_NOSIGNAL | MSG_OOB)
 
 	etux_sock_assert_api(fd >= 0);
 	etux_sock_assert_api(!buff || size);
 	etux_sock_assert_api(!size || (size <= SSIZE_MAX));
-	etux_sock_assert_api(!(flags & ~ETUX_SOCK_VALID_SEND_FLAGS));
+	etux_sock_assert_api(!(flags & ~ETUX_SOCK_SEND_VALID_FLAGS));
 
 	ssize_t bytes;
 
@@ -367,6 +367,10 @@ static inline __utils_nothrow __warn_result
 int
 etux_sock_open(int domain, int type, int proto, int flags)
 {
+#define ETUX_SOCK_OPEN_VALID_FLAGS \
+	(SOCK_NONBLOCK | SOCK_CLOEXEC)
+#define ETUX_SOCK_OPEN_INVALID_FLAGS \
+	(~ETUX_SOCK_OPEN_VALID_FLAGS)
 	etux_sock_assert_api(domain > AF_UNSPEC);
 	etux_sock_assert_api(type > 0);
 	etux_sock_assert_api(proto >= 0);
