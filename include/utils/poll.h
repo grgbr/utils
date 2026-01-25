@@ -77,6 +77,20 @@ upoll_watched_events(const struct upoll_worker * __restrict worker)
 
 static inline __utils_nonull(1) __utils_nothrow
 void
+upoll_setup_watch(struct upoll_worker * __restrict worker, uint32_t events)
+{
+	upoll_assert_api(worker);
+	upoll_assert_api(worker->dispatch);
+	upoll_assert_api(events);
+	upoll_assert_api(!(events &
+	                   ~((uint32_t)
+	                     (EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI))));
+
+	worker->user = events;
+}
+
+static inline __utils_nonull(1) __utils_nothrow
+void
 upoll_enable_watch(struct upoll_worker * __restrict worker, uint32_t events)
 {
 	upoll_assert_api(worker);
@@ -134,6 +148,14 @@ upoll_register(const struct upoll * __restrict poller,
                uint32_t                        events,
                struct upoll_worker *           worker) 
 	__utils_nonull(1, 4) __utils_nothrow __leaf;
+
+extern int
+upoll_register_dispatch(const struct upoll * __restrict poller,
+                        int                             fd,
+                        uint32_t                        events,
+                        struct upoll_worker *           worker,
+                        upoll_dispatch_fn *             dispatch)
+	__utils_nonull(1, 4, 5) __utils_nothrow __leaf;
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
