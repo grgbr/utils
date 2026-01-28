@@ -44,6 +44,10 @@ etux_sock_getfd(int fd)
 
 	int ret;
 
+	/*
+	 * As stated into fcntl(2), currently, only one file descriptor flag is
+	 * is defined: FD_CLOEXEC.
+	 */
 	ret = fcntl(fd, F_GETFD);
 	etux_sock_assert_api(!ret || (ret == FD_CLOEXEC));
 
@@ -141,7 +145,6 @@ etux_sock_send(int fd, const void * __restrict buff, size_t size, int flags)
 	 * connect(2) call.
 	 */
 	etux_sock_assert_api(errno != EACCES);
-
 	etux_sock_assert_api(errno != EBADF);
 	etux_sock_assert_api(errno != EDESTADDRREQ);
 	etux_sock_assert_api(errno != EFAULT);
