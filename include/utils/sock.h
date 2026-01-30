@@ -36,6 +36,20 @@
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
+static inline
+int
+etux_sock_getfd(int fd)
+{
+	etux_sock_assert_api(fd >= 0);
+
+	int ret;
+
+	ret = fcntl(fd, F_GETFD);
+	etux_sock_assert_api(!ret || (ret == FD_CLOEXEC));
+
+	return ret ? SOCK_CLOEXEC : 0;
+}
+
 static inline __utils_nonull(4, 5) __utils_nothrow
 void
 etux_sock_getopt(int                    fd,
