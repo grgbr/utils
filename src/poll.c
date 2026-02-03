@@ -65,7 +65,6 @@ upoll_register_worker(const struct upoll * __restrict  poller,
 	upoll_assert_intern(poller->nr <= INT_MAX);
 	upoll_assert_intern(poller->events);
 	upoll_assert_intern(fd >= 0);
-	upoll_assert_intern(events);
 	upoll_assert_intern(!(events &
 	                      ~((uint32_t)
 	                        EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
@@ -101,7 +100,6 @@ upoll_register(const struct upoll * __restrict  poller,
 {
 	upoll_assert_api(poller);
 	upoll_assert_api(fd >= 0);
-	upoll_assert_api(events);
 	upoll_assert_api(!(events &
 	                   ~((uint32_t)
 	                     EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));
@@ -120,7 +118,6 @@ upoll_register_dispatch(const struct upoll * __restrict  poller,
 {
 	upoll_assert_api(poller);
 	upoll_assert_api(fd >= 0);
-	upoll_assert_api(events);
 	upoll_assert_api(!(events &
 	                   ~((uint32_t)
 	                     EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLPRI)));

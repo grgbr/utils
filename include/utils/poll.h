@@ -157,8 +157,6 @@ upoll_register_dispatch(const struct upoll * __restrict poller,
                         upoll_dispatch_fn *             dispatch)
 	__utils_nonull(1, 4, 5) __utils_nothrow __leaf;
 
-#if defined(CONFIG_UTILS_ASSERT_API)
-
 static inline __utils_nonull(1) __utils_nothrow
 void
 upoll_unregister(const struct upoll * __restrict poller, int fd)
@@ -170,29 +168,15 @@ upoll_unregister(const struct upoll * __restrict poller, int fd)
 	upoll_assert_intern(poller->events);
 	upoll_assert_api(fd >= 0);
 
+	int err __unused;
+
 	/*
 	 * Cannot fail if proper arguments are given...
 	 * See <linux>/fs/eventpoll.c
 	 */
-	upoll_assert_api(!epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL));
+	err = epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL);
+	upoll_assert_api(!err);
 }
-
-#else /* !defined(CONFIG_UTILS_ASSERT_API) */
-
-static inline __utils_nonull(1) __utils_nothrow
-void
-upoll_unregister(const struct upoll * __restrict poller, int fd)
-{
-	upoll_assert_api(poller);
-	upoll_assert_intern(poller->fd >= 0);
-	upoll_assert_intern(poller->nr > 0);
-	upoll_assert_intern(poller->nr <= INT_MAX);
-	upoll_assert_intern(poller->events);
-
-	epoll_ctl(poller->fd, EPOLL_CTL_DEL, fd, NULL);
-}
-
-#endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
 extern int
 upoll_dispatch(const struct upoll * poller, unsigned int nr)
