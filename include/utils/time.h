@@ -83,6 +83,15 @@
 
 static inline __utils_nonull(1) __utils_nothrow
 void
+utime_tai_now(struct timespec * now)
+{
+	utime_assert_api(now);
+
+	utime_assert_api(!clock_gettime(CLOCK_TAI, now));
+}
+
+static inline __utils_nonull(1) __utils_nothrow
+void
 utime_realtime_now(struct timespec * now)
 {
 	utime_assert_api(now);
