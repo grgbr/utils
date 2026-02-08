@@ -45,7 +45,7 @@ _etux_prng_draw_range(struct etux_prng * __restrict prng, int low, int high)
 
 #if UTIME_TIMET_BITS == 64
 
-static
+static __utils_const __utils_nothrow
 unsigned int
 etux_prng_timet_seed(unsigned int seed, time_t duration)
 {
@@ -56,7 +56,7 @@ etux_prng_timet_seed(unsigned int seed, time_t duration)
 
 #elif UTIME_TIMET_BITS == 32
 
-static
+static __utils_const __utils_nothrow
 unsigned int
 etux_prng_timet_seed(unsigned int seed, time_t duration)
 {
@@ -67,7 +67,7 @@ etux_prng_timet_seed(unsigned int seed, time_t duration)
 #error Unsupported time_t bit width !
 #endif
 
-static
+static __utils_nonull(2) __utils_pure __utils_nothrow
 unsigned int
 etux_prng_tspec_seed(unsigned int                       seed,
                      const struct timespec * __restrict tspec)

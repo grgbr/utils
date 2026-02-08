@@ -193,7 +193,7 @@ _etux_prng_initn_seed(struct etux_prng * __restrict prng,
  */
 extern void
 _etux_prng_init(struct etux_prng * __restrict prng, size_t type)
-	__utils_nonull(1) __utils_nothrow __leaf;
+	__utils_nonull(1);
 
 #define etux_prng_init(_prng) \
 	({ \
