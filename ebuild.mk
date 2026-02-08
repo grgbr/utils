@@ -34,6 +34,7 @@ headers             += $(call kconf_enabled,ETUX_INSK,utils/insk.h)
 headers             += $(call kconf_enabled,ETUX_IN4SK,utils/in4sk.h)
 headers             += $(call kconf_enabled,ETUX_IN6SK,utils/in6sk.h)
 headers             += $(call kconf_enabled,UTILS_UNSK,utils/unsk.h)
+headers             += $(call kconf_enabled,UTILS_PRNG,utils/prng.h)
 
 subdirs   := src
 

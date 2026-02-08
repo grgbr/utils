@@ -282,4 +282,11 @@ config UTILS_PWD
 	  Build utils library with support for browsing system password and
 	  group databases.
 
+config UTILS_PRNG
+	bool "Pseudo random number generator"
+	select UTILS_TIME
+	default y
+	help
+	  Build utils library with support for pseudo random integer generator.
+
 # ex: ft=kconfig:
