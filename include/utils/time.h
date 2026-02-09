@@ -139,6 +139,13 @@ utime_proc_now(struct timespec * now)
 
 #define utime_assert_api(_expr)
 
+static inline __utils_nonull(1) __utils_nothrow
+void
+utime_tai_now(struct timespec * now)
+{
+	clock_gettime(CLOCK_TAI, now);
+}
+
 static inline __nonull(1) __nothrow
 void
 utime_realtime_now(struct timespec * now)
