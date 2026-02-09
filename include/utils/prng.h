@@ -85,7 +85,7 @@ _etux_prng_draw(struct etux_prng * __restrict prng)
 	etux_prng_assert_api(prng);
 
 	int32_t rnd;
-	int     err;
+	int     err __unused;
 
 	/*
 	 * As stated into random(3), returned pseudo-random numbers are in the
@@ -171,7 +171,7 @@ _etux_prng_initn_seed(struct etux_prng * __restrict prng,
 	                     (type == ETUX_PRNG3_TYPE) ||
 	                     (type == ETUX_PRNG4_TYPE));
 
-	int err;
+	int err __unused;
 
 	/* Setup internal buffer state to NULL as required by random(3). */
 	prng->buff.state = NULL;
