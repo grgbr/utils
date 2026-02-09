@@ -16,8 +16,8 @@
  *            (https://www.gnu.org/licenses/lgpl+gpl-3.0.txt)
  */
 
-#ifndef _UTILS_PRNG_H
-#define _UTILS_PRNG_H
+#ifndef _ETUX_PRNG_H
+#define _ETUX_PRNG_H
 
 #include <utils/cdefs.h>
 #include <stdlib.h>
@@ -202,4 +202,4 @@ _etux_prng_init(struct etux_prng * __restrict prng, size_t type)
 		_etux_prng_init(__prng, sizeof((_prng)->state)); \
 	 })
 
-#endif /* _UTILS_PRNG_H */
+#endif /* _ETUX_PRNG_H */

@@ -7,7 +7,7 @@
 
 #include "utils/prng.h"
 #include "utils/time.h"
-#include <unistd.h>
+#include "utils/syscall.h"
 
 int
 _etux_prng_draw_max(struct etux_prng * __restrict prng, int high)
@@ -94,7 +94,7 @@ _etux_prng_init(struct etux_prng * __restrict prng, size_t type)
 
 	utime_tai_now(&tspec);
 	seed = etux_prng_tspec_seed(0, &tspec);
-	seed ^= (unsigned int)(gethostid() & UINT_MAX);
+	seed ^= (unsigned int)gethostid() & UINT_MAX;
 	seed ^= (unsigned int)getuid();
 	seed ^= (unsigned int)gettid();
 

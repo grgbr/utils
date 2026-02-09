@@ -11,6 +11,7 @@ config-obj          := config.o
 
 HEADERDIR           := $(CURDIR)/include
 headers              = utils/cdefs.h
+headers             += utils/syscall.h
 headers             += $(call kconf_enabled,UTILS_ATOMIC,utils/atomic.h)
 headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
