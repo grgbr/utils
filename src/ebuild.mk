@@ -22,6 +22,7 @@ libutils-objects      := $(call kconf_enabled,UTILS_SIGNAL,signal.o) \
                          $(call kconf_enabled,UTILS_MQUEUE,mqueue.o) \
                          $(call kconf_enabled,UTILS_NET,net.o) \
                          $(call kconf_enabled,UTILS_PWD,pwd.o) \
+                         $(call kconf_enabled,UTILS_SPAWN,spawn.o) \
                          $(call kconf_enabled,UTILS_PRNG,prng.o)
 
 ifeq ($(CONFIG_ETUX_NET),y)

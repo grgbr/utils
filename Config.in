@@ -63,6 +63,13 @@ config UTILS_EVENT
 	help
 	  Build utils library eventfd wrappers.
 
+config UTILS_SPAWN
+	bool "Spawn"
+	select UTILS_PIPE
+	default y
+	help
+	  Build utils library POSIX spawn wrappers.
+
 config UTILS_THREAD
 	bool "Threads"
 	select UTILS_TIME
