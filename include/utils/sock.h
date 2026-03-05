@@ -101,6 +101,28 @@ etux_sock_setopt(int                     fd,
 	return -errno;
 }
 
+static inline __utils_nonull(2, 3) __utils_nothrow __warn_result
+int
+etux_sock_getname(int                    fd,
+                  struct sockaddr *      local,
+                  socklen_t * __restrict size)
+{
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(local);
+	etux_sock_assert_api(size);
+	etux_sock_assert_api(*size >= sizeof(struct sockaddr));
+
+	if (!getsockname(fd, local, size))
+		return 0;
+
+	etux_sock_assert_api(errno != EBADF);
+	etux_sock_assert_api(errno != EFAULT);
+	etux_sock_assert_api(errno != EINVAL);
+	etux_sock_assert_api(errno != ENOTSOCK);
+
+	return -errno;
+}
+
 /**
  * Send a buffer over socket to its connected peer if any.
  *

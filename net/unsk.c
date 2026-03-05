@@ -46,7 +46,7 @@ unsk_validate_named_path(const char * __restrict path)
 
 const char *
 unsk_make_addr_string(
-	char                                  string[UNSK_NAMED_PATH_MAX],
+	char                                  string[__restrict_arr UNSK_NAMED_PATH_MAX],
 	const struct sockaddr_un * __restrict addr,
 	socklen_t                             length)
 {
@@ -589,7 +589,7 @@ unsk_svc_bind(struct unsk_svc * __restrict sock, const char * __restrict path)
 		return err;
 
 	/* Enable receiving of peer socket credentials. */
-	unsk_setsockopt(sock->fd, SO_PASSCRED, &cred, sizeof(cred));
+	unsk_setopt(sock->fd, SO_PASSCRED, &cred, sizeof(cred));
 
 	return 0;
 }

@@ -94,7 +94,7 @@ unsk_is_named_addr(const struct sockaddr_un * __restrict addr,
 
 extern const char *
 unsk_make_addr_string(
-	char                                  string[UNSK_NAMED_PATH_MAX],
+	char                                  string[__restrict_arr UNSK_NAMED_PATH_MAX],
 	const struct sockaddr_un * __restrict addr,
 	socklen_t                             length)
 	__utils_nonull(1, 2)
@@ -116,10 +116,10 @@ unsk_make_named_addr(struct sockaddr_un * __restrict addr,
 
 static inline __utils_nonull(3, 4) __utils_nothrow
 void
-unsk_getsockopt(int                    fd,
-                int                    option,
-                void * __restrict      value,
-                socklen_t * __restrict size)
+unsk_getopt(int                    fd,
+            int                    option,
+            void * __restrict      value,
+            socklen_t * __restrict size)
 {
 	unsk_assert_api(fd >= 0);
 	unsk_assert_api(option >= 0);
@@ -132,10 +132,10 @@ unsk_getsockopt(int                    fd,
 
 static inline __utils_nonull(3) __utils_nothrow
 void
-unsk_setsockopt(int                     fd,
-                int                     option,
-                const void * __restrict value,
-                socklen_t               size)
+unsk_setopt(int                     fd,
+            int                     option,
+            const void * __restrict value,
+            socklen_t               size)
 {
 	unsk_assert_api(fd >= 0);
 	unsk_assert_api(option >= 0);
@@ -146,6 +146,21 @@ unsk_setsockopt(int                     fd,
 
 	err = etux_sock_setopt(fd, SOL_SOCKET, option, value, size);
 	unsk_assert_api(!err);
+}
+
+static inline __utils_nonull(2, 3) __utils_nothrow __warn_result
+int
+unsk_getname(int                    fd,
+             struct sockaddr_un *   local,
+             socklen_t * __restrict size)
+{
+	etux_sock_assert_api(fd >= 0);
+	etux_sock_assert_api(local);
+	etux_sock_assert_api(size);
+
+	*size = sizeof(*local);
+
+	return etux_sock_getname(fd, (struct sockaddr *)local, size);
 }
 
 /*
