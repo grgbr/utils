@@ -46,5 +46,11 @@ extern __utils_nonull(1)
 int
 etux_spawn_pclose(FILE *stream);
 
+extern __utils_nonull(1)
+int
+etux_spawn_system(const char *path,
+		  char *const argv[],
+		  char *const envp[]);
+
 #endif /* _ETUX_SPAWN_H */
 
