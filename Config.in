@@ -58,7 +58,10 @@ config UTILS_SIGNAL_FD
 
 config UTILS_SPAWN
 	bool "Spawn"
+	select UTILS_SIGNAL
 	select UTILS_PIPE
+	select UTILS_PATH
+	select UTILS_THREAD
 	default y
 	help
 	  Build utils library POSIX spawn wrappers.

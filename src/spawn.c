@@ -14,6 +14,8 @@
 #include <spawn.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <utils/signal.h>
+#include <utils/thread.h>
 
 struct popen_ctx {
 	struct stroll_dlist_node node;
@@ -67,7 +69,7 @@ etux_spawn_popen(const char *path,
 
 	if (pipefd[child_end] == child_fd) {
 		int fd = fcntl(pipefd[parent_end], F_DUPFD_CLOEXEC, 0);
-		
+
 		if (fd < 0)
 			goto close;
 
@@ -172,3 +174,73 @@ etux_spawn_pclose(FILE *stream)
 	return wstatus;
 }
 
+static struct sigaction intr, quit;
+static int sa_refcntr = 0;
+static struct uthr_mutex lock = UTHR_INIT_MUTEX;
+
+int
+etux_spawn_system(const char *path,
+		  char *const argv[],
+		  char *const envp[])
+{
+	int ret;
+	pid_t pid;
+	pid_t wait_pid;
+	int wstatus;
+	posix_spawnattr_t spawn_attr;
+	struct sigaction sa;
+	sigset_t omask;
+	sigset_t reset;
+
+	sa.sa_handler = SIG_IGN;
+	sa.sa_flags = 0;
+	usig_emptyset(&sa.sa_mask);
+
+	uthr_lock_mutex(&lock);
+	if (sa_refcntr++ == 0) {
+		usig_action(SIGINT,  &sa, &intr);
+		usig_action(SIGQUIT, &sa, &quit);
+	}
+	uthr_unlock_mutex(&lock);
+
+	usig_addset(&sa.sa_mask, SIGCHLD);
+	usig_procmask(SIG_BLOCK, &sa.sa_mask, &omask);
+	usig_emptyset(&reset);
+	if (intr.sa_handler != SIG_IGN)
+		usig_addset(&reset, SIGINT);
+
+	if (quit.sa_handler != SIG_IGN)
+		usig_addset(&reset, SIGQUIT);
+
+	posix_spawnattr_init(&spawn_attr);
+	posix_spawnattr_setsigmask(&spawn_attr, &omask);
+	posix_spawnattr_setsigdefault(&spawn_attr, &reset);
+	posix_spawnattr_setflags(&spawn_attr,
+	                         POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK);
+	ret = posix_spawn(&pid, path, NULL, &spawn_attr, argv, envp);
+	posix_spawnattr_destroy(&spawn_attr);
+	if (!ret) {
+		do {
+			int state;
+
+			pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &state);
+			wait_pid = waitpid(pid, &wstatus, 0);
+			pthread_setcancelstate(state, NULL);
+		} while(wait_pid == -1 && errno == EINTR);
+
+		if (wait_pid == -1)
+			ret = -errno;
+		else
+			ret = wstatus;
+
+	} else
+		ret = -ret; // posix_spawn return errno value
+
+	uthr_lock_mutex(&lock);
+	if (--sa_refcntr == 0) {
+		usig_action(SIGINT,  &intr, NULL);
+		usig_action(SIGQUIT, &quit, NULL);
+	}
+	uthr_unlock_mutex(&lock);
+	return ret;
+}
