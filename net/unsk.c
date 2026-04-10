@@ -44,7 +44,7 @@ unsk_validate_named_path(const char * __restrict path)
 	return len;
 }
 
-const char *
+size_t
 unsk_make_addr_string(
 	char                                  string[__restrict_arr UNSK_NAMED_PATH_MAX],
 	const struct sockaddr_un * __restrict addr,
@@ -74,6 +74,8 @@ unsk_make_addr_string(
 				*s++ = addr->sun_path[c];
 			}
 			*s = '\0';
+
+			return (size_t)(s - string);
 		}
 		else {
 			/* This is a UNIX (filesystem) named address. */
@@ -82,13 +84,16 @@ unsk_make_addr_string(
 			length -= (socklen_t)sizeof(sa_family_t) + 1;
 			memcpy(string, addr->sun_path, length);
 			string[length] = '\0';
+
+			return (size_t)length;
 		}
 	}
-	else
+	else {
 		/* An address assigned to a socket created by socketpair(2). */
 		memcpy(string, "<unnamed>", sizeof("<unnamed>"));
 
-	return string;
+		return sizeof("<unnamed>") - 1;
+	}
 }
 
 socklen_t

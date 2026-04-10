@@ -92,7 +92,7 @@ unsk_is_named_addr(const struct sockaddr_un * __restrict addr,
 	return true;
 }
 
-extern const char *
+extern size_t
 unsk_make_addr_string(
 	char                                  string[__restrict_arr UNSK_NAMED_PATH_MAX],
 	const struct sockaddr_un * __restrict addr,
