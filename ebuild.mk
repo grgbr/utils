@@ -14,6 +14,7 @@ headers              = utils/cdefs.h
 headers             += utils/syscall.h
 headers             += $(call kconf_enabled,UTILS_ATOMIC,utils/atomic.h)
 headers             += $(call kconf_enabled,UTILS_SIGNAL,utils/signal.h)
+headers             += $(call kconf_enabled,UTILS_EVENT,utils/event.h)
 headers             += $(call kconf_enabled,UTILS_THREAD,utils/thread.h)
 headers             += $(call kconf_enabled,UTILS_TIME,utils/time.h)
 headers             += $(call kconf_enabled,ETUX_TIMER,utils/timer.h)

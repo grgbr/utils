@@ -56,6 +56,13 @@ config UTILS_SIGNAL_FD
 	help
 	  Build utils library Linux signalfd wrappers.
 
+config UTILS_EVENT
+	bool "Event file descriptor"
+	select UTILS_PROVIDES_LIBS
+	default y
+	help
+	  Build utils library eventfd wrappers.
+
 config UTILS_THREAD
 	bool "Threads"
 	select UTILS_TIME
