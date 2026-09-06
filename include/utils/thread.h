@@ -90,20 +90,16 @@ uthr_unlock_mutex(struct uthr_mutex * __restrict mutex)
 }
 
 static inline __utils_nonull(1) __utils_nothrow
-int
+void
 uthr_init_mutex(struct uthr_mutex * __restrict mutex)
 {
 	uthr_assert_api(mutex);
 
 	int err;
 
-	/* On Linux, defaults to «fast» mutex type. */
+	/* On Linux, it always succeeds and defaults to «fast» mutex type. */
 	err = pthread_mutex_init(&mutex->pthread, NULL);
-
-	uthr_assert_api(err != EBUSY);
-	uthr_assert_api(err != EINVAL);
-
-	return -err;
+	uthr_assert_api(!err);
 }
 
 static inline __utils_nonull(1) __utils_nothrow
@@ -143,11 +139,11 @@ uthr_unlock_mutex(struct uthr_mutex * __restrict mutex)
 }
 
 static inline __utils_nonull(1) __utils_nothrow
-int
+void
 uthr_init_mutex(struct uthr_mutex * __restrict mutex)
 {
-	/* On Linux, defaults to «fast» mutex type. */
-	return 0 - pthread_mutex_init(&mutex->pthread, NULL);
+	/* On Linux, it always suceeds and defaults to «fast» mutex type. */
+	pthread_mutex_init(&mutex->pthread, NULL);
 }
 
 static inline __utils_nonull(1) __utils_nothrow
@@ -381,10 +377,12 @@ uthr_timed_wait_cond(struct uthr_cond * __restrict      cond,
 	int err;
 
 	err = pthread_cond_timedwait(&cond->pthread, &mutex->pthread, tmout);
+	if (!err)
+		return 0;
 
 	uthr_assert_api(err == ETIMEDOUT);
 
-	return -err;
+	return -ETIMEDOUT;
 }
 
 static inline __utils_nonull(1) __utils_nothrow
@@ -569,6 +567,175 @@ uthr_sigmask(int how, const sigset_t * set, sigset_t * oldset)
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
+static inline __utils_nonull(1) __utils_nothrow
+void
+uthr_attr_init(pthread_attr_t * attribute)
+{
+	uthr_assert_api(attribute);
+
+	int err;
+
+	err = pthread_attr_init(attribute);
+	uthr_assert_api(!err);
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+uthr_attr_init(pthread_attr_t * attribute)
+{
+	pthread_attr_init(attribute);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+uthr_attr_destroy(pthread_attr_t * attribute)
+{
+	uthr_assert_api(attribute);
+
+	int err;
+
+	err = pthread_attr_destroy(attribute);
+	uthr_assert_api(!err);
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+uthr_attr_destroy(pthread_attr_t * attribute)
+{
+	pthread_attr_destroy(attribute);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+uthr_attr_set_detachstate(pthread_attr_t * attribute, int detach)
+{
+	uthr_assert_api(attribute);
+	uthr_assert_api((detach == PTHREAD_CREATE_DETACHED) ||
+	                (detach == PTHREAD_CREATE_JOINABLE));
+
+	int err;
+
+	err = pthread_attr_setdetachstate(attribute, detach);
+	uthr_assert_api(!err);
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(1) __utils_nothrow
+void
+uthr_attr_set_detachstate(pthread_attr_t * attribute, int detach)
+{
+	pthread_attr_setdetachstate(attribute, detach);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
+uthr_attr_get_detachstate(pthread_attr_t * attribute, int * detach)
+{
+	uthr_assert_api(attribute);
+	uthr_assert_api(detach);
+
+	int err;
+
+	err = pthread_attr_getdetachstate(attribute, detach);
+	uthr_assert_api(!err);
+
+	uthr_assert_api((*detach == PTHREAD_CREATE_DETACHED) ||
+	                (*detach == PTHREAD_CREATE_JOINABLE));
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(1, 2) __utils_nothrow
+void
+uthr_attr_get_detachstate(pthread_attr_t * attribute, int * detach)
+{
+	pthread_attr_getdetachstate(attribute, detach);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+/*
+ * `mask' may be given as NULL to clear the set of signals stored into
+ * `attribute'.
+ */
+static inline __utils_nonull(1)
+int
+uthr_attr_set_sigmask(pthread_attr_t * attribute, const sigset_t * mask)
+{
+	uthr_assert_api(attribute);
+
+	int err;
+
+	err = pthread_attr_setsigmask_np(attribute, mask);
+	uthr_assert_api(!err || (err == ENOMEM));
+
+	return -err;
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+/*
+ * `mask' may be given as NULL to clear the set of signals stored into
+ * `attribute'.
+ */
+static inline __utils_nonull(1)
+int
+uthr_attr_set_sigmask(pthread_attr_t * attribute, const sigset_t * mask)
+{
+	return 0 - pthread_attr_setsigmask_np(attribute, mask);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
+static inline __utils_nonull(1, 2)
+int
+uthr_attr_get_sigmask(pthread_attr_t * attribute, sigset_t * mask)
+{
+	uthr_assert_api(attribute);
+	uthr_assert_api(mask);
+
+	int ret;
+
+	ret = pthread_attr_getsigmask_np(attribute, mask);
+	uthr_assert_api(!ret || (ret == PTHREAD_ATTR_NO_SIGMASK_NP));
+
+	return ret;
+}
+
+#else  /* !defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __utils_nonull(1, 2)
+int
+uthr_attr_get_sigmask(pthread_attr_t * attribute, sigset_t * mask)
+{
+	return pthread_attr_getsigmask_np(attribute, mask);
+}
+
+#endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+#if defined(CONFIG_UTILS_ASSERT_API)
+
 static inline __utils_nonull(1, 3) __utils_nothrow
 int
 uthr_create(pthread_t * __restrict             thread,
@@ -597,6 +764,13 @@ uthr_create(pthread_t * __restrict             thread,
 }
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
+
+static inline __noreturn
+void
+uthr_exit(void * status)
+{
+	pthread_exit(status);
+}
 
 #define UTHR_NAME_MAX (16U)
 
