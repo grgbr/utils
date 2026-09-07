@@ -75,7 +75,7 @@ unsk_make_addr_string(
 			}
 			*s = '\0';
 
-			return (size_t)(s - string);
+			return (size_t)UNSK_ABSTRACT_PATH_MAX;
 		}
 		else {
 			/* This is a UNIX (filesystem) named address. */
