@@ -144,4 +144,129 @@ etux_timer_issue_msec(void) __utils_nothrow __warn_result __export_public;
 
 extern void etux_timer_run(void) __utils_nothrow __export_public;
 
+#if defined(CONFIG_UTILS_TIMER_FD)
+
+#include <utils/fd.h>
+#include <sys/timerfd.h>
+
+static inline __utils_nonull(2) __warn_result;
+ssize_t
+etux_timerfd_state(int fd, uint64_t * count)
+{
+	ssize_t ret;
+
+	ret = ufd_read(fd, (char *)count, sizeof(*count));
+	if (ret >= 0) {
+		etux_timer_assert_intern(!ret || (ret == sizeof(*count)));
+		return ret;
+	}
+
+	etux_timer_assert_api(errno != EIO);
+
+	return -errno;
+}
+
+static inline __utils_nonull(2) __utils_nothrow
+void
+etux_timerfd_settings(int fd, struct itimerspec * current)
+{
+	etux_timer_assert_api(fd >= 0);
+	etux_timer_assert_api(current);
+
+	int err;
+
+	err = timerfd_gettime(fd, current);
+	if (!err)
+		return 0;
+
+	etux_timer_assert_api(errno != EBADF);
+	etux_timer_assert_api(errno != EINVAL);
+	etux_timer_assert_api(errno != EFAULT);
+
+	return -errno;
+}
+
+static inline __utils_nonull(3) __utils_nothrow
+int
+etux_timerfd_arm(int                       fd,
+                 int                       flags,
+                 const struct itimerspec * expire,
+                 struct itimerspec *       old)
+{
+	etux_timer_assert_api(fd >= 0);
+	etux_timer_assert_api(!(flags & ~(TFD_TIMER_ABSTIME |
+	                                  TFD_TIMER_CANCEL_ON_SET)));
+	etux_timer_assert_api(expire);
+	utime_assert_tspec_api(&expire->it_value);
+	etux_timer_assert_api(!!expire->it_value.tv_sec ||
+	                      !!expire->it_value.tv_nsec);
+
+	int err;
+
+	err = timerfd_settime(fd, flags, expire, old);
+	if (!err)
+		return 0;
+
+	etux_timer_assert_api(errno != EBADF);
+	etux_timer_assert_api(errno != EFAULT);
+	etux_timer_assert_api(errno != EINVAL);
+
+	return -errno;
+}
+
+static inline __utils_nothrow
+void
+etux_timerfd_cancel(int fd, struct itimerspec * old)
+{
+	etux_timer_assert_api(fd >= 0);
+
+	const struct itimerspec xpr = {
+		.it_interval = { 0, },
+		.it_value    = { 0, }
+	};
+	int                     err;
+
+	err = timerfd_settime(fd, 0, xpr, old);
+	etux_timer_assert_api(!err);
+}
+
+static inline __utils_nothrow __warn_result
+int
+etux_timerfd_open(clockid_t clockid, int flags)
+{
+	etux_timer_assert_api((clockid == CLOCK_REALTIME) ||
+	                      (clockid == CLOCK_MONOTONIC) ||
+	                      (clockid == CLOCK_BOOTTIME) ||
+	                      (clockid == CLOCK_REALTIME_ALARM) ||
+	                      (clockid == CLOCK_BOOTTIME_ALARM));
+	etux_timer_assert_api(!(flags & ~(TFD_NONBLOCK | TFD_CLOEXEC)));
+
+	int fd;
+
+	fd = timerfd_create(clockid, flags);
+	if (fd >= 0)
+		return fd;
+
+	etux_timer_assert_api(errno != EINVAL);
+
+	return -errno;
+}
+
+static inline
+int
+etux_timerfd_close(int fd)
+{
+	api(fd >= 0);
+
+	int ret;
+
+	ret = ufd_close(fd);
+
+	etux_timer_assert_api(!ret || (ret == -EINTR));
+
+	return ret;
+}
+
+#endif /* defined(CONFIG_UTILS_TIMER_FD) */
+
 #endif /* _ETUX_TIMER_H */

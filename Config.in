@@ -131,6 +131,13 @@ config ETUX_TIMER_HWHEEL
 	help
 	  Build eTux library with hierarchical timer wheel algorithm support.
 
+config ETUX_TIMER_FD
+	bool "Timer file descriptor"
+	depends on ETUX_TIMER
+	default y
+	help
+	  Build utils library Linux timerfd wrappers.
+
 endif # ETUX_TIMER
 
 config UTILS_PATH
