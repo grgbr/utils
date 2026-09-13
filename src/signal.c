@@ -117,6 +117,18 @@ usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
 	}
 }
 
+void
+usig_notset(sigset_t * dest, const sigset_t * src)
+{
+	usig_assert_api(dest);
+	usig_assert_api(src);
+
+	int w = stroll_array_nr(dest->__val);
+
+	while (--w >= 0)
+		dest->__val[w] = ~src->__val[w];
+}
+
 #if defined(CONFIG_UTILS_SIGNAL_FD)
 
 int

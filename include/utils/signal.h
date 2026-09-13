@@ -163,6 +163,34 @@ usig_delset(sigset_t * set, int signum)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
+static inline __utils_nonull(1, 2, 3) __utils_nothrow
+void
+usig_orset(sigset_t * dest, const sigset_t * left, const sigset_t * right)
+{
+	usig_assert_api(dest);
+	usig_assert_api(left);
+	usig_assert_api(right);
+	usig_assert_api(left != right);
+
+	sigorset(dest, left, right);
+}
+
+static inline __utils_nonull(1, 2, 3) __utils_nothrow
+void
+usig_andset(sigset_t * dest, const sigset_t * left, const sigset_t * right)
+{
+	usig_assert_api(dest);
+	usig_assert_api(left);
+	usig_assert_api(right);
+	usig_assert_api(left != right);
+
+	sigandset(dest, left, right);
+}
+
+extern void
+usig_notset(sigset_t * dest, const sigset_t * src)
+	__utils_nonull(1, 2) __utils_nothrow __leaf;
+
 static inline __utils_nonull(1) __utils_nothrow
 bool
 usig_ismember(const sigset_t * set, int signum)
@@ -239,7 +267,7 @@ extern int
 usig_read_fd(int fd, struct signalfd_siginfo * infos, unsigned int count)
 	__utils_nonull(2) __leaf __warn_result;
 
-static inline __utils_nonull(1) __utils_nothrow
+static inline __utils_nonull(1) __utils_nothrow __warn_result
 int
 usig_open_fd(const sigset_t * mask, int flags)
 {
@@ -250,14 +278,13 @@ usig_open_fd(const sigset_t * mask, int flags)
 	int fd;
 
 	fd = signalfd(-1, mask, flags);
-	if (fd < 0) {
-		usig_assert_api(errno != EBADF);
-		usig_assert_api(errno != EINVAL);
+	if (fd >= 0)
+		return fd;
 
-		return -errno;
-	}
+	usig_assert_api(errno != EBADF);
+	usig_assert_api(errno != EINVAL);
 
-	return fd;
+	return -errno;
 }
 
 static inline
