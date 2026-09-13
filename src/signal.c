@@ -117,6 +117,33 @@ usig_restore_actions(const struct usig_orig_act orig[__restrict_arr],
 	}
 }
 
+static const struct sigaction usig_ign_act = {
+	.sa_handler = SIG_IGN,
+	.sa_flags   = 0
+};
+
+void
+usig_ignore(int signum, struct sigaction * __restrict old)
+{
+	usig_assert_api(signum > 0);
+	usig_assert_api(!usig_ismember(&__usig_inval_msk, signum));
+
+	usig_action(signum, &usig_ign_act, old);
+}
+
+void
+usig_ignore_set(const sigset_t * __restrict set)
+{
+	usig_assert_api(set);
+
+	int s;
+
+	for (s = 1; s < NSIG; s++) {
+		if (usig_ismember(set, s))
+			usig_action(s, &usig_ign_act, NULL);
+	}
+}
+
 void
 usig_notset(sigset_t * dest, const sigset_t * src)
 {

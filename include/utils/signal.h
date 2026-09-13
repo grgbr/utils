@@ -232,6 +232,14 @@ usig_procmask(int                         how,
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
+extern void
+usig_ignore(int signum, struct sigaction * __restrict old)
+	__utils_nothrow __leaf;
+
+extern void
+usig_ignore_set(const sigset_t * __restrict set)
+	__utils_nonull(1) __utils_nothrow __leaf;
+
 extern const sigset_t * const         usig_inval_msk;
 extern const sigset_t * const         usig_empty_msk;
 extern const sigset_t * const         usig_full_msk;
