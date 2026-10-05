@@ -671,6 +671,8 @@ uthr_attr_get_detachstate(pthread_attr_t * attribute, int * detach)
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
 
+/* Public definition of pthread_attr_setsigmask_np(3) comes with Glibc versions >= 2.32. */
+#if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 32)
 #if defined(CONFIG_UTILS_ASSERT_API)
 
 /*
@@ -733,6 +735,7 @@ uthr_attr_get_sigmask(pthread_attr_t * attribute, sigset_t * mask)
 }
 
 #endif /* defined(CONFIG_UTILS_ASSERT_API) */
+#endif /* defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 32) */
 
 #if defined(CONFIG_UTILS_ASSERT_API)
 
